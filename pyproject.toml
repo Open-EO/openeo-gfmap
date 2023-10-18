@@ -32,10 +32,5 @@ dependencies = [
     "xarray",
     "rioxarray",
     "hydra-core",
-    "pre-commit",
     "geojson",
-    "isort",
-    "black",
-    "pydocstyle",
-    "flake8"
 ]
