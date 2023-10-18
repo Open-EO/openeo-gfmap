@@ -29,10 +29,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "openeo>=0.22.0",
-    "xarray>=2022.3.0",
-    "rioxarray>=0.13.0",
-    "hydra-core>=1.3.0",
+    # "openeo>=0.22.0",
+    # "xarray>=2022.3.0",
+    # "rioxarray>=0.13.0",
+    # "hydra-core>=1.3.0",
     "geojson>=3.0.0",
 ]
 
