@@ -5,7 +5,8 @@
 @Library('lib')_
 
 pythonPipeline {
-  package_name = 'openeo-gfmap'
+  package_name = "openeo-gfmap"
+  test_module_name = "openeo_gfmap"
   wipeout_workspace = true
   python_version = ["3.10"]
   extras_require = 'dev'
