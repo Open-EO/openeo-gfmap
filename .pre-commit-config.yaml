@@ -30,19 +30,6 @@ repos:
         types: [python]
   - repo: local
     hooks:
-      - id: isort
-        name: isort
-        entry: isort
-        require_serial: true
-        language: system
-        types: [python]
-      - id: black
-        name: black
-        entry: black --line-length 100
-        require_serial: true
-        language: system
-        types: [python]
-        exclude: "^tasks/"
       - id: shellcheck
         name: shellcheck
         entry: shellcheck --check-sourced --shell=bash --exclude=SC1087
@@ -69,3 +56,14 @@ repos:
     rev: v1.0.2
     hooks:
       - id: auto-smart-commit
+  - repo: https://github.com/psf/black
+    rev: 23.9.1
+    hooks:
+      - id: black
+        language_version: python3.11
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: ["--profile", "black"]
