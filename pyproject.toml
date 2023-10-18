@@ -8,7 +8,7 @@ exclude = [
   "/notebooks",
   "/scripts",
   "/bin",
-  "/tests"
+  "/tests",
 ]
 
 [project]
@@ -19,7 +19,7 @@ authors = [
   { name="Vincent Verelst" },
   { name="Kristof Van Tricht" },
   { name="Stefaan Lippens" },
-  { name="Jeroen Degerickx" }
+  { name="Jeroen Degerickx" },
 ]
 description = "OpenEO General Framework for Mapping"
 readme = "README.md"
@@ -42,10 +42,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=7.4.0"
+  "pytest>=7.4.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = [
-  "tests"
+  "tests",
 ]
