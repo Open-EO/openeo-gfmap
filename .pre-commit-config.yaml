@@ -4,7 +4,7 @@ fail_fast: true
 exclude: "(received/|.*_depr)"
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.3.0
+    rev: v4.5.0
     hooks:
       - id: check-added-large-files
         args: ['--maxkb=65536']
@@ -48,16 +48,16 @@ repos:
       #   types: [python]
       #   exclude: "(^tasks/|.*_depr)"
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.3.0
+    rev: v4.5.0
     hooks:
       - id: no-commit-to-branch
         args: [ '--branch', 'main' ]
   - repo: https://github.com/radix-ai/auto-smart-commit
-    rev: v1.0.2
+    rev: v1.0.3
     hooks:
       - id: auto-smart-commit
   - repo: https://github.com/psf/black
-    rev: 23.9.1
+    rev: 23.10.0
     hooks:
       - id: black
         language_version: python3.11
