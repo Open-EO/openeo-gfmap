@@ -39,3 +39,13 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/Open-EO/openeo-gfmap"
 "Bug Tracker" = "https://github.com/Open-EO/openeo-gfmap/issues"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4.0"
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+  "tests"
+]
