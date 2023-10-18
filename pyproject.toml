@@ -10,6 +10,7 @@ exclude = [
   "/bin",
   "/tests"
 ]
+
 [project]
 name = "openeo_gfmap"
 version = "0.0.1"
@@ -28,11 +29,11 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "openeo",
-    "xarray",
-    "rioxarray",
-    "hydra-core",
-    "geojson",
+    "openeo>=0.22.0",
+    "xarray>=2022.3.0",
+    "rioxarray>=0.13.0",
+    "hydra-core>=1.3.0",
+    "geojson>=3.0.0",
 ]
 
 [project.urls]
