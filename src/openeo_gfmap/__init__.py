@@ -6,6 +6,8 @@ by leveraging the power of OpenEO (http://openeo.org/).
 More information available in the README.md file.
 """
 
-from .backend_context import Backend, BackendContext
+from .backend import Backend, BackendContext
+from .spatial import SpatialContext
+from .temporal import TemporalContext
 
-__all__ = ["Backend", "BackendContext"]
+__all__ = ["Backend", "BackendContext", "SpatialContext", "TemporalContext"]

@@ -11,6 +11,7 @@ class Backend(Enum):
 
     TERRASCOPE = ("terrascope",)
     CREODIAS = ("creodias",)
+    EODC = ("eodc",)
     LOCAL = "local"
 
 

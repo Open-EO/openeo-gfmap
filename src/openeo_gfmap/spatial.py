@@ -7,11 +7,16 @@ from geojson import GeoJSON
 
 @dataclass
 class BoundingBoxExtent:
-    # TODO: use east, south, west, north to stay closer to openEO conventions
-    minx: float
-    miny: float
-    maxx: float
-    maxy: float
+    """Definition of a bounding box as accepted by OpenEO
+
+    Contains the minx, miny, maxx, maxy coordinates expressed as east, south
+    west, north. The EPSG is also defined.
+    """
+
+    east: float
+    south: float
+    west: float
+    north: float
     epsg: int = 4326
 
 
