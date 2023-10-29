@@ -35,6 +35,10 @@ dependencies = [
     # "hydra-core>=1.3.0",
     "geojson>=3.0.0",
     "loguru>=0.7.2",
+    "h5netcdf>=1.2.0",
+    "openeo[localprocessing]",
+    "cftime",
+    "pytest-dependency",
 ]
 
 [project.urls]

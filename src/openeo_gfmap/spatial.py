@@ -13,9 +13,9 @@ class BoundingBoxExtent:
     west, north. The EPSG is also defined.
     """
 
-    east: float
-    south: float
     west: float
+    south: float
+    east: float
     north: float
     epsg: int = 4326
 
