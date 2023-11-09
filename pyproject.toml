@@ -39,6 +39,8 @@ dependencies = [
     "openeo[localprocessing]",
     "cftime",
     "pytest-dependency",
+    "pyarrow",
+    "fastparquet"
 ]
 
 [project.urls]

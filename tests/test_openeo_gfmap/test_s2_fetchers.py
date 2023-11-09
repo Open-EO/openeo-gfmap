@@ -2,14 +2,19 @@
 from pathlib import Path
 from typing import Union
 
+import geojson
 import openeo
 import pytest
 import rioxarray
+import numpy as np
 import xarray as xr
+import geopandas as gpd
 
 from openeo_gfmap import SpatialContext, TemporalContext
 from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
-from openeo_gfmap.fetching import CollectionFetcher, build_sentinel2_l2a_extractor
+from openeo_gfmap.fetching import (
+    CollectionFetcher, build_sentinel2_l2a_extractor
+)
 
 # Fields close to TAP, Belgium
 SPATIAL_EXTENT_1 = {
@@ -34,7 +39,11 @@ SPATIAL_EXTENT_2 = {
     "country": "Argentina",  # Metadata useful for test suite
 }
 
+# Recent dates for second extent
 TEMPORAL_EXTENT_2 = ["2023-01-01", "2023-02-01"]
+
+# Dataset of polygons for extraction datasets
+POINT_EXTRACTION_DF = Path(__file__).parent / 'resources/malawi_extraction_polygons.gpkg'
 
 test_backends = [Backend.TERRASCOPE, Backend.CDSE, Backend.EODC]
 
@@ -112,6 +121,19 @@ class TestS2Extractors:
                 max(inarr.coords["y"]).item(),
             )
 
+        def normalize_array(inarr: xr.DataArray) -> xr.DataArray:
+            quantile_99 = inarr.quantile(0.99, dim=['x', 'y', 't'])
+            minimum = inarr.min(dim=['x', 'y', 't'])
+            inarr = (inarr - minimum) / (quantile_99 - minimum)
+            # Clip exceeding values to 1
+            return xr.where(inarr > 1.0, 1.0, inarr)
+
+        def select_optical(inarr: xr.DataArray) -> xr.DataArray:
+            return inarr.sel(bands=[
+                band for band in inarr.coords['bands'].to_numpy()
+                if band.startswith('S2-B')
+            ])
+
         backend_types = set([conf[2] for conf in test_configurations])
         countries = set([conf[0]["country"] for conf in test_configurations])
         for country in countries:
@@ -146,16 +168,47 @@ class TestS2Extractors:
                 else:
                     assert tile_bounds == bounds
 
-            # Compare the similarity score of the arrays
-            # TODO implement Mean Squarred Error or other metric to evaluate
-            # the similarity between the arrays
+            # Compare the arrays on the optical values
+            normalized_tiles = [
+                normalize_array(select_optical(inarr.to_array(dim='bands')))
+                for inarr in loaded_tiles
+            ]
+            first_tile = normalized_tiles[0]
+            for tile_idx in range(1, len(normalized_tiles)):
+                tile_to_compare = normalized_tiles[tile_idx]
+                dot_product = np.sum(first_tile * tile_to_compare)
+                first_norm = np.linalg.norm(first_tile)
+                second_norm = np.linalg.norm(tile_to_compare)
+                similarity_score = (
+                    dot_product / (first_norm * second_norm)
+                ).item()
+
+                # Assert the similarity score
+                print(similarity_score, tile_idx)
+                assert similarity_score >= 0.95
+            
+        def sentinel2_l2a_point_based(
+            spatial_context: SpatialContext,
+            temporal_context: TemporalContext,
+            backend: Backend,
+            connection: openeo.Connection
+        ):
+            """Test the point based extractions from the spatial aggregation of
+            given polygons.
+            """
+            context = BackendContext(backend)
+            bands = ["S2-B01", "S2-B04", "S2-B08", "S2-B11"]
+            pass
+
 
 
 @pytest.mark.parametrize(
     "spatial_context, temporal_context, backend", test_configurations
 )
 def test_sentinel2_l2a(
-    spatial_context: SpatialContext, temporal_context: TemporalContext, backend: Backend
+    spatial_context: SpatialContext,
+    temporal_context: TemporalContext,
+    backend: Backend
 ):
     connection = BACKEND_CONNECTIONS[backend]()
     TestS2Extractors.sentinel2_l2a(
@@ -166,3 +219,35 @@ def test_sentinel2_l2a(
 @pytest.mark.depends(on=["test_sentinel2_l2a"])
 def test_compare_sentinel2_tiles():
     TestS2Extractors.compare_sentinel2_tiles()
+
+
+@pytest.fixture
+def extraction_df() -> gpd.GeoDataFrame:
+    return gpd.read_file(POINT_EXTRACTION_DF)
+
+
+@pytest.mark.parametrize(
+    "backend", test_backends
+)
+def test_sentinel2_l2a_point_based(
+    backend: Backend,
+    extraction_df: gpd.GeoDataFrame
+):
+    connection = BACKEND_CONNECTIONS[backend]()
+
+    # Convert GeoDataFrame to feature collection to build spatial context
+    geojson_features = extraction_df.geometry.__geo_interface__
+    spatial_context = geojson.GeoJSON({
+        "type": "FeatureCollection",
+        "features": geojson_features["features"]
+    })
+
+    # Build the temporal context
+    temporal_context = TemporalContext(
+        start_date=extraction_df.iloc[0]['start_date'],
+        end_date=extraction_df.iloc[0]['end_date']
+    )
+
+    TestS2Extractors.sentinel2_l2a_point_based(
+        spatial_context, temporal_context, backend, connection
+    )
