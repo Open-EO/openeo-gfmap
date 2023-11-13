@@ -1,5 +1,6 @@
-""" Extraction of S2 features, depending on the backend.
+""" Extraction of S2 features, supporting different backends.
 """
+from functools import partial
 from typing import Callable
 
 import openeo
@@ -10,8 +11,13 @@ from openeo_gfmap.metadata import FakeMetadata
 from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
 from openeo_gfmap.temporal import TemporalContext
 
-from .commons import convert_band_names, rename_bands, resample_reproject
-from .fetching import CollectionFetcher
+from .commons import (
+    convert_band_names,
+    load_collection,
+    rename_bands,
+    resample_reproject,
+)
+from .fetching import CollectionFetcher, FetchType
 
 BASE_SENTINEL2_L2A_MAPPING = {
     "B01": "S2-B01",
@@ -50,9 +56,16 @@ ELEMENT84_SENTINEL2_L2A_MAPPING = {
 }
 
 
-def get_s2_l2a_default_fetcher(collection_name: str) -> Callable:
+def get_s2_l2a_default_fetcher(collection_name: str, fetch_type: FetchType) -> Callable:
     """Builds the fetch function from the collection name as it stored in the
     target backend.
+
+    Parameters
+    ----------
+    collection_name: str
+        The name of the sentinel2 collection as named in the backend
+    point_based: bool
+        The type of fetching: TILE, POINT and POLYGON.
     """
 
     def s2_l2a_fetch_default(
@@ -81,16 +94,17 @@ def get_s2_l2a_default_fetcher(collection_name: str) -> Callable:
         """
         # Rename the bands to the backend collection names
         bands = convert_band_names(bands, BASE_SENTINEL2_L2A_MAPPING)
-        if isinstance(spatial_extent, BoundingBoxExtent):
-            spatial_extent = dict(spatial_extent)
-        elif isinstance(spatial_extent, GeoJSON):
-            assert (
-                spatial_extent.get("crs", None) is not None
-            ), "CRS not defined within GeoJSON collection."
-            spatial_extent = dict(spatial_extent)
 
-        cube = connection.load_collection(
-            collection_name, spatial_extent, temporal_extent, bands
+        load_collection_parameters = params.get("load_collection", {})
+
+        cube = load_collection(
+            connection,
+            bands,
+            collection_name,
+            spatial_extent,
+            temporal_extent,
+            fetch_type,
+            **load_collection_parameters,
         )
 
         # Apply if the collection is a GeoJSON Feature collection
@@ -102,7 +116,9 @@ def get_s2_l2a_default_fetcher(collection_name: str) -> Callable:
     return s2_l2a_fetch_default
 
 
-def get_s2_l2a_element84_fetcher(collection_name: str) -> Callable:
+def get_s2_l2a_element84_fetcher(
+    collection_name: str, fetch_type: FetchType
+) -> Callable:
     """Fetches the collections from the Sentinel-2 Cloud-Optimized GeoTIFFs
     bucket provided by Amazon and managed by Element84.
     """
@@ -116,6 +132,7 @@ def get_s2_l2a_element84_fetcher(collection_name: str) -> Callable:
     ) -> openeo.DataCube:
         """Collection fetcher on the element84 collection."""
         bands = convert_band_names(bands, ELEMENT84_SENTINEL2_L2A_MAPPING)
+
         if isinstance(spatial_extent, BoundingBoxExtent):
             spatial_extent = dict(spatial_extent)
         elif isinstance(spatial_extent, GeoJSON):
@@ -142,7 +159,9 @@ def get_s2_l2a_element84_fetcher(collection_name: str) -> Callable:
     return s2_l2a_element84_fetcher
 
 
-def get_s2_l2a_default_processor(collection_name: str) -> Callable:
+def get_s2_l2a_default_processor(
+    collection_name: str, fetch_type: FetchType
+) -> Callable:
     """Builds the preprocessing function from the collection name as it stored
     in the target backend.
     """
@@ -170,29 +189,29 @@ def get_s2_l2a_default_processor(collection_name: str) -> Callable:
 
 SENTINEL2_L2A_BACKEND_MAP = {
     Backend.TERRASCOPE: {
-        "fetch": get_s2_l2a_default_fetcher("SENTINEL2_L2A"),
-        "preprocessor": get_s2_l2a_default_processor("SENTINEL2_L2A"),
+        "fetch": partial(get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
+        "preprocessor": partial(
+            get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
+        ),
     },
     Backend.CDSE: {
-        "fetch": get_s2_l2a_default_fetcher("SENTINEL2_L2A"),
-        "preprocessor": get_s2_l2a_default_processor("SENTINEL2_L2A"),
-    },
-    Backend.EODC: {
-        "fetch": get_s2_l2a_element84_fetcher("SENTINEL2_L2A"),
-        "preprocessor": get_s2_l2a_default_processor("SENTINEL2_L2A"),
+        "fetch": partial(get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
+        "preprocessor": partial(
+            get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
+        ),
     },
 }
 
 
 def build_sentinel2_l2a_extractor(
-    backend_context: BackendContext, bands: list, **params
+    backend_context: BackendContext, bands: list, fetch_type: FetchType, **params
 ) -> CollectionFetcher:
     """Creates a S2 L2A extractor adapted to the given backend."""
     backend_functions = SENTINEL2_L2A_BACKEND_MAP.get(backend_context.backend)
 
     fetcher, preprocessor = (
-        backend_functions["fetch"],
-        backend_functions["preprocessor"],
+        backend_functions["fetch"](fetch_type=fetch_type),
+        backend_functions["preprocessor"](fetch_type=fetch_type),
     )
 
     return CollectionFetcher(backend_context, bands, fetcher, preprocessor, **params)

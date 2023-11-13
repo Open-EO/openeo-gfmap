@@ -1,6 +1,7 @@
 """ Main file for extractions and pre-processing of data through OpenEO
 """
 
+from enum import Enum
 from typing import Callable
 
 import openeo
@@ -8,6 +9,25 @@ import openeo
 from openeo_gfmap import BackendContext
 from openeo_gfmap.spatial import SpatialContext
 from openeo_gfmap.temporal import TemporalContext
+
+
+class FetchType(Enum):
+    """Enumerates the different types of extraction. There are three types of
+    enumerations.
+
+    * TILE: Tile based extractions, getting the data for a dense part. The
+    output of such fetching process in a dense DataCube.
+    * POINT: Point based extractions. From a datasets of polygons, gets sparse
+    extractions and performs spatial aggregation on the selected polygons. The
+    output of such fetching process is a VectorCube, that can be used to get
+    a pandas.DataFrame
+    * POLYGON: Patch based extractions, returning a VectorCube of sparsed
+    patches. This can be retrieved as multiple NetCDF files from one job.
+    """
+
+    TILE = "tile"
+    POINT = "point"
+    POLYGON = "polygon"
 
 
 class CollectionFetcher:

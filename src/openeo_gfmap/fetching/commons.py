@@ -3,8 +3,14 @@
 from typing import Optional, Union
 
 import openeo
+from geojson import GeoJSON
 from rasterio import CRS
 from rasterio.errors import CRSError
+
+from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
+from openeo_gfmap.temporal import TemporalContext
+
+from .fetching import FetchType
 
 
 def convert_band_names(desired_bands: list, band_dict: dict) -> list:
@@ -62,3 +68,59 @@ def rename_bands(datacube: openeo.DataCube, mapping: dict) -> openeo.DataCube:
     return datacube.rename_labels(
         dimension="bands", target=list(mapping.values()), source=list(mapping.keys())
     )
+
+
+def load_collection(
+    connection: openeo.Connection,
+    bands: list,
+    collection_name: str,
+    spatial_extent: SpatialContext,
+    temporal_extent: TemporalContext,
+    fetch_type: FetchType,
+    **params,
+):
+    """Loads a collection from the openeo backend, acting differently depending
+    on the fetch type.
+    """
+    if fetch_type == FetchType.TILE:
+        assert isinstance(
+            spatial_extent, BoundingBoxExtent
+        ), "Please provide only a bounding box for tile based fetching."
+        cube = connection.load_collection(
+            collection_id=collection_name,
+            spatial_extent=spatial_extent,
+            temporal_extent=[temporal_extent.start_date, temporal_extent.end_date],
+            bands=bands,
+            properties=params,
+        )
+    elif fetch_type == FetchType.POINT:
+        assert isinstance(
+            spatial_extent, GeoJSON
+        ), "Please provide only a GeoJSON FeatureCollection for point based fetching."
+        assert (
+            spatial_extent["type"] == "FeatureCollection"
+        ), "Please provide a FeatureCollection type of GeoJSON"
+        cube = connection.load_collection(
+            collection_id=collection_name,
+            spatial_extent=spatial_extent,
+            temporal_extent=[temporal_extent.start_date, temporal_extent.end_date],
+            bands=bands,
+            properties=params,
+        )
+    elif fetch_type == FetchType.POLYGON:
+        assert isinstance(
+            spatial_extent, GeoJSON
+        ), "Please provide only a GeoJSON FeatureCollection for point based fetching."
+        assert (
+            spatial_extent["type"] == "FeatureCollection"
+        ), "Please provide a FeatureCollection type of GeoJSON"
+        cube = connection.load_collection(
+            collection_id=collection_name,
+            temporal_extent=[temporal_extent.start_date, temporal_extent.end_date],
+            bands=bands,
+            properties=params,
+        )
+
+        cube = cube.filter_spatial(spatial_extent)
+
+    return cube
