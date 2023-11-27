@@ -8,13 +8,14 @@ More information available in the README.md file.
 
 from .backend import Backend, BackendContext
 from .metadata import FakeMetadata
-from .spatial import SpatialContext
+from .spatial import SpatialContext, BoundingBoxExtent
 from .temporal import TemporalContext
 
 __all__ = [
     "Backend",
     "BackendContext",
     "SpatialContext",
+    "BoundingBoxExtent",
     "TemporalContext",
     "FakeMetadata",
 ]

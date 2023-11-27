@@ -52,7 +52,9 @@ def vito_connection(capfd: Optional = None) -> openeo.Connection:
 
 def cdse_connection(capfd: Optional = None) -> openeo.Connection:
     """Performs a connection to the CDSE backend using oidc authentication."""
-    connection = openeo.connect("https://openeo.dataspace.copernicus.eu/openeo/1.2")
+    connection = openeo.connect(
+        "https://openeo.dataspace.copernicus.eu/openeo/1.2"
+    )
     if capfd is not None:
         with capfd.disabled():
             # Temporarily disable output capturing, to make sure that OIDC device

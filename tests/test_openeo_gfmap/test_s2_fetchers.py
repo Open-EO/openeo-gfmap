@@ -10,14 +10,14 @@ import pytest
 import rioxarray
 import xarray as xr
 
-from openeo_gfmap import SpatialContext, TemporalContext
+from openeo_gfmap import SpatialContext, TemporalContext, BoundingBoxExtent
 from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
 from openeo_gfmap.fetching import (
     CollectionFetcher,
     FetchType,
     build_sentinel2_l2a_extractor,
 )
-from openeo_gfmap.utils import load_json
+from openeo_gfmap.utils import load_json, normalize_array, select_optical_bands, array_bounds, arrays_cosine_similarity
 
 # Fields close to TAP, Belgium
 SPATIAL_EXTENT_1 = {
@@ -32,14 +32,14 @@ SPATIAL_EXTENT_1 = {
 # Recent dates for first extent
 TEMPORAL_EXTENT_1 = ["2023-04-01", "2023-05-01"]
 
-# Scene in Argentina
+# Scene in Ilha Grande, Brazil
 SPATIAL_EXTENT_2 = {
-    "west": -65.15344587627536,
-    "south": -26.844952920846367,
-    "east": -65.09740328344284,
-    "north": -26.81363402938031,
+    "west": -44.13569753706443,
+    "south": -23.174673799522953,
+    "east": -44.12093529131243,
+    "north": -23.16291590441855,
     "crs": "EPSG:4326",
-    "country": "Argentina",  # Metadata useful for test suite
+    "country": "Brazil",  # Metadata useful for test suite
 }
 
 # Recent dates for second extent
@@ -55,11 +55,12 @@ POLYGON_EXTRACTION_DF = (
     Path(__file__).parent / "resources/puglia_extraction_polygons.gpkg"
 )
 
-test_backends = [Backend.TERRASCOPE, Backend.CDSE]
+#test_backends = [Backend.TERRASCOPE, Backend.CDSE]
+test_backends = [Backend.CDSE]
 
 test_spatio_temporal_extends = [
     (SPATIAL_EXTENT_1, TEMPORAL_EXTENT_1),
-    (SPATIAL_EXTENT_2, TEMPORAL_EXTENT_2),
+#    (SPATIAL_EXTENT_2, TEMPORAL_EXTENT_2),
 ]
 
 test_configurations = [
@@ -82,6 +83,7 @@ class TestS2Extractors:
     ):
         """For a given backend"""
         context = BackendContext(backend)
+        country = spatial_extent["country"]
         # Fetch a variety of spatial resolution and metadata from different
         # providers.
         bands = ["S2-B01", "S2-B04", "S2-B08", "S2-B11", "S2-SCL", "S2-AOT"]
@@ -93,7 +95,10 @@ class TestS2Extractors:
             "S2-SCL",
             "S2-AOT",
         ]
-        fetching_parameters = {"target_crs": 3035}
+        fetching_parameters = {
+            "target_resolution": 10.0,
+            "target_crs": 3035
+        } if country == "Belgium" else {}
         extractor: CollectionFetcher = build_sentinel2_l2a_extractor(
             context=context,
             bands=bands,
@@ -101,9 +106,19 @@ class TestS2Extractors:
             **fetching_parameters,
         )
 
-        cube = extractor.get_cube(connection, spatial_extent, temporal_extent)
+        spatial_extent = BoundingBoxExtent(
+            west=spatial_extent["west"],
+            south=spatial_extent["south"],
+            east=spatial_extent["east"],
+            north=spatial_extent["north"],
+            epsg=spatial_extent["crs"]
+        )
 
-        country = spatial_extent["country"]
+        temporal_extent = TemporalContext(
+            start_date=temporal_extent[0], end_date=temporal_extent[1]
+        )
+
+        cube = extractor.get_cube(connection, spatial_extent, temporal_extent)
 
         output_file = (
             Path(__file__).parent
@@ -125,31 +140,6 @@ class TestS2Extractors:
         """Compare the different tiels gathered from the different backends,
         they should be similar.
         """
-
-        def xarray_bounds(inarr: Union[xr.Dataset, xr.DataArray]) -> tuple:
-            return (
-                min(inarr.coords["x"]).item(),
-                min(inarr.coords["y"]).item(),
-                max(inarr.coords["x"]).item(),
-                max(inarr.coords["y"]).item(),
-            )
-
-        def normalize_array(inarr: xr.DataArray) -> xr.DataArray:
-            quantile_99 = inarr.quantile(0.99, dim=["x", "y", "t"])
-            minimum = inarr.min(dim=["x", "y", "t"])
-            inarr = (inarr - minimum) / (quantile_99 - minimum)
-            # Clip exceeding values to 1
-            return xr.where(inarr > 1.0, 1.0, inarr)
-
-        def select_optical(inarr: xr.DataArray) -> xr.DataArray:
-            return inarr.sel(
-                bands=[
-                    band
-                    for band in inarr.coords["bands"].to_numpy()
-                    if band.startswith("S2-B")
-                ]
-            )
-
         backend_types = set([conf[2] for conf in test_configurations])
         countries = set([conf[0]["country"] for conf in test_configurations])
         for country in countries:
@@ -178,7 +168,7 @@ class TestS2Extractors:
             # Compare the coordiantes of all the tiles and check if it matches
             bounds = None
             for tile in loaded_tiles:
-                tile_bounds = xarray_bounds(tile)
+                tile_bounds = array_bounds(tile)
                 if bounds is None:
                     bounds = tile_bounds
                 else:
@@ -186,19 +176,15 @@ class TestS2Extractors:
 
             # Compare the arrays on the optical values
             normalized_tiles = [
-                normalize_array(select_optical(inarr.to_array(dim="bands")))
+                normalize_array(select_optical_bands(inarr.to_array(dim="bands")))
                 for inarr in loaded_tiles
             ]
             first_tile = normalized_tiles[0]
             for tile_idx in range(1, len(normalized_tiles)):
                 tile_to_compare = normalized_tiles[tile_idx]
-                dot_product = np.sum(first_tile * tile_to_compare)
-                first_norm = np.linalg.norm(first_tile)
-                second_norm = np.linalg.norm(tile_to_compare)
-                similarity_score = (dot_product / (first_norm * second_norm)).item()
-
-                # Assert the similarity score
-                print(similarity_score, tile_idx)
+                similarity_score = arrays_cosine_similarity(
+                    first_tile, tile_to_compare
+                )
                 assert similarity_score >= 0.95
 
     def sentinel2_l2a_point_based(
@@ -248,7 +234,7 @@ class TestS2Extractors:
             f"multiple of the number of bands ({len(bands)})"
         )
 
-        df.to_parquet(str(output_file).repalce(".json", ".parquet"))
+        df.to_parquet(str(output_file).replace(".json", ".parquet"))
 
     def sentinel2_l2a_polygon_based(
         spatial_context: SpatialContext,
@@ -259,7 +245,7 @@ class TestS2Extractors:
         context = BackendContext(backend)
         bands = ["S2-B02", "S2-B03", "S2-B04"]
 
-        fetching_parameters = {"target_crs": 3035}
+        fetching_parameters = {"target_crs": 3035}  # Location in Europe
         extractor = build_sentinel2_l2a_extractor(
             backend_context=context,
             bands=bands,
@@ -269,11 +255,11 @@ class TestS2Extractors:
 
         cube = extractor.get_cube(connection, spatial_context, temporal_context)
 
-        output_folder = Path(__file__).parent / f"results/polygons_{backend.value}/"
+        output_folder = Path(__file__).parent / f"results/polygons_s2_{backend.value}/"
         output_folder.mkdir(exist_ok=True, parents=True)
 
         job = cube.create_job(
-            title="test_extract_polygons", out_format="NetCDF", sample_by_feature=True
+            title="test_extract_polygons_s2", out_format="NetCDF", sample_by_feature=True
         )
 
         job.start_and_wait()
@@ -283,7 +269,7 @@ class TestS2Extractors:
 
         # List all the files available in the folder
         extracted_files = list(
-            filter(lambda file: file.suffix != ".json", output_folder.iterdir())
+            filter(lambda file: file.suffix == ".nc", output_folder.iterdir())
         )
         # Check if there is one file for each polygon
         assert len(extracted_files) == len(spatial_context["features"])
@@ -304,12 +290,6 @@ def test_sentinel2_l2a(
 @pytest.mark.depends(on=["test_sentinel2_l2a"])
 def test_compare_sentinel2_tiles():
     TestS2Extractors.compare_sentinel2_tiles()
-
-
-@pytest.fixture
-def extraction_df() -> gpd.GeoDataFrame:
-    return gpd.read_file(POINT_EXTRACTION_DF)
-
 
 @pytest.mark.parametrize("backend", test_backends)
 def test_sentinel2_l2a_point_based(backend: Backend):

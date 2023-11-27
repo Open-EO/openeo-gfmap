@@ -86,6 +86,7 @@ def load_collection(
         assert isinstance(
             spatial_extent, BoundingBoxExtent
         ), "Please provide only a bounding box for tile based fetching."
+        spatial_extent = dict(spatial_extent)
         cube = connection.load_collection(
             collection_id=collection_name,
             spatial_extent=spatial_extent,

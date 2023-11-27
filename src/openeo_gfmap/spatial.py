@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Union
 
 from geojson import GeoJSON
+from typing import Dict
 
 
 @dataclass
@@ -18,6 +19,24 @@ class BoundingBoxExtent:
     east: float
     north: float
     epsg: int = 4326
+
+    def __dict__(self):
+        return {
+            "west": self.west,
+            "south": self.south,
+            "east": self.east,
+            "north": self.north,
+            "crs": self.epsg,
+        }
+
+    def __iter__(self):
+        return iter([
+            ("west", self.west),
+            ("south", self.south),
+            ("east", self.east),
+            ("north", self.north),
+            ("crs", self.epsg)
+        ])
 
 
 SpatialContext = Union[GeoJSON, BoundingBoxExtent]
