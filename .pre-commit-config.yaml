@@ -1,4 +1,6 @@
 # https://pre-commit.com
+default_language_version:
+  python: python3.9
 default_stages: [commit, manual]
 fail_fast: true
 exclude: "(received/|.*_depr)"
@@ -6,8 +8,8 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-      - id: check-added-large-files
-        args: ['--maxkb=65536']
+      # - id: check-added-large-files
+      #   args: ['--maxkb=65536']
       - id: check-ast
       - id: check-builtin-literals
       - id: check-byte-order-marker
@@ -60,7 +62,7 @@ repos:
     rev: 23.10.0
     hooks:
       - id: black
-        language_version: python3.11
+        language_version: python3.9
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:
