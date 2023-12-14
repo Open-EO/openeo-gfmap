@@ -5,13 +5,32 @@ from shapely.geometry import shape
 from geojson import GeoJSON
 from openeo_gfmap import SpatialContext, TemporalContext
 
-def _check_cdse_s1_catalogue(
+def _check_cdse_catalogue(
+    collection: str,
     spatial_extent: SpatialContext,
-    temporal_extent: TemporalContext
+    temporal_extent: TemporalContext,
+    **additional_parameters: dict
 ) -> bool:
-    """Checks if there is at least one Sentinel1-GRDproduct available in the
-    given spatio-temporal context, as there might be issues in the API that
-    sometimes returns empty results for a valid query.
+    """Checks if there is at least one product available in the
+    given spatio-temporal context for a collection in the CDSE catalogue,
+    as there might be issues in the API that sometimes returns empty results
+    for a valid query.
+
+    Parameters
+    ----------
+    collection : str
+        The collection name to be checked. (For example: Sentinel1 or Sentinel2)
+    spatial_extent : SpatialContext
+        The spatial extent to be checked, it will check within its bounding box.
+    temporal_extent : TemporalContext
+        The temporal period to be checked.
+    additional_parameters : Optional[dict], optional
+        Additional parameters to be passed to the catalogue, by default empty.
+        Parameters (key, value) will be passed as "&key=value" in the query,
+        for example: {"sortOrder": "ascending"} will be passed as "&ascendingOrder=True"
+    Returns
+    -------
+    True if there is at least one product, False otherwise.
     """
     if isinstance(spatial_extent, GeoJSON):
         # Transform geojson into shapely geometry and compute bounds
@@ -26,13 +45,15 @@ def _check_cdse_s1_catalogue(
     # The date format should be YYYY-MM-DD
     start_date = f'{temporal_extent.start_date}T00:00:00Z'
     end_date = f'{temporal_extent.end_date}T00:00:00Z'
-
+    
     url = (
         f"https://catalogue.dataspace.copernicus.eu/resto/api/collections/"
-        f"Sentinel1/search.json?box={minx},{miny},{maxx},{maxy}"
-        f"&sortParam=startDate&sortOrder=ascending&maxRecords=100"
+        f"{collection}/search.json?box={minx},{miny},{maxx},{maxy}"
+        f"&sortParam=startDate&maxRecords=100"
         f"&dataset=ESA-DATASET&startDate={start_date}&completionDate={end_date}"
     )
+    for key, value in additional_parameters:
+        url += f"&{key}={value}"
 
     response = requests.get(url)
 
