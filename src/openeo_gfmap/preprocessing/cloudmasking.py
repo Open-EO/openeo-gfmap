@@ -129,15 +129,71 @@ def get_bap_score(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
     # Merge the score to the scl cube
     return score
 
-    
-def bap_masking(cube: openeo.DataCube, period: Union[str, list], **params: dict):
+def get_bap_mask(cube: openeo.DataCube, period: Union[str, list], **params: dict):
     """Computes the bap score and masks the optical bands of the datacube using
     the best scores for each pixel on a given time period. This method both
     performs cloud masking but also a type of compositing.
 
     The BAP mask is computed using the method `get_bap_score`, from which the
-    maximum argument is taken on every pixel on the given period. Then, compositing
-    is performed by selecting the observations for each argument.
+    maximum argument is taken on every pixel on the given period. This will
+    therefore return an array that for each optical observation, will return
+    if the pixel must be loaded or not, allowing for high cost optimization.
+
+    Parameters
+    ----------
+    cube : openeo.DataCube
+        The datacube to be processed.
+    period : Union[str, list]
+        A string or a list of dates (in YYYY-mm-dd format) to be used as the
+        temporal period to compute the BAP score.
+    params : dict
+        Additionals parameters, not used yet.
+    Returns
+    -------
+    openeo.DataCube
+        The datacube with the BAP mask applied.
+    """
+    # Checks if the S2-SCL band is present in the datacube
+    assert SCL_HARMONIZED_NAME in cube.metadata.band_names, (
+        f"The {SCL_HARMONIZED_NAME} band is not present in the datacube."
+    )
+
+    bap_score = get_bap_score(cube, **params)
+
+    if isinstance(period, str):
+        def max_score_selection(score):
+            max_score = score.max()
+            return score.array_apply(lambda x: x != max_score)
+
+        rank_mask = bap_score.apply_neighborhood(
+            max_score_selection,
+            size=[
+                {"dimension": "x", "unit": "px", "value": 1},
+                {"dimension": "y", "unit": "px", "value": 1},
+                {"dimension": "t", "value": period}
+            ],
+            overlap=[]
+        )
+    elif isinstance(period, list):
+        udf_path = Path(__file__).parent / "udf_rank.py"
+        rank_mask = bap_score.apply_neighborhood(
+            process=openeo.UDF.from_file(str(udf_path)),
+            size=[
+                {'dimension': 'x', 'unit': 'px', 'value': 256},
+                {'dimension': 'y', 'unit': 'px', 'value': 256}
+            ],
+            overlap=[],
+            context={"intervals": period}
+        )
+    else:
+        raise ValueError(f"'period' must be a string or a list of dates (in YYYY-mm-dd format), got {period}.")
+
+    return rank_mask.rename_labels('bands', ['S2-BAPMASK'])
+
+
+def bap_masking(cube: openeo.DataCube, period: Union[str, list], **params: dict):
+    """Computes the bap mask as described in `get_bap_mask` and applies it to
+    the optical part of the cube.
 
     Parameters
     ----------
@@ -165,33 +221,7 @@ def bap_masking(cube: openeo.DataCube, period: Union[str, list], **params: dict)
         )
     )
 
-
-    # Checks if the S2-SCL band is present in the datacube
-    assert SCL_HARMONIZED_NAME in optical_cube.metadata.band_names, (
-        f"The {SCL_HARMONIZED_NAME} band is not present in the datacube."
-    )
-
-    bap_score = get_bap_score(optical_cube, **params)
-
-    def max_score_selection(score):
-        max_score = score.max()
-        return max_score.array_apply(lambda x: x != max_score)
-    
-    # TODO maybe aggregate_temporal should be apply_neighborhood instead
-    if isinstance(period, str):
-        rank_mask = bap_score.aggregate_temporal_period(
-            period=period,
-            reducer=max_score_selection,
-            dimension="t"
-        )
-    elif isinstance(period, list):
-        rank_mask = bap_score.aggregate_temporal(
-            intervals=period,
-            reducer=max_score_selection,
-            dimension="t"
-        )
-    else:
-        raise ValueError(f"'period' must be a string or a list of dates (in YYYY-mm-dd format), got {period}.")
+    rank_mask = get_bap_mask(optical_cube, period, **params)
 
     optical_cube = optical_cube.mask(
         rank_mask.resample_cube_spatial(cube)

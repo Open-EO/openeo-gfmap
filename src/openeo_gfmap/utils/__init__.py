@@ -8,8 +8,9 @@ from openeo_gfmap.utils.tile_processing import (
     select_sar_bands,
     arrays_cosine_similarity
 )
+from openeo_gfmap.utils.intervals import quintad_intervals
 
 __all__ = [
     "load_json", "normalize_array", "select_optical_bands", "array_bounds",
-    "select_sar_bands", "arrays_cosine_similarity"
+    "select_sar_bands", "arrays_cosine_similarity", "quintad_intervals"
 ]

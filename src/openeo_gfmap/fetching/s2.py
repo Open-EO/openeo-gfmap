@@ -95,8 +95,6 @@ def get_s2_l2a_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
         # Rename the bands to the backend collection names
         bands = convert_band_names(bands, BASE_SENTINEL2_L2A_MAPPING)
 
-        load_collection_parameters = params.get("load_collection", {})
-
         cube = load_collection(
             connection,
             bands,
@@ -104,7 +102,7 @@ def get_s2_l2a_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
             spatial_extent,
             temporal_extent,
             fetch_type,
-            **load_collection_parameters,
+            **params,
         )
 
         # Apply if the collection is a GeoJSON Feature collection

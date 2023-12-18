@@ -82,6 +82,8 @@ def load_collection(
     """Loads a collection from the openeo backend, acting differently depending
     on the fetch type.
     """
+    load_collection_parameters = params.get("load_collection", {})
+
     if fetch_type == FetchType.TILE:
         assert isinstance(
             spatial_extent, BoundingBoxExtent
@@ -92,7 +94,7 @@ def load_collection(
             spatial_extent=spatial_extent,
             temporal_extent=[temporal_extent.start_date, temporal_extent.end_date],
             bands=bands,
-            properties=params,
+            properties=load_collection_parameters,
         )
     elif fetch_type == FetchType.POINT:
         assert isinstance(
@@ -106,7 +108,7 @@ def load_collection(
             spatial_extent=spatial_extent,
             temporal_extent=[temporal_extent.start_date, temporal_extent.end_date],
             bands=bands,
-            properties=params,
+            properties=load_collection_parameters,
         )
     elif fetch_type == FetchType.POLYGON:
         assert isinstance(
@@ -119,9 +121,19 @@ def load_collection(
             collection_id=collection_name,
             temporal_extent=[temporal_extent.start_date, temporal_extent.end_date],
             bands=bands,
-            properties=params,
+            properties=load_collection_parameters,
         )
 
+    # Peforming pre-mask optimization
+    pre_mask = params.get("pre_mask", None)
+    if pre_mask is not None:
+        assert isinstance(pre_mask, openeo.DataCube), (
+            f"The 'pre_mask' parameter must be an openeo datacube, "
+            f"got {pre_mask}."
+        )
+        cube = cube.mask(pre_mask.resample_cube_spatial(cube))
+
+    if fetch_type == FetchType.POLYGON:
         cube = cube.filter_spatial(spatial_extent)
 
     return cube
