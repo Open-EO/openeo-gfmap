@@ -1,6 +1,6 @@
 # OpenEO General Framework for Mapping
 
-Openeo GFMap aims to simplify its users the development of mapping applications through Remote Sensing data by levearging the power of [OpenEO](https://openeo.org/). This framework is development primarely for Crop Type mapping and Land Cover Classification, but other application such as regression tasks can be applied.
+Openeo GFMap aims to simplify for its users the development of mapping applications through Remote Sensing data by leveraging the power of [OpenEO](https://openeo.org/). This framework is developped primarely for Crop Type mapping and Land Cover Classification, but other applications such as regression tasks can be applied.
 
 ## How is it used?
 
