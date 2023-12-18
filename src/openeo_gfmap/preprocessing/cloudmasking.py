@@ -177,13 +177,15 @@ def get_bap_mask(cube: openeo.DataCube, period: Union[str, list], **params: dict
     elif isinstance(period, list):
         udf_path = Path(__file__).parent / "udf_rank.py"
         rank_mask = bap_score.apply_neighborhood(
-            process=openeo.UDF.from_file(str(udf_path)),
+            process=openeo.UDF.from_file(
+                str(udf_path),
+                context={"intervals": period}
+            ),
             size=[
                 {'dimension': 'x', 'unit': 'px', 'value': 256},
                 {'dimension': 'y', 'unit': 'px', 'value': 256}
             ],
             overlap=[],
-            context={"intervals": period}
         )
     else:
         raise ValueError(f"'period' must be a string or a list of dates (in YYYY-mm-dd format), got {period}.")
