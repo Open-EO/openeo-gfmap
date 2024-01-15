@@ -38,7 +38,8 @@ dependencies = [
     "h5netcdf>=1.2.0",
     "openeo[localprocessing]",
     "cftime",
-    "pytest-dependency",
+    # "pytest-dependency",
+    "pytest-depends",
     "pyarrow",
     "fastparquet"
 ]

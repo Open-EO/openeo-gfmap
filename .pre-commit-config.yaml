@@ -8,8 +8,6 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
-      # - id: check-added-large-files
-      #   args: ['--maxkb=65536']
       - id: check-ast
       - id: check-builtin-literals
       - id: check-byte-order-marker
@@ -37,18 +35,12 @@ repos:
         entry: shellcheck --check-sourced --shell=bash --exclude=SC1087
         language: system
         types: [shell]
-      # - id: pydocstyle
-      #   name: pydocstyle
-      #   entry: pydocstyle
-      #   language: system
-      #   types: [python]
-      #   exclude: "(^experiments/|.*_depr)"
-      # - id: flake8
-      #   name: flake8
-      #   entry: flake8
-      #   language: system
-      #   types: [python]
-      #   exclude: "(^tasks/|.*_depr)"
+      - id: pydocstyle
+        name: pydocstyle
+        entry: pydocstyle
+        language: system
+        types: [python]
+        exclude: "(^experiments/|.*_depr)"
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
