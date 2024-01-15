@@ -24,7 +24,7 @@ from openeo_gfmap.utils import (
 )
 
 # Retrieve the test parameters from the s2 fetcher tests
-from .test_s2_fetchers import (
+from test_s2_fetchers import (
     test_configurations, test_backends, POINT_EXTRACTION_DF
 )
 
