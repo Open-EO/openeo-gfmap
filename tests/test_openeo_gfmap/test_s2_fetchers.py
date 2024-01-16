@@ -60,7 +60,7 @@ test_backends = [Backend.CDSE]
 
 test_spatio_temporal_extends = [
     (SPATIAL_EXTENT_1, TEMPORAL_EXTENT_1),
-#    (SPATIAL_EXTENT_2, TEMPORAL_EXTENT_2),
+    (SPATIAL_EXTENT_2, TEMPORAL_EXTENT_2),
 ]
 
 test_configurations = [

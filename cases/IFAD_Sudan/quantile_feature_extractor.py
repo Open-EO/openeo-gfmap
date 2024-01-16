@@ -14,10 +14,6 @@ from openeo_gfmap.features.feature_extractor import apply_feature_extractor_loca
 class QuantileIndicesExtrctor(PatchFeatureExtractor):
     """Performs feature extraction by returning qunatile indices of the input array."""
 
-    def _import_dependencies(self):
-        import xarray as xr
-        pass  # No additional dependencies other than xarray and numpy (imported by default)
-
     def execute(self, inarr: xr.DataArray) -> xr.DataArray:
         # compute indices
         b03 = inarr.sel(bands='S2-B03')

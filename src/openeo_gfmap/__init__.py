@@ -10,6 +10,7 @@ from .backend import Backend, BackendContext
 from .metadata import FakeMetadata
 from .spatial import SpatialContext, BoundingBoxExtent
 from .temporal import TemporalContext
+from .fetching import FetchType
 
 __all__ = [
     "Backend",
@@ -18,4 +19,5 @@ __all__ = [
     "BoundingBoxExtent",
     "TemporalContext",
     "FakeMetadata",
+    "FetchType"
 ]

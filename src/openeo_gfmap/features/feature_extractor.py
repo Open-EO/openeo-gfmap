@@ -32,25 +32,31 @@ LAT_HARMONIZED_NAME = "GEO-LAT"
 LON_HARMONIZED_NAME = "GEO-LON"
 EPSG_HARMONIZED_NAME = "GEO-EPSG"
 
+# To fill in: EPSG_HARMONIZED_NAME, Is it pixel based and Feature Extractor class
 APPLY_DATACUBE_SOURCE_CODE = """
+EPSG_HARMONIZED_NAME = "{}"
+
 from openeo.udf import XarrayDataCube
 from openeo.udf.udf_data import UdfData
 
 IS_PIXEL_BASED = {}
 
-def apply_udf_data(udf_data: UdfData, context: dict) -> XarrayDataCube:
+def apply_udf_data(udf_data: UdfData) -> XarrayDataCube:
     feature_extractor = {}()  # User-defined, feature extractor class initialized here
 
     if not IS_PIXEL_BASED:
         assert len(udf_data.datacube_list) == 1, "OpenEO GFMAP Feature extractor pipeline only supports single input cubes for the tile."
 
     cube = udf_data.datacube_list[0]
-    proj = udf_data.proj
     parameters = udf_data.user_context
 
-    parameters['{}'] = proj['epsg']
+    proj = udf_data.proj
+    if proj is not None:
+        proj = proj["EPSG"]
 
-    cube = feature_extractor._execute(cube, parameters=context)
+    parameters[EPSG_HARMONIZED_NAME] = proj
+
+    cube = feature_extractor._execute(cube, parameters=parameters)
 
     udf_data.datacube_list = [cube]
     
@@ -65,17 +71,6 @@ class FeatureExtractor(ABC):
     point based extraction or dense Cubes for tile/polygon based extraction.
     """
 
-    @abstractmethod
-    def _import_dependencies(self):
-        """Imports the dependencies that will be used in the user's feature
-        extractor. This method will be execture at the very beginning of the
-        process. Dependencies not imported here will not be loaded.
-        """
-        raise NotImplementedError(
-            "FeatureExtractor is a base abstract class, please implement the "
-            "function in your user defined feature extractor class."
-        )
-
     def _common_preparations(
         self, inarr: xr.DataArray, parameters: dict
     ) -> xr.DataArray:
@@ -83,7 +78,6 @@ class FeatureExtractor(ABC):
         executed. This method should be called by the `_execute` method of the
         feature extractor.
         """
-        self._import_dependencies()
         self._epsg = parameters.pop(EPSG_HARMONIZED_NAME)
         self._parameters = parameters
         return inarr
@@ -177,9 +171,9 @@ def generate_udf_code(
         udf_code += f"{inspect.getsource(PatchFeatureExtractor)}\n\n"
         udf_code += f"{inspect.getsource(feature_extractor_class)}\n\n"
         udf_code += APPLY_DATACUBE_SOURCE_CODE.format(
+            EPSG_HARMONIZED_NAME,
             False,
             feature_extractor_class.__name__,
-            EPSG_HARMONIZED_NAME
         )
     elif issubclass(feature_extractor_class, PointFeatureExtractor):
         udf_code += f"{REQUIRED_IMPORTS}\n\n"
@@ -214,8 +208,7 @@ def apply_feature_extractor(
 
     Optimization can be achieved by passing integer values for the cube. By
     default, the feature extractor expects to receive S1 and S2 data stored in
-    uint16 with the
-
+    uint16 with the harmonized naming as implemented in the fetching module.
     """
 
     udf_code = generate_udf_code(feature_extractor_class)
