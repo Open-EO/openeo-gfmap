@@ -7,11 +7,25 @@ Implementing a function in a source file, and then calling the
 import openeo
 import xarray as xr
 
-from openeo_gfmap.features import PatchFeatureExtractor, PointFeatureExtractor
-from openeo_gfmap.features.feature_extractor import apply_feature_extractor_local
+# Spatial and temporal definitions
+from openeo_gfmap import BoundingBoxExtent, TemporalContext
+
+# Fetching type (either TILE, POLYGON or POINT)
+from openeo_gfmap.fetching import FetchType
+
+# Backend and context
+from openeo_gfmap.backend import Backend, BackendContext
+
+from openeo_gfmap.fetching import build_sentinel2_l2a_extractor
+
+# Preprocessing options
+from openeo_gfmap.preprocessing import mask_scl_dilation, median_compositing, linear_interpolation
+
+from openeo_gfmap.features import PatchFeatureExtractor
+from openeo_gfmap.features.feature_extractor import apply_feature_extractor
 
 
-class QuantileIndicesExtrctor(PatchFeatureExtractor):
+class QuantileIndicesExtractor(PatchFeatureExtractor):
     """Performs feature extraction by returning qunatile indices of the input array."""
 
     def execute(self, inarr: xr.DataArray) -> xr.DataArray:
@@ -60,38 +74,109 @@ class QuantileIndicesExtrctor(PatchFeatureExtractor):
         return quantile_array
 
 
+# if __name__ == '__main__':
+#     from pathlib import Path
+#     # Loads the raw data
+#     raw_tile = Path(
+#         '/data/sigma/GDA/IFAD_Sudan/inference_data/2023.nc'
+#     )
+
+#     inds = xr.open_dataset(
+#         raw_tile, chunks={'x': 128, 'y': 128, 't': 1}
+#     )
+
+#     selected_bands = [
+#         band for band in inds.keys() if band != 'crs'
+#     ]
+
+#     inds = inds.isel(
+#         x=(slice(0, 128)), y=(slice(0, 128))
+#     )[selected_bands].to_array(dim='bands').compute()
+
+#     # Applies the UDF locally
+#     features = apply_feature_extractor_local(
+#         QuantileIndicesExtrctor,
+#         inds,
+#         parameters={}
+#     )
+
+#     if isinstance(features, openeo.udf.XarrayDataCube):
+#         features = features.to_array().transpose('features', 'y', 'x')
+#     else:
+#         features = features.transpose('features', 'y', 'x')
+
+#     # Saves the features
+#     features.to_netcdf(
+#         '/data/users/Public/couchard/test_features.nc'
+#     )
+
+
 if __name__ == '__main__':
-    from pathlib import Path
-    # Loads the raw data
-    raw_tile = Path(
-        '/data/sigma/GDA/IFAD_Sudan/inference_data/2023.nc'
+
+    connection = openeo.connect("https://openeo.vito.be").authenticate_oidc()
+
+    # Define your spatial and temporal context
+    bbox_extent = BoundingBoxExtent(
+        west=4.515859656828771,
+        south=50.81721602547749,
+        east=4.541689831106636,
+        north=50.83654859110982,
+        epsg=4326
     )
 
-    inds = xr.open_dataset(
-        raw_tile, chunks={'x': 128, 'y': 128, 't': 1}
+    # Define your temporal context, summer 2022
+    temporal_extent = TemporalContext(
+        start_date="2022-06-21",
+        end_date="2022-09-23"
     )
 
-    selected_bands = [
-        band for band in inds.keys() if band != 'crs'
-    ]
-
-    inds = inds.isel(
-        x=(slice(0, 128)), y=(slice(0, 128))
-    )[selected_bands].to_array(dim='bands').compute()
-
-    # Applies the UDF locally
-    features = apply_feature_extractor_local(
-        QuantileIndicesExtrctor,
-        inds,
-        parameters={}
+    # Define your backend context
+    backend_context = BackendContext(
+        backend=Backend.TERRASCOPE
     )
 
-    if isinstance(features, openeo.udf.XarrayDataCube):
-        features = features.to_array().transpose('features', 'y', 'x')
-    else:
-        features = features.transpose('features', 'y', 'x')
+    # Prepare your S2_L2A extractor
 
-    # Saves the features
-    features.to_netcdf(
-        '/data/users/Public/couchard/test_features.nc'
+    # The bands that you can extract are defined in the code openeo_gfmap.fetching.s2.BASE_SENTINEL2_L2A_MAPPING
+    bands = ["S2-B03", "S2-B04", "S2-B05", "S2-B06", "S2-B08", "S2-B11", "S2-B12", "S2-SCL"]
+
+    # Use the base feching
+    fetching_parameters = {}
+    fetcher = build_sentinel2_l2a_extractor(
+        backend_context, bands, fetch_type=FetchType.TILE, **fetching_parameters
     )
+
+    cube = fetcher.get_cube(
+        connection,
+        spatial_context=bbox_extent,
+        temporal_context=temporal_extent
+    )
+
+    # Perform pre-processing, compositing & linear interpolation
+    cube = mask_scl_dilation(cube)
+    cube = median_compositing(cube, period="dekad")
+    cube = linear_interpolation(cube)
+
+    # Apply the feature extractor UDF
+    features = apply_feature_extractor(
+        QuantileIndicesExtractor,
+        cube,
+        parameters={},  # No additional parameter required by your UDF
+        size=[
+            {"dimension": "x", "unit": "px", "value": 128},
+            {"dimension": "y", "unit": "px", "value": 128}
+        ]
+    )
+
+    # Start the job
+    job = features.create_job(
+        title="Quantile indices extraction - Tervuren Park",
+        out_format="NetCDF"
+    )
+
+    job.start_and_wait()
+
+    # Download the results
+    for asset in job.get_results().get_assets():
+        if asset.metadata["type"].startswith("application/x-netcdf"):
+            asset.download("/data/users/Public/couchard/test_features.nc")
