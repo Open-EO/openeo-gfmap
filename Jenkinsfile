@@ -12,4 +12,12 @@ pythonPipeline {
   extras_require = 'dev'
   upload_dev_wheels = false
   pep440 = true
+  extra_env_variables = [
+    "OPENEO_AUTH_METHOD=client_credentials",
+  ]
+  extra_env_secrets = [
+    'OPENEO_AUTH_PROVIDER_ID': 'TAP/big_data_services/openeo/jenkins-service-account provider_id',
+    'OPENEO_AUTH_CLIENT_ID': 'TAP/big_data_services/openeo/jenkins-service-account client_id',
+    'OPENEO_AUTH_CLIENT_SECRET': 'TAP/big_data_services/openeo/jenkins-service-account client_secret',
+  ]
 }
