@@ -16,7 +16,7 @@ import inspect
 from abc import ABC, abstractmethod
 
 import openeo
-from openeo.udf import XarrayDataCube
+from openeo.udf import XarrayDataCube, inspect
 from openeo.udf.run_code import execute_local_udf
 from openeo.udf.udf_data import UdfData
 
@@ -107,6 +107,25 @@ class PatchFeatureExtractor(FeatureExtractor):
         The latitude and longitude band names are standardized to the names
         `LAT_HARMONIZED_NAME` and `LON_HARMONIZED_NAME` respectively.
         """
+        if self.epsg is None:
+            inspect(message=(
+                "EPSG is None, checking if the values are within the "
+                "[-180, 180] range."
+            ))
+
+            assert (
+                (inarr.coords["x"].min() >= -180.0) and
+                (inarr.coords["y"].min() >= -90.0) and
+                (inarr.coords["x"].max() <= 180.0) and
+                (inarr.coords["y"].max() <= 90.0)
+            ), (
+                "The coordinates are not all X ∈ [-180, 180] and "
+                "Y ∈ [-90, 90]. Coordinates are suspected to be not in lat/lon "
+                "and the EPSG parameter is not set → Cannot proceed."
+            )
+
+        # TODO finish this
+        
         lat = inarr.coords["y"]
         lon = inarr.coords["x"]
 
@@ -158,6 +177,8 @@ def generate_udf_code(
     superclass and subclasses as well as the user defined feature extractor
     class and the apply_datacube function.
     """
+    import inspect
+
     # UDF code that will be built here
     udf_code = ""
 

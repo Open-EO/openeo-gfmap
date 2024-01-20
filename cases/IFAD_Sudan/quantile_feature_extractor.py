@@ -66,10 +66,10 @@ class QuantileIndicesExtractor(PatchFeatureExtractor):
         
         # Pack the quantile arrays into a single array
         quantile_array = xr.concat(
-            quantile_arrays, dim='features'
+            quantile_arrays, dim='bands'
         ).assign_coords({
-            'features': quantile_names
-        }).transpose('features', 'y', 'x')
+            'bands': quantile_names
+        }).transpose('bands', 'y', 'x')
 
         return quantile_array
 
