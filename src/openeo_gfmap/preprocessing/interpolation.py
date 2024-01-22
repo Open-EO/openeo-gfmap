@@ -3,6 +3,7 @@ dimension.
 """
 import openeo
 
+
 def linear_interpolation(cube: openeo.DataCube,) -> openeo.DataCube:
     """Perform linear interpolation on the given datacube."""
     return cube.apply_dimension(

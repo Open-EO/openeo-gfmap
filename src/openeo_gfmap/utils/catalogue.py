@@ -1,9 +1,10 @@
 """Functionalities to interract with product catalogues."""
 import requests
-
-from shapely.geometry import shape
 from geojson import GeoJSON
+from shapely.geometry import shape
+
 from openeo_gfmap import SpatialContext, TemporalContext
+
 
 def _check_cdse_catalogue(
     collection: str,

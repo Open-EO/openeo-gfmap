@@ -1,5 +1,6 @@
-from openeo_gfmap.utils import quintad_intervals
 from openeo_gfmap.temporal import TemporalContext
+from openeo_gfmap.utils import quintad_intervals
+
 
 def test_quintad_january():
     start_date = "2023-01-01"

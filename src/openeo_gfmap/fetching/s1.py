@@ -1,16 +1,14 @@
 """ Collection fetching of S1 features, supporting different backends.
 """
-from typing import Callable
 from functools import partial
+from typing import Callable
 
 import openeo
 from geojson import GeoJSON
 
 from openeo_gfmap.backend import Backend, BackendContext
-from openeo_gfmap.spatial import SpatialContext, BoundingBoxExtent
+from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
 from openeo_gfmap.temporal import TemporalContext
-
-from .fetching import CollectionFetcher, FetchType
 
 from .commons import (
     convert_band_names,
@@ -18,6 +16,7 @@ from .commons import (
     rename_bands,
     resample_reproject,
 )
+from .fetching import CollectionFetcher, FetchType
 
 BASE_SENTINEL1_GRD_MAPPING = {
     "VH": "S1-VH",

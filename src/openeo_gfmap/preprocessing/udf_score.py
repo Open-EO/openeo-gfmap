@@ -1,14 +1,13 @@
-import numpy as np
-import time, math
-import xarray as xr
 import datetime
+import math
+import time
 
-from scipy.ndimage import distance_transform_cdt
-from skimage.morphology import footprints
-from skimage.morphology import binary_erosion, binary_dilation
+import numpy as np
+import xarray as xr
 from openeo.udf import XarrayDataCube
+from scipy.ndimage import distance_transform_cdt
+from skimage.morphology import binary_dilation, binary_erosion, footprints
 from xarray.ufuncs import isnan as ufuncs_isnan
-
 
 
 def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
