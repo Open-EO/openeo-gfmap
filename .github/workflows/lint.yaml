@@ -26,5 +26,5 @@ jobs:
       run: python -m isort . --check --diff
     # - name: black
     #   run: python -m black --check --diff .
-    # - name: flake8
-    #   run: python -m flake8 .
+    - name: flake8
+      run: python -m flake8 .
