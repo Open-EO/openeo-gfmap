@@ -1,10 +1,10 @@
 name: Pytest-collect
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
-    paths:
-      - 'tests/**'
 
 jobs:
   pytest-collect:
