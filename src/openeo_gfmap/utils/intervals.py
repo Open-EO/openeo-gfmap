@@ -2,7 +2,7 @@
 methods.
 """
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from openeo_gfmap import TemporalContext
 
