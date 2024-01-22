@@ -1,8 +1,7 @@
 """ Definitions of temporal context"""
 from dataclasses import dataclass
-from typing import Tuple
-
 from datetime import datetime
+from typing import Tuple
 
 
 @dataclass

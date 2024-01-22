@@ -2,9 +2,9 @@
 methods.
 """
 
-from openeo_gfmap import TemporalContext
-
 from datetime import datetime, timedelta
+
+from openeo_gfmap import TemporalContext
 
 
 def quintad_intervals(temporal_extent: TemporalContext) -> list:

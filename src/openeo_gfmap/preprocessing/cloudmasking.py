@@ -1,7 +1,8 @@
 """Different cloud masking strategies for an OpenEO datacubes."""
 
-from typing import Union
 from pathlib import Path
+from typing import Union
+
 import openeo
 from openeo.processes import if_, is_nan
 
