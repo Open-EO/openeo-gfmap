@@ -7,7 +7,7 @@ import openeo
 from geojson import GeoJSON
 
 from openeo_gfmap.backend import Backend, BackendContext
-from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
+from openeo_gfmap.spatial import SpatialContext
 from openeo_gfmap.temporal import TemporalContext
 
 from .commons import (

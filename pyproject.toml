@@ -65,3 +65,15 @@ addopts = [
 
 [tool.isort]
 profile = "black"
+
+
+[tool.ruff]
+# line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = [
+  "E501",  # Ignore "line-too-long" issues, let black handle that.
+]
+
+
