@@ -60,7 +60,7 @@ testpaths = [
   "tests",
 ]
 addopts = [
-  "--import-mode=importlib",
+  "--import-mode=prepend",
 ]
 
 [tool.isort]
