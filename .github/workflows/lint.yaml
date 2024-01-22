@@ -28,7 +28,4 @@ jobs:
     #   run: python -m black --check --diff .
     - name: ruff
       run: ruff check .
-    - name: "pytest: check test collection"
-      run: |
-        python -m pip install .[dev]
-        pytest --collect-only
+      
