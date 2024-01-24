@@ -4,7 +4,7 @@ Defines on which backend the pipeline is being currently used.
 """
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict
 
 import openeo
 
@@ -29,7 +29,7 @@ class BackendContext:
     backend: Backend
 
 
-def vito_connection(capfd: Optional = None) -> openeo.Connection:
+def vito_connection() -> openeo.Connection:
     """Performs a connection to the VITO backend using the oidc authentication."""
     # Note: this generic `authenticate_oidc()` call allows both:
     # - device code/refresh token based authentication for manual test
@@ -39,42 +39,21 @@ def vito_connection(capfd: Optional = None) -> openeo.Connection:
     # See https://open-eo.github.io/openeo-python-client/auth.html#oidc-authentication-dynamic-method-selection  # NOQA
     # and Jenkinsfile, where Jenkins fetches the env vars from VITO TAP Vault.
     connection = openeo.connect("openeo.vito.be")
-
-    if capfd is not None:
-        with capfd.disabled():
-            # Temporarily disable output capturing, to make sure that OIDC device
-            # code instructions (if any) are shown.
-            connection.authenticate_oidc()
-    else:
-        connection.authenticate_oidc()
+    connection.authenticate_oidc()
     return connection
 
 
-def cdse_connection(capfd: Optional = None) -> openeo.Connection:
+def cdse_connection() -> openeo.Connection:
     """Performs a connection to the CDSE backend using oidc authentication."""
-    connection = openeo.connect(
-        "https://openeo.dataspace.copernicus.eu/openeo/1.2"
-    )
-    if capfd is not None:
-        with capfd.disabled():
-            # Temporarily disable output capturing, to make sure that OIDC device
-            # code instructions (if any) are shown.
-            connection.authenticate_oidc()
-    else:
-        connection.authenticate_oidc()
+    connection = openeo.connect("https://openeo.dataspace.copernicus.eu/openeo/1.2")
+    connection.authenticate_oidc()
     return connection
 
 
-def eodc_connection(capfd: Optional = None) -> openeo.Connection:
+def eodc_connection() -> openeo.Connection:
     """Perfroms a connection to the EODC backend using the oidc authentication."""
     connection = openeo.connect("https://openeo.eodc.eu/openeo/1.1.0")
-    if capfd is not None:
-        with capfd.disabled():
-            # Temporarily disable output capturing, to make sure that OIDC device
-            # code instructions (if any) are shown.
-            connection.authenticate_oidc()
-    else:
-        connection.authenticate_oidc()
+    connection.authenticate_oidc()
     return connection
 
 
