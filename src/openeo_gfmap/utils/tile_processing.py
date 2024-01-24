@@ -1,7 +1,8 @@
 """Utilitaries to process data tiles."""
 
-import xarray as xr
 import numpy as np
+import xarray as xr
+
 
 def normalize_array(
     inarr: xr.DataArray,

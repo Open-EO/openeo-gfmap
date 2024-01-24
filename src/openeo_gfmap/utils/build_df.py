@@ -2,7 +2,6 @@
 based job. Usefull to collect the output of point based extraction.
 """
 
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd

@@ -1,18 +1,17 @@
 from pathlib import Path
 
-from typing import Union
-
 import pytest
 
-from openeo_gfmap.backend import Backend, BackendContext, BACKEND_CONNECTIONS
-from openeo_gfmap.temporal import TemporalContext
-from openeo_gfmap.spatial import BoundingBoxExtent
+from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
 from openeo_gfmap.fetching import FetchType, build_sentinel2_l2a_extractor
-
 from openeo_gfmap.preprocessing import (
-    get_bap_score, bap_masking, median_compositing, get_bap_mask
+    bap_masking,
+    get_bap_mask,
+    get_bap_score,
+    median_compositing,
 )
-
+from openeo_gfmap.spatial import BoundingBoxExtent
+from openeo_gfmap.temporal import TemporalContext
 from openeo_gfmap.utils import quintad_intervals
 
 backends = [Backend.TERRASCOPE, Backend.CDSE]

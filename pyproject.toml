@@ -38,7 +38,7 @@ dependencies = [
     "h5netcdf>=1.2.0",
     "openeo[localprocessing]",
     "cftime",
-    "pytest-dependency",
+    "pytest-depends",
     "pyarrow",
     "fastparquet"
 ]
@@ -60,5 +60,20 @@ testpaths = [
   "tests",
 ]
 addopts = [
-  "--import-mode=importlib",
+  "--import-mode=prepend",
 ]
+
+[tool.isort]
+profile = "black"
+
+
+[tool.ruff]
+# line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = [
+  "E501",  # Ignore "line-too-long" issues, let black handle that.
+]
+
+
