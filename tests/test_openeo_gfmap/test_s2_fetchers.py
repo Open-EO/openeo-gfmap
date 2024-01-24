@@ -2,12 +2,9 @@
 from pathlib import Path
 from typing import Union
 
-import geojson
-import geopandas as gpd
-import numpy as np
+import rioxarray
 import openeo
 import pytest
-import rioxarray
 import xarray as xr
 
 from openeo_gfmap import SpatialContext, TemporalContext, BoundingBoxExtent
@@ -25,54 +22,12 @@ from openeo_gfmap.utils import (
     arrays_cosine_similarity,
 )
 
-# Fields close to TAP, Belgium
-SPATIAL_EXTENT_1 = {
-    "west": 5.0516,
-    "south": 51.18682,
-    "east": 5.08832,
-    "north": 51.20527,
-    "crs": "EPSG:4326",
-    "country": "Belgium",  # Metadata useful for test suite
-}
-
-# Recent dates for first extent
-TEMPORAL_EXTENT_1 = ["2023-04-01", "2023-05-01"]
-
-# Scene in Ilha Grande, Brazil
-SPATIAL_EXTENT_2 = {
-    "west": -44.13569753706443,
-    "south": -23.174673799522953,
-    "east": -44.12093529131243,
-    "north": -23.16291590441855,
-    "crs": "EPSG:4326",
-    "country": "Brazil",  # Metadata useful for test suite
-}
-
-# Recent dates for second extent
-TEMPORAL_EXTENT_2 = ["2023-01-01", "2023-02-01"]
-
-# Dataset of polygons for POINT based extraction
-POINT_EXTRACTION_DF = (
-    Path(__file__).parent / "resources/malawi_extraction_polygons.gpkg"
+from contexts import (
+    test_backend_contexts,
+    test_spatiotemporal_contexts,
+    test_point_contexts,
+    test_polygon_contexts
 )
-
-# Datase of polygons for Polygon based extraction
-POLYGON_EXTRACTION_DF = (
-    Path(__file__).parent / "resources/puglia_extraction_polygons.gpkg"
-)
-
-test_backends = [Backend.TERRASCOPE, Backend.CDSE]
-
-test_spatio_temporal_extends = [
-    (SPATIAL_EXTENT_1, TEMPORAL_EXTENT_1),
-    (SPATIAL_EXTENT_2, TEMPORAL_EXTENT_2),
-]
-
-test_configurations = [
-    (*spatio_temp, backend)
-    for spatio_temp in test_spatio_temporal_extends
-    for backend in test_backends
-]
 
 
 class TestS2Extractors:
@@ -281,14 +236,45 @@ class TestS2Extractors:
         assert len(extracted_files) == len(spatial_context["features"])
 
 
-@pytest.mark.parametrize(
-    "spatial_context, temporal_context, backend", test_configurations
-)
 def test_sentinel2_l2a(
-    spatial_context: SpatialContext, temporal_context: TemporalContext, backend: Backend
+    test_backend_contexts: BackendContext,
+    test_spatiotemporal_contexts: tuple[SpatialContext, TemporalContext],
 ):
+    backend = test_backend_contexts.backend
+    spatial_context = test_spatiotemporal_contexts[0]
+    temporal_context = test_spatiotemporal_contexts[1]
+
     connection = BACKEND_CONNECTIONS[backend]()
     TestS2Extractors.sentinel2_l2a(
+        spatial_context, temporal_context, backend, connection
+    )
+
+
+def test_sentinel2_l2a_point_based(
+    test_backend_contexts: BackendContext,
+    test_point_contexts: tuple[SpatialContext, TemporalContext]
+):
+    spatial_context = test_point_contexts[0]
+    temporal_context = test_point_contexts[1]
+    backend = test_backend_contexts.backend
+    connection = BACKEND_CONNECTIONS[backend]()
+
+    TestS2Extractors.sentinel2_l2a_point_based(
+        spatial_context, temporal_context, backend, connection
+    )
+
+
+def test_sentinel2_l2a_polygon_based(
+    test_backend_contexts: BackendContext,
+    test_polygon_contexts: tuple[SpatialContext, TemporalContext]
+):
+    spatial_context = test_polygon_contexts[0]
+    temporal_context = test_polygon_contexts[1]
+    backend = test_backend_contexts.backend
+
+    connection = BACKEND_CONNECTIONS[backend]()
+
+    TestS2Extractors.sentinel2_l2a_polygon_based(
         spatial_context, temporal_context, backend, connection
     )
 
@@ -296,47 +282,3 @@ def test_sentinel2_l2a(
 @pytest.mark.depends(on=["test_sentinel2_l2a"])
 def test_compare_sentinel2_tiles():
     TestS2Extractors.compare_sentinel2_tiles()
-
-
-@pytest.mark.parametrize("backend", test_backends)
-def test_sentinel2_l2a_point_based(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
-
-    extraction_df = gpd.read_file(POINT_EXTRACTION_DF)
-
-    # Convert GeoDataFrame to feature collection to build spatial context
-    geojson_features = extraction_df.geometry.__geo_interface__
-    spatial_context = geojson.GeoJSON(
-        {"type": "FeatureCollection", "features": geojson_features["features"]}
-    )
-
-    # Build the temporal context
-    temporal_context = TemporalContext(
-        start_date=extraction_df.iloc[0]["start_date"],
-        end_date=extraction_df.iloc[0]["end_date"],
-    )
-
-    TestS2Extractors.sentinel2_l2a_point_based(
-        spatial_context, temporal_context, backend, connection
-    )
-
-
-@pytest.mark.parametrize("backend", test_backends)
-def test_sentinel2_l2a_polygon_based(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
-
-    extraction_df = gpd.read_file(POLYGON_EXTRACTION_DF)
-
-    geojson_features = extraction_df.geometry.__geo_interface__
-    spatial_context = geojson.GeoJSON(
-        {"type": "FeatureCollection", "features": geojson_features["features"]}
-    )
-
-    temporal_context = TemporalContext(
-        start_date=extraction_df.iloc[0]["start_date"],
-        end_date=extraction_df.iloc[0]["end_date"],
-    )
-
-    TestS2Extractors.sentinel2_l2a_polygon_based(
-        spatial_context, temporal_context, backend, connection
-    )
