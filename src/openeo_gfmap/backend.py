@@ -40,12 +40,13 @@ def _create_connection(
     Generic helper to create an openEO connection
     with support for multiple client credential configurations from environment variables
     """
-    connection = openeo.connect("openeo.vito.be", **(connect_kwargs or {}))
+    connection = openeo.connect(url, **(connect_kwargs or {}))
 
     if (
         os.environ.get("OPENEO_AUTH_METHOD") == "client_credentials"
         and f"OPENEO_AUTH_CLIENT_ID_{env_var_suffix}" in os.environ
     ):
+        # Support for multiple client credentials configs from env vars
         client_id = os.environ[f"OPENEO_AUTH_CLIENT_ID_{env_var_suffix}"]
         client_secret = os.environ[f"OPENEO_AUTH_CLIENT_SECRET_{env_var_suffix}"]
         provider_id = os.environ.get(f"OPENEO_AUTH_PROVIDER_ID_{env_var_suffix}")
@@ -71,18 +72,25 @@ def _create_connection(
 
 def vito_connection() -> openeo.Connection:
     """Performs a connection to the VITO backend using the oidc authentication."""
-    return _create_connection("openeo.vito.be", env_var_suffix="VITO")
+    return _create_connection(
+        url="openeo.vito.be",
+        env_var_suffix="VITO",
+    )
 
 
 def cdse_connection() -> openeo.Connection:
     """Performs a connection to the CDSE backend using oidc authentication."""
-    return _create_connection("openeo.dataspace.copernicus.eu", env_var_suffix="CDSE")
+    return _create_connection(
+        url="openeo.dataspace.copernicus.eu",
+        env_var_suffix="CDSE",
+    )
 
 
 def eodc_connection() -> openeo.Connection:
     """Perfroms a connection to the EODC backend using the oidc authentication."""
     return _create_connection(
-        "https://openeo.eodc.eu/openeo/1.1.0", env_var_suffix="CDSE"
+        url="https://openeo.eodc.eu/openeo/1.1.0",
+        env_var_suffix="EODC",
     )
 
 
