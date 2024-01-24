@@ -60,8 +60,12 @@ testpaths = [
   "tests",
 ]
 addopts = [
+  "--verbose",
   "--import-mode=prepend",
+  "--log-cli-level=INFO",
 ]
+junit_logging = "log"  # Include logging output in JUnit XML report
+
 
 [tool.isort]
 profile = "black"
