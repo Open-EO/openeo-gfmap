@@ -20,5 +20,8 @@ pythonPipeline {
     'OPENEO_AUTH_PROVIDER_ID_VITO': 'TAP/big_data_services/openeo/jenkins-service-account provider_id',
     'OPENEO_AUTH_CLIENT_ID_VITO': 'TAP/big_data_services/openeo/jenkins-service-account client_id',
     'OPENEO_AUTH_CLIENT_SECRET_VITO': 'TAP/big_data_services/openeo/jenkins-service-account client_secret',
+    'OPENEO_AUTH_PROVIDER_ID_CDSE': 'TAP/big_data_services/openeo/cdse-ci-service-account provider_id',
+    'OPENEO_AUTH_CLIENT_ID_CDSE': 'TAP/big_data_services/openeo/cdse-ci-service-account client_id',
+    'OPENEO_AUTH_CLIENT_SECRET_CDSE': 'TAP/big_data_services/openeo/cdse-ci-service-account client_secret',
   ]
 }
