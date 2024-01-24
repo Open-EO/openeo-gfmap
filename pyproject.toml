@@ -53,6 +53,7 @@ dev = [
   "xarray>=2022.3.0",
   "rioxarray>=0.13.0",
   "pytest-depends",
+  "pytest-timeout>=2.2.0",
 ]
 
 [tool.pytest.ini_options]
@@ -63,6 +64,7 @@ addopts = [
   "--verbose",
   "--import-mode=prepend",
   "--log-cli-level=INFO",
+  "--timeout=900",
 ]
 junit_logging = "log"  # Include logging output in JUnit XML report
 
