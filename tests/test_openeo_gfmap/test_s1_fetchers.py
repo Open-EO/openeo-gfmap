@@ -131,7 +131,7 @@ class TestS1Extractors:
                     dtype = array.dtype
                 else:
                     assert dtype == array.dtype
-            
+
             bounds = None
             for tile in loaded_tiles:
                 tile_bounds = array_bounds(tile)
@@ -202,7 +202,7 @@ class TestS1Extractors:
                 if band in col:
                     exists = True
             assert exists, f"Couldn't find a single column for band {band}"
-        
+
         assert len(df.columns) % len(bands) == 0, (
             f"The number of columns ({len(df.columns)}) should be a multiple"
             f"of the number of bands ({len(bands)})"

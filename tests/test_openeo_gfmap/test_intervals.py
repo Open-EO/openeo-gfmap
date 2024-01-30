@@ -75,7 +75,7 @@ def test_quintad_four_months():
     end_date = "2023-04-30"
 
     temporal_extent = TemporalContext(start_date, end_date)
-    
+
     expected = [
         ("2023-01-01", "2023-01-05"),
         ("2023-01-06", "2023-01-10"),

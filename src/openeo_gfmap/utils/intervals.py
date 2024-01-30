@@ -1,4 +1,4 @@
-"""Utilitary function for intervals, useful for temporal aggregation 
+"""Utilitary function for intervals, useful for temporal aggregation
 methods.
 """
 
@@ -27,7 +27,7 @@ def quintad_intervals(temporal_extent: TemporalContext) -> list:
         offset = (start_date - timedelta(days=1)).day % 5
         current_date = current_date - timedelta(days=offset)
     else:
-        offset = 0    
+        offset = 0
 
     while current_date <= end_date:
         # Get the last day of the current month
