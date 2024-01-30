@@ -31,7 +31,7 @@ def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
     elif isinstance(intervals, list):
         # Convert YYYY-mm-dd to datetime64 objects
         time_bins = [np.datetime64(interval[0]) for interval in intervals]
-        
+
         rank_mask = bap_score.groupby_bins('t', bins=time_bins).map(
             select_maximum
         )

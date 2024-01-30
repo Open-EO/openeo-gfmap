@@ -15,7 +15,7 @@ def normalize_array(
     minimum = inarr.min(dim=["x", "y", "t"])
 
     inarr = (inarr - minimum) / (quantile_value - minimum)
-    
+
     # Perform clipping on values that are higher than the computed quantile
     return inarr.where(inarr < 1.0, 1.0)
 
@@ -60,7 +60,7 @@ def arrays_cosine_similarity(
 ) -> float:
     """Returns a similarity score based on normalized cosine distance. The
     input arrays must have similar ranges to obtain a valid score.
-    1.0 represents the best score (same tiles), while 0.0 is the worst score. 
+    1.0 represents the best score (same tiles), while 0.0 is the worst score.
     """
     dot_product = np.sum(first_array * second_array)
     first_norm = np.linalg.norm(first_array)

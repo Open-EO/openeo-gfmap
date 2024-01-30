@@ -94,7 +94,7 @@ def get_s1_grd_default_processor(
     def s1_grd_default_processor(cube: openeo.DataCube, **params):
         """Default collection preprocessing method.
         This method performs:
-        
+
         * Compute the backscatter of all the S1 products. By default, the
         "sigma0-ellipsoid" method is used with "COPERNICUS_30" DEM, but those
         can be changed by specifying "coefficient" and "elevation_model" in
@@ -115,7 +115,7 @@ def get_s1_grd_default_processor(
         cube = resample_reproject(
             cube,
             params.get("target_resolution", 10.0),
-            params.get("target_crs", None) 
+            params.get("target_crs", None)
         )
 
         cube = rename_bands(cube, BASE_SENTINEL1_GRD_MAPPING)

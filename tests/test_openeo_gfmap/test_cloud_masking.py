@@ -59,7 +59,7 @@ def test_bap_score(backend: Backend):
     # Compute the BAP score
     bap_score = get_bap_score(cube, **preprocessing_parameters)
     ndvi = cube.ndvi(nir="S2-B08", red="S2-B04")
-    
+
     cube = bap_score.merge_cubes(ndvi).rename_labels(
         'bands', ['S2-BAPSCORE', 'S2-NDVI']
     )
@@ -70,7 +70,7 @@ def test_bap_score(backend: Backend):
     )
 
     job.start_and_wait()
-    
+
     for asset in job.get_results().get_assets():
         if asset.metadata["type"].startswith("application/x-netcdf"):
             asset.download(
@@ -101,7 +101,7 @@ def test_bap_masking(backend: Backend):
 
     cube = cube.linear_scale_range(0, 65535, 0, 65535)
 
-    # Perform masking with BAP, masking optical bands 
+    # Perform masking with BAP, masking optical bands
     cube = bap_masking(cube, period="dekad")
 
     # Perform compositing, the cube should be only composed of optical bands
@@ -137,7 +137,7 @@ def test_bap_quintad(backend: Backend):
         "fetching_resolution": 10.0
     }
     preprocessing_parameters = {
-        "apply_scl_dilation": True 
+        "apply_scl_dilation": True
     }
 
     # Fetch the datacube
