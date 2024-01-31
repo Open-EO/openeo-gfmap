@@ -121,4 +121,4 @@ def test_patch_feature_local():
         Path(__file__).parent / "results/patch_features_local.nc"
     )
 
-    assert set(features.features.values) == set(["red", "green", "blue"])
+    assert set(features.bands.values) == set(["red", "green", "blue"])
