@@ -1,9 +1,8 @@
 """ Definitions of spatial context, either point-based or spatial"""
 from dataclasses import dataclass
-from typing import Union
+from typing import Dict, Union
 
 from geojson import GeoJSON
-from typing import Dict
 
 
 @dataclass
@@ -30,13 +29,15 @@ class BoundingBoxExtent:
         }
 
     def __iter__(self):
-        return iter([
-            ("west", self.west),
-            ("south", self.south),
-            ("east", self.east),
-            ("north", self.north),
-            ("crs", self.epsg)
-        ])
+        return iter(
+            [
+                ("west", self.west),
+                ("south", self.south),
+                ("east", self.east),
+                ("north", self.north),
+                ("crs", self.epsg),
+            ]
+        )
 
 
 SpatialContext = Union[GeoJSON, BoundingBoxExtent]

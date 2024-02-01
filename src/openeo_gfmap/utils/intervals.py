@@ -1,21 +1,21 @@
-"""Utilitary function for intervals, useful for temporal aggregation 
+"""Utilitary function for intervals, useful for temporal aggregation
 methods.
 """
 
-from openeo_gfmap import TemporalContext
-
 from datetime import datetime, timedelta
+
+from openeo_gfmap import TemporalContext
 
 
 def quintad_intervals(temporal_extent: TemporalContext) -> list:
-    """ Returns a list of tuples (start_date, end_date) of quintad intervals
-        from the input temporal extent. Quintad intervals are intervals of
-        generally 5 days, that never overlap two months.
+    """Returns a list of tuples (start_date, end_date) of quintad intervals
+    from the input temporal extent. Quintad intervals are intervals of
+    generally 5 days, that never overlap two months.
 
-        All months are divided in 6 quintads, where the 6th quintad might
-        contain 6 days for months of 31 days.
-        For the month of February, the 6th quintad is only of three days, or
-        four days for the leap year.
+    All months are divided in 6 quintads, where the 6th quintad might
+    contain 6 days for months of 31 days.
+    For the month of February, the 6th quintad is only of three days, or
+    four days for the leap year.
     """
     start_date, end_date = temporal_extent.to_datetime()
     quintads = []
@@ -27,7 +27,7 @@ def quintad_intervals(temporal_extent: TemporalContext) -> list:
         offset = (start_date - timedelta(days=1)).day % 5
         current_date = current_date - timedelta(days=offset)
     else:
-        offset = 0    
+        offset = 0
 
     while current_date <= end_date:
         # Get the last day of the current month

@@ -10,14 +10,20 @@ import pytest
 import rioxarray
 import xarray as xr
 
-from openeo_gfmap import SpatialContext, TemporalContext, BoundingBoxExtent
+from openeo_gfmap import BoundingBoxExtent, SpatialContext, TemporalContext
 from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
 from openeo_gfmap.fetching import (
     CollectionFetcher,
     FetchType,
     build_sentinel2_l2a_extractor,
 )
-from openeo_gfmap.utils import load_json, normalize_array, select_optical_bands, array_bounds, arrays_cosine_similarity
+from openeo_gfmap.utils import (
+    array_bounds,
+    arrays_cosine_similarity,
+    load_json,
+    normalize_array,
+    select_optical_bands,
+)
 
 # Fields close to TAP, Belgium
 SPATIAL_EXTENT_1 = {
@@ -55,7 +61,7 @@ POLYGON_EXTRACTION_DF = (
     Path(__file__).parent / "resources/puglia_extraction_polygons.gpkg"
 )
 
-#test_backends = [Backend.TERRASCOPE, Backend.CDSE]
+# test_backends = [Backend.TERRASCOPE, Backend.CDSE]
 test_backends = [Backend.CDSE]
 
 test_spatio_temporal_extends = [
@@ -95,10 +101,11 @@ class TestS2Extractors:
             "S2-SCL",
             "S2-AOT",
         ]
-        fetching_parameters = {
-            "target_resolution": 10.0,
-            "target_crs": 3035
-        } if country == "Belgium" else {}
+        fetching_parameters = (
+            {"target_resolution": 10.0, "target_crs": 3035}
+            if country == "Belgium"
+            else {}
+        )
         extractor: CollectionFetcher = build_sentinel2_l2a_extractor(
             context=context,
             bands=bands,
@@ -111,7 +118,7 @@ class TestS2Extractors:
             south=spatial_extent["south"],
             east=spatial_extent["east"],
             north=spatial_extent["north"],
-            epsg=spatial_extent["crs"]
+            epsg=spatial_extent["crs"],
         )
 
         temporal_extent = TemporalContext(
@@ -182,9 +189,7 @@ class TestS2Extractors:
             first_tile = normalized_tiles[0]
             for tile_idx in range(1, len(normalized_tiles)):
                 tile_to_compare = normalized_tiles[tile_idx]
-                similarity_score = arrays_cosine_similarity(
-                    first_tile, tile_to_compare
-                )
+                similarity_score = arrays_cosine_similarity(first_tile, tile_to_compare)
                 assert similarity_score >= 0.95
 
     def sentinel2_l2a_point_based(
@@ -259,7 +264,9 @@ class TestS2Extractors:
         output_folder.mkdir(exist_ok=True, parents=True)
 
         job = cube.create_job(
-            title="test_extract_polygons_s2", out_format="NetCDF", sample_by_feature=True
+            title="test_extract_polygons_s2",
+            out_format="NetCDF",
+            sample_by_feature=True,
         )
 
         job.start_and_wait()
@@ -290,6 +297,7 @@ def test_sentinel2_l2a(
 @pytest.mark.depends(on=["test_sentinel2_l2a"])
 def test_compare_sentinel2_tiles():
     TestS2Extractors.compare_sentinel2_tiles()
+
 
 @pytest.mark.parametrize("backend", test_backends)
 def test_sentinel2_l2a_point_based(backend: Backend):

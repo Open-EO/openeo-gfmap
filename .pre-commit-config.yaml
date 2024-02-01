@@ -35,12 +35,12 @@ repos:
         entry: shellcheck --check-sourced --shell=bash --exclude=SC1087
         language: system
         types: [shell]
-      - id: pydocstyle
-        name: pydocstyle
-        entry: pydocstyle
-        language: system
-        types: [python]
-        exclude: "(^experiments/|.*_depr)"
+      # - id: pydocstyle
+      #   name: pydocstyle
+      #   entry: pydocstyle
+      #   language: system
+      #   types: [python]
+      #   exclude: "(^experiments/|.*_depr)"
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:

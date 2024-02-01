@@ -1,8 +1,9 @@
-import xarray as xr
 from pathlib import Path
-import numpy as np
 
+import numpy as np
+import xarray as xr
 from openeo.udf import XarrayDataCube
+
 
 def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
     """For a cube having the BAP score, and a given period of list of intervals,
@@ -15,14 +16,13 @@ def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
     """
     # First check if the period is defined in the context
     intervals = context.get("intervals", None)
-    array = cube.get_array().transpose('t', 'bands', 'y', 'x')
+    array = cube.get_array().transpose("t", "bands", "y", "x")
 
     bap_score = array.sel(bands="S2-BAPSCORE")
 
     def select_maximum(score: xr.DataArray):
         max_score = score.max(dim="t")
         return score == max_score
-
 
     if isinstance(intervals, str):
         raise NotImplementedError(
@@ -31,10 +31,8 @@ def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
     elif isinstance(intervals, list):
         # Convert YYYY-mm-dd to datetime64 objects
         time_bins = [np.datetime64(interval[0]) for interval in intervals]
-        
-        rank_mask = bap_score.groupby_bins('t', bins=time_bins).map(
-            select_maximum
-        )
+
+        rank_mask = bap_score.groupby_bins("t", bins=time_bins).map(select_maximum)
     else:
         raise ValueError("Period is not defined in the UDF. Cannot run it.")
 

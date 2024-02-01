@@ -1,15 +1,16 @@
 """Functionalities to interract with product catalogues."""
 import requests
-
-from shapely.geometry import shape
 from geojson import GeoJSON
+from shapely.geometry import shape
+
 from openeo_gfmap import SpatialContext, TemporalContext
+
 
 def _check_cdse_catalogue(
     collection: str,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
-    **additional_parameters: dict
+    **additional_parameters: dict,
 ) -> bool:
     """Checks if there is at least one product available in the
     given spatio-temporal context for a collection in the CDSE catalogue,
@@ -36,16 +37,23 @@ def _check_cdse_catalogue(
         # Transform geojson into shapely geometry and compute bounds
         bounds = shape(spatial_extent).bounds
     elif isinstance(spatial_extent, SpatialContext):
-        bounds = [spatial_extent.west, spatial_extent.south, spatial_extent.east, spatial_extent.north]
+        bounds = [
+            spatial_extent.west,
+            spatial_extent.south,
+            spatial_extent.east,
+            spatial_extent.north,
+        ]
     else:
-        raise ValueError('Provided spatial extent is not a valid GeoJSON or SpatialContext object.')
+        raise ValueError(
+            "Provided spatial extent is not a valid GeoJSON or SpatialContext object."
+        )
 
     minx, miny, maxx, maxy = bounds
 
     # The date format should be YYYY-MM-DD
-    start_date = f'{temporal_extent.start_date}T00:00:00Z'
-    end_date = f'{temporal_extent.end_date}T00:00:00Z'
-    
+    start_date = f"{temporal_extent.start_date}T00:00:00Z"
+    end_date = f"{temporal_extent.end_date}T00:00:00Z"
+
     url = (
         f"https://catalogue.dataspace.copernicus.eu/resto/api/collections/"
         f"{collection}/search.json?box={minx},{miny},{maxx},{maxy}"
@@ -65,7 +73,10 @@ def _check_cdse_catalogue(
 
     body = response.json()
     grd_tiles = list(
-        filter(lambda feature: feature["properties"]["productType"].contains("GRD"), body["features"])
+        filter(
+            lambda feature: feature["properties"]["productType"].contains("GRD"),
+            body["features"],
+        )
     )
 
-    return len(grd_tiles) > 0 
+    return len(grd_tiles) > 0

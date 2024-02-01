@@ -1,12 +1,14 @@
 """Different cloud masking strategies for an OpenEO datacubes."""
 
-from typing import Union
 from pathlib import Path
+from typing import Union
+
 import openeo
 from openeo.processes import if_, is_nan
 
 SCL_HARMONIZED_NAME: str = "S2-SCL"
 BAPSCORE_HARMONIZED_NAME: str = "S2-BAPSCORE"
+
 
 def mask_scl_dilation(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
     """Creates a mask from the SCL, dilates it and applies the mask to the optical
@@ -14,9 +16,9 @@ def mask_scl_dilation(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
     be affected by the mask.
     """
     # Asserts if the SCL layer exists
-    assert SCL_HARMONIZED_NAME in cube.metadata.band_names, (
-        f"The SCL band ({SCL_HARMONIZED_NAME}) is not present in the datacube."
-    )
+    assert (
+        SCL_HARMONIZED_NAME in cube.metadata.band_names
+    ), f"The SCL band ({SCL_HARMONIZED_NAME}) is not present in the datacube."
 
     kernel1_size = params.get("kernel1_size", 17)
     kernel2_size = params.get("kernel2_size", 3)
@@ -27,9 +29,7 @@ def mask_scl_dilation(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
 
     # Only applies the filtering to the optical part of the cube
     optical_cube = cube.filter_bands(
-        bands=list(
-            filter(lambda band: band.startswith("S2"), cube.metadata.band_names)
-        )
+        bands=list(filter(lambda band: band.startswith("S2"), cube.metadata.band_names))
     )
 
     nonoptical_cube = cube.filter_bands(
@@ -46,13 +46,14 @@ def mask_scl_dilation(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
         kernel2_size=kernel2_size,
         mask1_values=[2, 4, 5, 6, 7],
         mask2_values=[3, 8, 9, 10, 11],
-        erosion_kernel_size=erosion_kernel_size
+        erosion_kernel_size=erosion_kernel_size,
     )
 
     if len(nonoptical_cube.metadata.band_names) == 0:
         return optical_cube
 
     return optical_cube.merge_cubes(nonoptical_cube)
+
 
 def get_bap_score(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
     """Calculates the Best Available Pixel (BAP) score for the given datacube,
@@ -69,7 +70,7 @@ def get_bap_score(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
     * Coverage Score: Per date, the percentage of all pixels that are classified
       as a cloud over the entire spatial extent is calculated. The Coverage
       Score is then equal to 1 - the cloud percentage.
-    * Date Score: In order to favor pixels that are observed in the middle of a 
+    * Date Score: In order to favor pixels that are observed in the middle of a
       month, a date score is calculated, which follows a Gaussian shape. I.e.
       the largest scores are given for days in the middle of the month, the
       lowest scores are given for days at the beginning and end of the month.
@@ -112,7 +113,7 @@ def get_bap_score(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
             kernel2_size=kernel2_size,
             mask1_values=[2, 4, 5, 6, 7],
             mask2_values=[3, 8, 9, 10, 11],
-            erosion_kernel_size=erosion_kernel_size
+            erosion_kernel_size=erosion_kernel_size,
         )
 
     # Replace NaN to 0 to avoid issues in the UDF
@@ -120,14 +121,21 @@ def get_bap_score(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
 
     score = scl_cube.apply_neighborhood(
         process=openeo.UDF.from_file(str(udf_path)),
-        size=[{'dimension': 'x', 'unit': 'px', 'value': 256}, {'dimension': 'y', 'unit': 'px', 'value': 256}],
-        overlap=[{'dimension': 'x', 'unit': 'px', 'value': 16}, {'dimension': 'y', 'unit': 'px', 'value': 16}],
+        size=[
+            {"dimension": "x", "unit": "px", "value": 256},
+            {"dimension": "y", "unit": "px", "value": 256},
+        ],
+        overlap=[
+            {"dimension": "x", "unit": "px", "value": 16},
+            {"dimension": "y", "unit": "px", "value": 16},
+        ],
     )
 
-    score = score.rename_labels('bands', [BAPSCORE_HARMONIZED_NAME])
+    score = score.rename_labels("bands", [BAPSCORE_HARMONIZED_NAME])
 
     # Merge the score to the scl cube
     return score
+
 
 def get_bap_mask(cube: openeo.DataCube, period: Union[str, list], **params: dict):
     """Computes the bap score and masks the optical bands of the datacube using
@@ -154,13 +162,14 @@ def get_bap_mask(cube: openeo.DataCube, period: Union[str, list], **params: dict
         The datacube with the BAP mask applied.
     """
     # Checks if the S2-SCL band is present in the datacube
-    assert SCL_HARMONIZED_NAME in cube.metadata.band_names, (
-        f"The {SCL_HARMONIZED_NAME} band is not present in the datacube."
-    )
+    assert (
+        SCL_HARMONIZED_NAME in cube.metadata.band_names
+    ), f"The {SCL_HARMONIZED_NAME} band is not present in the datacube."
 
     bap_score = get_bap_score(cube, **params)
 
     if isinstance(period, str):
+
         def max_score_selection(score):
             max_score = score.max()
             return score.array_apply(lambda x: x != max_score)
@@ -170,27 +179,26 @@ def get_bap_mask(cube: openeo.DataCube, period: Union[str, list], **params: dict
             size=[
                 {"dimension": "x", "unit": "px", "value": 1},
                 {"dimension": "y", "unit": "px", "value": 1},
-                {"dimension": "t", "value": period}
+                {"dimension": "t", "value": period},
             ],
-            overlap=[]
+            overlap=[],
         )
     elif isinstance(period, list):
         udf_path = Path(__file__).parent / "udf_rank.py"
         rank_mask = bap_score.apply_neighborhood(
-            process=openeo.UDF.from_file(
-                str(udf_path),
-                context={"intervals": period}
-            ),
+            process=openeo.UDF.from_file(str(udf_path), context={"intervals": period}),
             size=[
-                {'dimension': 'x', 'unit': 'px', 'value': 256},
-                {'dimension': 'y', 'unit': 'px', 'value': 256}
+                {"dimension": "x", "unit": "px", "value": 256},
+                {"dimension": "y", "unit": "px", "value": 256},
             ],
             overlap=[],
         )
     else:
-        raise ValueError(f"'period' must be a string or a list of dates (in YYYY-mm-dd format), got {period}.")
+        raise ValueError(
+            f"'period' must be a string or a list of dates (in YYYY-mm-dd format), got {period}."
+        )
 
-    return rank_mask.rename_labels('bands', ['S2-BAPMASK'])
+    return rank_mask.rename_labels("bands", ["S2-BAPMASK"])
 
 
 def bap_masking(cube: openeo.DataCube, period: Union[str, list], **params: dict):
@@ -212,9 +220,7 @@ def bap_masking(cube: openeo.DataCube, period: Union[str, list], **params: dict)
         The datacube with the BAP mask applied.
     """
     optical_cube = cube.filter_bands(
-        bands=list(
-            filter(lambda band: band.startswith("S2"), cube.metadata.band_names)
-        )
+        bands=list(filter(lambda band: band.startswith("S2"), cube.metadata.band_names))
     )
 
     nonoptical_cube = cube.filter_bands(
@@ -225,9 +231,7 @@ def bap_masking(cube: openeo.DataCube, period: Union[str, list], **params: dict)
 
     rank_mask = get_bap_mask(optical_cube, period, **params)
 
-    optical_cube = optical_cube.mask(
-        rank_mask.resample_cube_spatial(cube)
-    )
+    optical_cube = optical_cube.mask(rank_mask.resample_cube_spatial(cube))
 
     # Do not merge if bands are empty!
     if len(nonoptical_cube.metadata.band_names) == 0:
