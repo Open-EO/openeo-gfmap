@@ -6,6 +6,7 @@ from openeo.udf import XarrayDataCube
 from scipy.ndimage import distance_transform_cdt
 from skimage.morphology import binary_erosion, footprints
 
+
 def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
     cube_array: xr.DataArray = cube.get_array()
     cube_array = cube_array.transpose("t", "bands", "y", "x")

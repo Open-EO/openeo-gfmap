@@ -6,6 +6,7 @@ from datetime import timedelta
 
 from openeo_gfmap import TemporalContext
 
+
 def quintad_intervals(temporal_extent: TemporalContext) -> list:
     """Returns a list of tuples (start_date, end_date) of quintad intervals
     from the input temporal extent. Quintad intervals are intervals of
