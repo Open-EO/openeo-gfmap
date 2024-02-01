@@ -35,7 +35,7 @@ class DummyPatchExtractor(PatchFeatureExtractor):
 
     def execute(self, inarr: xr.DataArray):
         # Make the imports WITHIN the class
-        import xarray as xr
+        import xarray as xr  # noqa: F401
         from scipy.ndimage import gaussian_filter
 
         # Performs some gaussian filtering to blur the RGB bands
@@ -80,7 +80,7 @@ class LatLonExtractor(PatchFeatureExtractor):
 
 
 # TODO remove
-BACKEND_CONNECTIONS = {Backend.TERRASCOPE: vito_connection}
+BACKEND_CONNECTIONS = {Backend.TERRASCOPE: vito_connection}  # noqa: F811
 
 
 @pytest.mark.parametrize("backend, connection_fn", BACKEND_CONNECTIONS.items())
