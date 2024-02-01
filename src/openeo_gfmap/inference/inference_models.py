@@ -2,6 +2,12 @@
 of inference models on an UDF.
 """
 
+from abc import ABC, abstractmethod
+
+import xarray as xr
+
+from openeo_gfmap.features.feature_extractor import EPSG_HARMONIZED_NAME
+
 REQUIRED_IMPORTS = """
 import inspect
 from abc import ABC, abstractmethod
@@ -19,6 +25,7 @@ import numpy as np
 from typing import Union
 """
 
+
 class ModelInference(ABC):
     """Base class for all model inference UDFs. It provides some common
     methods and attributes to be used by other model inference classes.
@@ -33,7 +40,7 @@ class ModelInference(ABC):
             "ModelInference is a base abstract class, please implement the "
             "function in your user defined model inference class"
         )
-    
+
     def _common_preparations(
         self, inarr: xr.DataArray, parameters: dict
     ) -> xr.DataArray:
@@ -42,4 +49,3 @@ class ModelInference(ABC):
         """
         self._import_dependencies()
         self._epsg = parameters.pop(EPSG_HARMONIZED_NAME)
-        

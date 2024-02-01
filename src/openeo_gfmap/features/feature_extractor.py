@@ -11,6 +11,16 @@ Be careful: a lot of
 in here
 """
 
+from abc import ABC, abstractmethod
+from typing import Union
+
+import numpy as np
+import openeo
+import xarray as xr
+from openeo.udf import XarrayDataCube
+from openeo.udf.run_code import execute_local_udf
+from openeo.udf.udf_data import UdfData
+
 REQUIRED_IMPORTS = """
 import inspect
 from abc import ABC, abstractmethod
@@ -20,14 +30,12 @@ from openeo.udf import XarrayDataCube, inspect
 from openeo.udf.run_code import execute_local_udf
 from openeo.udf.udf_data import UdfData
 
-import pyproj
 import xarray as xr
 import numpy as np
 
 from typing import Union
 """
 
-exec(REQUIRED_IMPORTS)
 
 LAT_HARMONIZED_NAME = "GEO-LAT"
 LON_HARMONIZED_NAME = "GEO-LON"
@@ -62,9 +70,10 @@ def apply_udf_data(udf_data: UdfData) -> XarrayDataCube:
     cube = feature_extractor._execute(cube, parameters=parameters)
 
     udf_data.datacube_list = [cube]
-    
+
     return udf_data
 """
+
 
 class FeatureExtractor(ABC):
     """Base class for all feature extractor UDFs. It provides some common
@@ -141,7 +150,7 @@ class PatchFeatureExtractor(FeatureExtractor):
             transformer = Transformer.from_crs(
                 crs_from=CRS.from_epsg(self.epsg),
                 crs_to=CRS.from_epsg(4326),
-                always_xy=True
+                always_xy=True,
             )
             lon, lat = transformer.transform(xx=lon, yy=lat)
 
@@ -171,7 +180,6 @@ class PatchFeatureExtractor(FeatureExtractor):
 
 
 class PointFeatureExtractor(FeatureExtractor):
-
     def __init__(self):
         raise NotImplementedError(
             "Point based feature extraction on Vector Cubes is not supported yet."
@@ -190,9 +198,7 @@ class PointFeatureExtractor(FeatureExtractor):
         pass
 
 
-def generate_udf_code(
-    feature_extractor_class: FeatureExtractor
-) -> openeo.UDF:
+def generate_udf_code(feature_extractor_class: FeatureExtractor) -> openeo.UDF:
     """Generates the udf code by packing imports of this file, the necessary
     superclass and subclasses as well as the user defined feature extractor
     class and the apply_datacube function.
@@ -224,9 +230,7 @@ def generate_udf_code(
         udf_code += f"{inspect.getsource(PointFeatureExtractor)}\n\n"
         udf_code += f"{inspect.getsource(feature_extractor_class)}\n\n"
         udf_code += APPLY_DATACUBE_SOURCE_CODE.format(
-            True,
-            feature_extractor_class.__name__,
-            EPSG_HARMONIZED_NAME
+            True, feature_extractor_class.__name__, EPSG_HARMONIZED_NAME
         )
     else:
         raise NotImplementedError(
@@ -259,13 +263,13 @@ def apply_feature_extractor(
     udf = openeo.UDF(code=udf_code, context=parameters)
 
     cube = cube.apply_neighborhood(process=udf, size=size, overlap=overlap)
-    return cube.rename_labels(dimension="bands", target=feature_extractor_class().output_labels())
+    return cube.rename_labels(
+        dimension="bands", target=feature_extractor_class().output_labels()
+    )
 
 
 def apply_feature_extractor_local(
-    feature_extractor_class: FeatureExtractor,
-    cube: xr.DataArray,
-    parameters: dict
+    feature_extractor_class: FeatureExtractor, cube: xr.DataArray, parameters: dict
 ) -> xr.DataArray:
     """Applies and user-define feature extractor, but locally. The
     parameters are the same as in the `apply_feature_extractor` function,
@@ -278,14 +282,14 @@ def apply_feature_extractor_local(
 
     cube = XarrayDataCube(cube)
 
-    out_udf_data: UdfData = execute_local_udf(
-        udf, cube, fmt="NetCDF"
-    )
+    out_udf_data: UdfData = execute_local_udf(udf, cube, fmt="NetCDF")
 
     output_cubes = out_udf_data.datacube_list
 
     assert len(output_cubes) == 1, "UDF should have only a single output cube."
 
-    return output_cubes[0].get_array().assign_coords(
-        {"bands": feature_extractor_class().output_labels()}
+    return (
+        output_cubes[0]
+        .get_array()
+        .assign_coords({"bands": feature_extractor_class().output_labels()})
     )
