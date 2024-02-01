@@ -1,7 +1,8 @@
 """Different cloud masking strategies for an OpenEO datacubes."""
 
-from typing import Union
 from pathlib import Path
+from typing import Union
+
 import openeo
 from openeo.processes import if_, is_nan
 
@@ -69,7 +70,7 @@ def get_bap_score(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
     * Coverage Score: Per date, the percentage of all pixels that are classified
       as a cloud over the entire spatial extent is calculated. The Coverage
       Score is then equal to 1 - the cloud percentage.
-    * Date Score: In order to favor pixels that are observed in the middle of a 
+    * Date Score: In order to favor pixels that are observed in the middle of a
       month, a date score is calculated, which follows a Gaussian shape. I.e.
       the largest scores are given for days in the middle of the month, the
       lowest scores are given for days at the beginning and end of the month.

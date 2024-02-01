@@ -1,9 +1,10 @@
 """Functionalities to interract with product catalogues."""
 import requests
-
-from shapely.geometry import shape
 from geojson import GeoJSON
+from shapely.geometry import shape
+
 from openeo_gfmap import SpatialContext, TemporalContext
+
 
 def _check_cdse_catalogue(
     collection: str,
@@ -45,7 +46,7 @@ def _check_cdse_catalogue(
     # The date format should be YYYY-MM-DD
     start_date = f'{temporal_extent.start_date}T00:00:00Z'
     end_date = f'{temporal_extent.end_date}T00:00:00Z'
-    
+
     url = (
         f"https://catalogue.dataspace.copernicus.eu/resto/api/collections/"
         f"{collection}/search.json?box={minx},{miny},{maxx},{maxy}"
@@ -68,4 +69,4 @@ def _check_cdse_catalogue(
         filter(lambda feature: feature["properties"]["productType"].contains("GRD"), body["features"])
     )
 
-    return len(grd_tiles) > 0 
+    return len(grd_tiles) > 0

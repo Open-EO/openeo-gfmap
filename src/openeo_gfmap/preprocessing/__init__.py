@@ -2,9 +2,14 @@
 right after the extraction and the execution of the features UDF.
 """
 
-from openeo_gfmap.preprocessing.cloudmasking import mask_scl_dilation, get_bap_score, bap_masking, get_bap_mask
+from openeo_gfmap.preprocessing.cloudmasking import (
+    bap_masking,
+    get_bap_mask,
+    get_bap_score,
+    mask_scl_dilation,
+)
+from openeo_gfmap.preprocessing.compositing import mean_compositing, median_compositing
 from openeo_gfmap.preprocessing.interpolation import linear_interpolation
-from openeo_gfmap.preprocessing.compositing import median_compositing, mean_compositing
 
 __all__ = [
     "mask_scl_dilation",

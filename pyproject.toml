@@ -13,7 +13,7 @@ exclude = [
 
 [project]
 name = "openeo_gfmap"
-version = "0.0.1"
+version = "0.0.1a1"
 authors = [
   { name="Darius Couchard" },
   { name="Vincent Verelst" },
@@ -32,7 +32,7 @@ dependencies = [
     "geojson>=3.0.0",
     "h5netcdf>=1.2.0",
     "openeo[localprocessing]",
-    "pytest-depends",
+    "cftime",
     "pyarrow",
     "fastparquet"
 ]
@@ -47,7 +47,8 @@ dev = [
   "matplotlib>=3.3.0",
   "xarray>=2022.3.0",
   "rioxarray>=0.13.0",
-  "cftime"
+  "pytest-depends",
+  "pytest-timeout>=2.2.0",
 ]
 
 [tool.pytest.ini_options]
@@ -55,5 +56,25 @@ testpaths = [
   "tests",
 ]
 addopts = [
-  "--import-mode=importlib",
+  "--verbose",
+  "--import-mode=prepend",
+  "--log-cli-level=INFO",
+  "--timeout=900",
 ]
+junit_logging = "log"  # Include logging output in JUnit XML report
+
+
+[tool.isort]
+profile = "black"
+
+
+[tool.ruff]
+# line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = [
+  "E501",  # Ignore "line-too-long" issues, let black handle that.
+]
+
+

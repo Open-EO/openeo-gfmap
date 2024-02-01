@@ -1,16 +1,14 @@
 """ Collection fetching of S1 features, supporting different backends.
 """
-from typing import Callable
 from functools import partial
+from typing import Callable
 
 import openeo
 from geojson import GeoJSON
 
 from openeo_gfmap.backend import Backend, BackendContext
-from openeo_gfmap.spatial import SpatialContext, BoundingBoxExtent
+from openeo_gfmap.spatial import SpatialContext
 from openeo_gfmap.temporal import TemporalContext
-
-from .fetching import CollectionFetcher, FetchType
 
 from .commons import (
     convert_band_names,
@@ -18,6 +16,7 @@ from .commons import (
     rename_bands,
     resample_reproject,
 )
+from .fetching import CollectionFetcher, FetchType
 
 BASE_SENTINEL1_GRD_MAPPING = {
     "VH": "S1-VH",
@@ -77,7 +76,7 @@ def get_s1_grd_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
             **load_collection_parameters,
         )
 
-        if isinstance(spatial_extent.value, GeoJSON):
+        if isinstance(spatial_extent, GeoJSON):
             cube = cube.filter_spatial(spatial_extent)
 
         return cube
@@ -95,7 +94,7 @@ def get_s1_grd_default_processor(
     def s1_grd_default_processor(cube: openeo.DataCube, **params):
         """Default collection preprocessing method.
         This method performs:
-        
+
         * Compute the backscatter of all the S1 products. By default, the
         "sigma0-ellipsoid" method is used with "COPERNICUS_30" DEM, but those
         can be changed by specifying "coefficient" and "elevation_model" in
@@ -116,7 +115,7 @@ def get_s1_grd_default_processor(
         cube = resample_reproject(
             cube,
             params.get("target_resolution", 10.0),
-            params.get("target_crs", None) 
+            params.get("target_crs", None)
         )
 
         cube = rename_bands(cube, BASE_SENTINEL1_GRD_MAPPING)

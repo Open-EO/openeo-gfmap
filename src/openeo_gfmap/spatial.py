@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Union
 
 from geojson import GeoJSON
-from typing import Dict
 
 
 @dataclass
