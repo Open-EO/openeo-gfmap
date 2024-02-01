@@ -25,6 +25,9 @@ TEMPORAL_EXTENT = TemporalContext("2023-10-01", "2024-01-01")
 
 class DummyPatchExtractor(PatchFeatureExtractor):
 
+    def output_labels(self) -> list:
+        return ["red", "green", "blue"]
+
     def execute(self, inarr: xr.DataArray):
         # Make the imports WITHIN the class
         from scipy.ndimage import gaussian_filter
@@ -52,6 +55,9 @@ class LatLonExtractor(PatchFeatureExtractor):
     """Sample extractor that compute the latitude and longitude values
     and concatenates them in a new array.
     """
+
+    def output_labels(self) -> list:
+        return ["red", "lat", "lon"]
 
     def execute(self, inarr: xr.DataArray) -> xr.DataArray:
         # Compute the latitude and longitude as bands in the input array
@@ -116,7 +122,7 @@ def test_patch_feature_udf(backend: Backend, connection_fn: Callable):
     # Read the output path and checks for the expected band names
     output_cube = xr.open_dataset(output_path)
 
-    assert set(output_cube.keys()) == set(["red", "green", "blue"])
+    assert set(output_cube.keys()) == set(["red", "green", "blue", "crs"])
 
 
 @pytest.mark.parametrize(
@@ -165,7 +171,7 @@ def test_latlon_extractor(backend: Backend, connection_fn: Callable):
     # Read the output path and checks for the expected band names
     output_cube = xr.open_dataset(output_path)
 
-    assert set(output_cube.keys()) == set(["red", "lat", "lon"])
+    assert set(output_cube.keys()) == set(["red", "lat", "lon", "crs"])
 
 
 def test_patch_feature_local():

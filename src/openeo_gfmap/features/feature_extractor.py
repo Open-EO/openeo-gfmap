@@ -90,6 +90,15 @@ class FeatureExtractor(ABC):
         """Returns the EPSG code of the datacube."""
         return self._epsg
 
+    @abstractmethod
+    def output_labels(self) -> list:
+        """Returns a list of output labels to be assigned on the output bands,
+        needs to be overriden by the user."""
+        raise NotImplementedError(
+            "FeatureExtractor is a base abstract class, please implement the "
+            "output_labels property."
+        )
+
     def _execute(self, cube: XarrayDataCube, parameters: dict) -> XarrayDataCube:
         raise NotImplementedError(
             "FeatureExtractor is a base abstract class, please implement the "
@@ -249,7 +258,8 @@ def apply_feature_extractor(
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 
-    return cube.apply_neighborhood(process=udf, size=size, overlap=overlap)
+    cube = cube.apply_neighborhood(process=udf, size=size, overlap=overlap)
+    return cube.rename_labels(dimension="bands", target=feature_extractor_class().output_labels())
 
 
 def apply_feature_extractor_local(
@@ -276,4 +286,6 @@ def apply_feature_extractor_local(
 
     assert len(output_cubes) == 1, "UDF should have only a single output cube."
 
-    return output_cubes[0].get_array()
+    return output_cubes[0].get_array().assign_coords(
+        {"bands": feature_extractor_class().output_labels()}
+    )
