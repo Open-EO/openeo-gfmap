@@ -1,18 +1,17 @@
 from pathlib import Path
 
-from typing import Union
-
 import pytest
 
-from openeo_gfmap.backend import Backend, BackendContext, BACKEND_CONNECTIONS
-from openeo_gfmap.temporal import TemporalContext
-from openeo_gfmap.spatial import BoundingBoxExtent
+from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
 from openeo_gfmap.fetching import FetchType, build_sentinel2_l2a_extractor
-
 from openeo_gfmap.preprocessing import (
-    get_bap_score, bap_masking, median_compositing, get_bap_mask
+    bap_masking,
+    get_bap_mask,
+    get_bap_score,
+    median_compositing,
 )
-
+from openeo_gfmap.spatial import BoundingBoxExtent
+from openeo_gfmap.temporal import TemporalContext
 from openeo_gfmap.utils import quintad_intervals
 
 backends = [Backend.TERRASCOPE, Backend.CDSE]
@@ -60,7 +59,7 @@ def test_bap_score(backend: Backend):
     # Compute the BAP score
     bap_score = get_bap_score(cube, **preprocessing_parameters)
     ndvi = cube.ndvi(nir="S2-B08", red="S2-B04")
-    
+
     cube = bap_score.merge_cubes(ndvi).rename_labels(
         'bands', ['S2-BAPSCORE', 'S2-NDVI']
     )
@@ -71,7 +70,7 @@ def test_bap_score(backend: Backend):
     )
 
     job.start_and_wait()
-    
+
     for asset in job.get_results().get_assets():
         if asset.metadata["type"].startswith("application/x-netcdf"):
             asset.download(
@@ -102,7 +101,7 @@ def test_bap_masking(backend: Backend):
 
     cube = cube.linear_scale_range(0, 65535, 0, 65535)
 
-    # Perform masking with BAP, masking optical bands 
+    # Perform masking with BAP, masking optical bands
     cube = bap_masking(cube, period="dekad")
 
     # Perform compositing, the cube should be only composed of optical bands
@@ -138,7 +137,7 @@ def test_bap_quintad(backend: Backend):
         "fetching_resolution": 10.0
     }
     preprocessing_parameters = {
-        "apply_scl_dilation": True 
+        "apply_scl_dilation": True
     }
 
     # Fetch the datacube

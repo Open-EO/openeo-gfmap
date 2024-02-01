@@ -8,7 +8,7 @@ More information available in the README.md file.
 
 from .backend import Backend, BackendContext
 from .metadata import FakeMetadata
-from .spatial import SpatialContext, BoundingBoxExtent
+from .spatial import BoundingBoxExtent, SpatialContext
 from .temporal import TemporalContext
 from .fetching import FetchType
 

@@ -1,23 +1,27 @@
 """ Tests for data extractors for Sentinel2 data. """
 from pathlib import Path
-from typing import Union
 
 import geojson
 import geopandas as gpd
-import numpy as np
 import openeo
 import pytest
 import rioxarray
 import xarray as xr
 
-from openeo_gfmap import SpatialContext, TemporalContext, BoundingBoxExtent
+from openeo_gfmap import BoundingBoxExtent, SpatialContext, TemporalContext
 from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
 from openeo_gfmap.fetching import (
     CollectionFetcher,
     FetchType,
     build_sentinel2_l2a_extractor,
 )
-from openeo_gfmap.utils import load_json, normalize_array, select_optical_bands, array_bounds, arrays_cosine_similarity
+from openeo_gfmap.utils import (
+    array_bounds,
+    arrays_cosine_similarity,
+    load_json,
+    normalize_array,
+    select_optical_bands,
+)
 
 # Fields close to TAP, Belgium
 SPATIAL_EXTENT_1 = {

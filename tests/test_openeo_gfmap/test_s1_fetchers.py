@@ -1,26 +1,32 @@
 """ Test the data extractors for Sentinel1 data. """
 from pathlib import Path
 
-import pytest
-
 import geojson
-import openeo
 import geopandas as gpd
-import xarray as xr
+import openeo
+import pytest
 import rioxarray
+import xarray as xr
 
-from openeo_gfmap.backend import BACKEND_CONNECTIONS
 from openeo_gfmap import (
-    SpatialContext, TemporalContext, Backend, BackendContext, BoundingBoxExtent
+    Backend,
+    BackendContext,
+    BoundingBoxExtent,
+    SpatialContext,
+    TemporalContext,
 )
-
+from openeo_gfmap.backend import BACKEND_CONNECTIONS
 from openeo_gfmap.fetching import (
-    CollectionFetcher, build_sentinel1_grd_extractor, FetchType
+    CollectionFetcher,
+    FetchType,
+    build_sentinel1_grd_extractor,
 )
-
 from openeo_gfmap.utils import (
-    array_bounds, normalize_array, select_sar_bands, arrays_cosine_similarity,
-    load_json
+    array_bounds,
+    arrays_cosine_similarity,
+    load_json,
+    normalize_array,
+    select_sar_bands,
 )
 
 # Retrieve the test parameters from the s2 fetcher tests
@@ -126,7 +132,7 @@ class TestS1Extractors:
                     dtype = array.dtype
                 else:
                     assert dtype == array.dtype
-            
+
             bounds = None
             for tile in loaded_tiles:
                 tile_bounds = array_bounds(tile)
@@ -197,7 +203,7 @@ class TestS1Extractors:
                 if band in col:
                     exists = True
             assert exists, f"Couldn't find a single column for band {band}"
-        
+
         assert len(df.columns) % len(bands) == 0, (
             f"The number of columns ({len(df.columns)}) should be a multiple"
             f"of the number of bands ({len(bands)})"
