@@ -69,3 +69,9 @@ repos:
       - id: isort
         name: isort (python)
         args: ["--profile", "black"]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.15
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args: ["--fix"]
