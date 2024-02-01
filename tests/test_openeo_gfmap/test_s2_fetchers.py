@@ -1,10 +1,8 @@
 """ Tests for data extractors for Sentinel2 data. """
 from pathlib import Path
-from typing import Union
 
 import geojson
 import geopandas as gpd
-import numpy as np
 import openeo
 import pytest
 import rioxarray

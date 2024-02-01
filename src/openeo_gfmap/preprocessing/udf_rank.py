@@ -1,4 +1,3 @@
-from pathlib import Path
 
 import numpy as np
 import xarray as xr
@@ -32,7 +31,9 @@ def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
         # Convert YYYY-mm-dd to datetime64 objects
         time_bins = [np.datetime64(interval[0]) for interval in intervals]
 
-        rank_mask = bap_score.groupby_bins("t", bins=time_bins).map(select_maximum)
+        rank_mask = bap_score.groupby_bins('t', bins=time_bins).map(
+            select_maximum
+        )
     else:
         raise ValueError("Period is not defined in the UDF. Cannot run it.")
 

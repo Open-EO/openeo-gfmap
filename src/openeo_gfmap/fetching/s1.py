@@ -7,7 +7,7 @@ import openeo
 from geojson import GeoJSON
 
 from openeo_gfmap.backend import Backend, BackendContext
-from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
+from openeo_gfmap.spatial import SpatialContext
 from openeo_gfmap.temporal import TemporalContext
 
 from .commons import (
@@ -76,7 +76,7 @@ def get_s1_grd_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
             **load_collection_parameters,
         )
 
-        if isinstance(spatial_extent.value, GeoJSON):
+        if isinstance(spatial_extent, GeoJSON):
             cube = cube.filter_spatial(spatial_extent)
 
         return cube
@@ -113,7 +113,9 @@ def get_s1_grd_default_processor(
         )
 
         cube = resample_reproject(
-            cube, params.get("target_resolution", 10.0), params.get("target_crs", None)
+            cube,
+            params.get("target_resolution", 10.0),
+            params.get("target_crs", None)
         )
 
         cube = rename_bands(cube, BASE_SENTINEL1_GRD_MAPPING)

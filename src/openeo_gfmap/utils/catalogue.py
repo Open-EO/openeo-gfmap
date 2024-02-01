@@ -51,8 +51,8 @@ def _check_cdse_catalogue(
     minx, miny, maxx, maxy = bounds
 
     # The date format should be YYYY-MM-DD
-    start_date = f"{temporal_extent.start_date}T00:00:00Z"
-    end_date = f"{temporal_extent.end_date}T00:00:00Z"
+    start_date = f'{temporal_extent.start_date}T00:00:00Z'
+    end_date = f'{temporal_extent.end_date}T00:00:00Z'
 
     url = (
         f"https://catalogue.dataspace.copernicus.eu/resto/api/collections/"
