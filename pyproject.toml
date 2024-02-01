@@ -29,14 +29,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    # "openeo>=0.22.0",
-    # "xarray>=2022.3.0",
-    # "rioxarray>=0.13.0",
-    # "hydra-core>=1.3.0",
     "geojson>=3.0.0",
     "h5netcdf>=1.2.0",
     "openeo[localprocessing]",
-    "pytest-dependency",
+    "pytest-depends",
     "pyarrow",
     "fastparquet"
 ]
