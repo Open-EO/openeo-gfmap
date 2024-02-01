@@ -31,4 +31,4 @@ jobs:
       # to only check formatting of edited/new code
       # TODO: consider using the official action `uses: akaihola/darker@...`
       #       as documented on https://github.com/akaihola/darker/blob/master/README.rst
-      run: python -m darker --check --diff -r 'master...' .
+      run: python -m darker --check --diff -r 'main...' .
