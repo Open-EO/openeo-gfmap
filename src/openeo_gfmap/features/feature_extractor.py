@@ -20,6 +20,7 @@ from openeo.udf import XarrayDataCube, inspect
 from openeo.udf.run_code import execute_local_udf
 from openeo.udf.udf_data import UdfData
 
+import pyproj
 import xarray as xr
 import numpy as np
 
@@ -34,6 +35,8 @@ EPSG_HARMONIZED_NAME = "GEO-EPSG"
 
 # To fill in: EPSG_HARMONIZED_NAME, Is it pixel based and Feature Extractor class
 APPLY_DATACUBE_SOURCE_CODE = """
+LAT_HARMONIZED_NAME = "{}"
+LON_HARMONIZED_NAME = "{}"
 EPSG_HARMONIZED_NAME = "{}"
 
 from openeo.udf import XarrayDataCube
@@ -102,37 +105,39 @@ class PatchFeatureExtractor(FeatureExtractor):
     def get_latlons(self, inarr: xr.DataArray) -> xr.DataArray:
         """Returns the latitude and longitude coordinates of the given array in
         a dataarray. Returns a dataarray with the same width/height of the input
-        array, but with two bands, one for latitude and one for longitude.
+        array, but with two bands, one for latitude and one for longitude. The
+        metadata coordinates of the output array are the same as the input
+        array, as the array wasn't reprojected but instead new features were
+        computed.
 
         The latitude and longitude band names are standardized to the names
         `LAT_HARMONIZED_NAME` and `LON_HARMONIZED_NAME` respectively.
         """
-        if self.epsg is None:
-            inspect(message=(
-                "EPSG is None, checking if the values are within the "
-                "[-180, 180] range."
-            ))
+        from pyproj import Transformer
+        from pyproj.crs import CRS
 
-            assert (
-                (inarr.coords["x"].min() >= -180.0) and
-                (inarr.coords["y"].min() >= -90.0) and
-                (inarr.coords["x"].max() <= 180.0) and
-                (inarr.coords["y"].max() <= 90.0)
-            ), (
-                "The coordinates are not all X ∈ [-180, 180] and "
-                "Y ∈ [-90, 90]. Coordinates are suspected to be not in lat/lon "
-                "and the EPSG parameter is not set → Cannot proceed."
+        lon = inarr.coords["x"]
+        lat = inarr.coords["y"]
+        lon, lat = np.meshgrid(lon, lat)
+
+        if self.epsg is None:
+            raise Exception(
+                "EPSG code was not defined, cannot extract lat/lon array "
+                "as the CRS is unknown."
             )
 
-        # TODO finish this
-        
-        lat = inarr.coords["y"]
-        lon = inarr.coords["x"]
+        # If the coordiantes are not in EPSG:4326, we need to reproject them
+        if self.epsg != 4326:
+            # Initializes a pyproj reprojection object
+            transformer = Transformer.from_crs(
+                crs_from=CRS.from_epsg(self.epsg),
+                crs_to=CRS.from_epsg(4326),
+                always_xy=True
+            )
+            lon, lat = transformer.transform(xx=lon, yy=lat)
 
-        # Create a two channel numpy array of the lat and lons together with
-        # meshgrid
+        # Create a two channel numpy array of the lat and lons together by stacking
         latlon = np.stack([lat, lon])
-        latlon = np.meshgrid(*latlon)
 
         # Repack in a dataarray
         return xr.DataArray(
@@ -140,15 +145,15 @@ class PatchFeatureExtractor(FeatureExtractor):
             dims=["bands", "y", "x"],
             coords={
                 "bands": [LAT_HARMONIZED_NAME, LON_HARMONIZED_NAME],
-                "y": lat,
-                "x": lon,
+                "y": inarr.coords["y"],
+                "x": inarr.coords["x"],
             },
         )
 
     def _execute(self, cube: XarrayDataCube, parameters: dict) -> XarrayDataCube:
         arr = cube.get_array().transpose("bands", "t", "y", "x")
         arr = self._common_preparations(arr, parameters)
-        arr = self.execute(arr)
+        arr = self.execute(arr).transpose("bands", "y", "x")
         return XarrayDataCube(arr)
 
     @abstractmethod
@@ -157,6 +162,12 @@ class PatchFeatureExtractor(FeatureExtractor):
 
 
 class PointFeatureExtractor(FeatureExtractor):
+
+    def __init__(self):
+        raise NotImplementedError(
+            "Point based feature extraction on Vector Cubes is not supported yet."
+        )
+
     def _execute(self, cube: XarrayDataCube, parameters: dict) -> XarrayDataCube:
         arr = cube.get_array().transpose("bands", "t")
 
@@ -192,6 +203,8 @@ def generate_udf_code(
         udf_code += f"{inspect.getsource(PatchFeatureExtractor)}\n\n"
         udf_code += f"{inspect.getsource(feature_extractor_class)}\n\n"
         udf_code += APPLY_DATACUBE_SOURCE_CODE.format(
+            LAT_HARMONIZED_NAME,
+            LON_HARMONIZED_NAME,
             EPSG_HARMONIZED_NAME,
             False,
             feature_extractor_class.__name__,

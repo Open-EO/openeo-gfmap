@@ -8,7 +8,7 @@ import xarray as xr
 
 from openeo_gfmap import BoundingBoxExtent, TemporalContext, FetchType
 from openeo_gfmap.backend import (
-    BACKEND_CONNECTIONS, BackendContext, Backend, cdse_connection, vito_connection
+    BACKEND_CONNECTIONS, BackendContext, Backend, vito_connection
 )
 from openeo_gfmap.fetching import build_sentinel2_l2a_extractor
 from openeo_gfmap.features import (
@@ -24,9 +24,6 @@ SPATIAL_CONTEXT = BoundingBoxExtent(
 TEMPORAL_EXTENT = TemporalContext("2023-10-01", "2024-01-01")
 
 class DummyPatchExtractor(PatchFeatureExtractor):
-
-    def _import_dependencies(self):
-        pass
 
     def execute(self, inarr: xr.DataArray):
         # Make the imports WITHIN the class
@@ -51,11 +48,33 @@ class DummyPatchExtractor(PatchFeatureExtractor):
         # Returns the rgb bands only in the feature, y, x order
         return rgb_bands.transpose("bands", "y", "x")
 
-# TODO: Remove
-BACKEND_CONNECTIONS = [(Backend.CDSE, cdse_connection)]
+class LatLonExtractor(PatchFeatureExtractor):
+    """Sample extractor that compute the latitude and longitude values
+    and concatenates them in a new array.
+    """
+
+    def execute(self, inarr: xr.DataArray) -> xr.DataArray:
+        # Compute the latitude and longitude as bands in the input array
+        latlon = self.get_latlons(inarr)
+
+        # Only select the first time for the input array
+        inarr = inarr.isel(t=0)
+
+        # Add the bands in the input array
+        inarr = xr.concat([inarr, latlon], dim="bands").assign_coords(
+            {"bands": ["red", "lat", "lon"]}
+        )
+
+        return inarr.transpose("bands", "y", "x")
+
+# TODO remove
+BACKEND_CONNECTIONS = {
+    Backend.TERRASCOPE: vito_connection
+}
+
 
 @pytest.mark.parametrize(
-    "backend, connection_fn", list(BACKEND_CONNECTIONS)  # TODO add .items()
+    "backend, connection_fn", BACKEND_CONNECTIONS.items()
 )
 def test_patch_feature_udf(backend: Backend, connection_fn: Callable):
     backend_context = BackendContext(backend=backend)
@@ -98,6 +117,55 @@ def test_patch_feature_udf(backend: Backend, connection_fn: Callable):
     output_cube = xr.open_dataset(output_path)
 
     assert set(output_cube.keys()) == set(["red", "green", "blue"])
+
+
+@pytest.mark.parametrize(
+    "backend, connection_fn", BACKEND_CONNECTIONS.items()
+)
+def test_latlon_extractor(backend: Backend, connection_fn: Callable):
+    backend_context = BackendContext(backend=backend)
+    connection = connection_fn()
+    output_path = Path(__file__).parent / f"results/latlon_features_{backend.value}.nc"
+
+    REDUCED_TEMPORAL_CONTEXT = TemporalContext(
+        start_date="2023-06-01",
+        end_date="2023-06-30"
+    )
+
+    bands_to_extract = ['S2-B04']
+
+    extractor = build_sentinel2_l2a_extractor(
+        backend_context, bands_to_extract, FetchType.TILE
+    )
+
+    cube = extractor.get_cube(connection, SPATIAL_CONTEXT, REDUCED_TEMPORAL_CONTEXT)
+
+    features = apply_feature_extractor(
+        LatLonExtractor,
+        cube,
+        parameters={},
+        size=[
+            {"dimension": "x", "unit": "px", "value": 128},
+            {"dimension": "y", "unit": "px", "value": 128}
+        ]
+    )
+
+    job = features.create_job(
+        title="latlon_feature_extractor", out_format="NetCDF"
+    )
+    job.start_and_wait()
+
+    for asset in job.get_results().get_assets():
+        if asset.metadata["type"].startswith("application/x-netcdf"):
+            asset.download(output_path)
+            break
+    
+    assert output_path.exists()
+
+    # Read the output path and checks for the expected band names
+    output_cube = xr.open_dataset(output_path)
+
+    assert set(output_cube.keys()) == set(["red", "lat", "lon"])
 
 
 def test_patch_feature_local():
