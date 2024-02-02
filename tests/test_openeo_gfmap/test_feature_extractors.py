@@ -6,12 +6,7 @@ import pytest
 import xarray as xr
 
 from openeo_gfmap import BoundingBoxExtent, FetchType, TemporalContext
-from openeo_gfmap.backend import (
-    BACKEND_CONNECTIONS,
-    Backend,
-    BackendContext,
-    vito_connection,
-)
+from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
 from openeo_gfmap.features import (
     PatchFeatureExtractor,
     apply_feature_extractor,
@@ -77,10 +72,6 @@ class LatLonExtractor(PatchFeatureExtractor):
         )
 
         return inarr.transpose("bands", "y", "x")
-
-
-# TODO remove
-BACKEND_CONNECTIONS = {Backend.TERRASCOPE: vito_connection}  # noqa: F811
 
 
 @pytest.mark.parametrize("backend, connection_fn", BACKEND_CONNECTIONS.items())
