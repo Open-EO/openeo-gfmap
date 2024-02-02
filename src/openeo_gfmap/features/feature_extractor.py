@@ -10,18 +10,20 @@ import xarray as xr
 from openeo.udf import XarrayDataCube
 from openeo.udf.run_code import execute_local_udf
 from openeo.udf.udf_data import UdfData
+from pyproj import Transformer
+from pyproj.crs import CRS
 
 REQUIRED_IMPORTS = """
-import inspect
 from abc import ABC, abstractmethod
 
 import openeo
 from openeo.udf import XarrayDataCube, inspect
-from openeo.udf.run_code import execute_local_udf
 from openeo.udf.udf_data import UdfData
 
 import xarray as xr
 import numpy as np
+from pyproj import Transformer
+from pyproj.crs import CRS
 
 from typing import Union
 """
@@ -33,17 +35,17 @@ EPSG_HARMONIZED_NAME = "GEO-EPSG"
 
 # To fill in: EPSG_HARMONIZED_NAME, Is it pixel based and Feature Extractor class
 APPLY_DATACUBE_SOURCE_CODE = """
-LAT_HARMONIZED_NAME = "{}"
-LON_HARMONIZED_NAME = "{}"
-EPSG_HARMONIZED_NAME = "{}"
+LAT_HARMONIZED_NAME = "{lat_harmonized_name}"
+LON_HARMONIZED_NAME = "{lon_harmonized_name}"
+EPSG_HARMONIZED_NAME = "{epsg_harmonized_name}"
 
 from openeo.udf import XarrayDataCube
 from openeo.udf.udf_data import UdfData
 
-IS_PIXEL_BASED = {}
+IS_PIXEL_BASED = {is_pixel_based}
 
 def apply_udf_data(udf_data: UdfData) -> XarrayDataCube:
-    feature_extractor = {}()  # User-defined, feature extractor class initialized here
+    feature_extractor = {feature_extractor_class}()  # User-defined, feature extractor class initialized here
 
     if not IS_PIXEL_BASED:
         assert len(udf_data.datacube_list) == 1, "OpenEO GFMAP Feature extractor pipeline only supports single input cubes for the tile."
@@ -121,8 +123,6 @@ class PatchFeatureExtractor(FeatureExtractor):
         The latitude and longitude band names are standardized to the names
         `LAT_HARMONIZED_NAME` and `LON_HARMONIZED_NAME` respectively.
         """
-        from pyproj import Transformer
-        from pyproj.crs import CRS
 
         lon = inarr.coords["x"]
         lat = inarr.coords["y"]
@@ -208,11 +208,11 @@ def generate_udf_code(feature_extractor_class: FeatureExtractor) -> openeo.UDF:
         udf_code += f"{inspect.getsource(PatchFeatureExtractor)}\n\n"
         udf_code += f"{inspect.getsource(feature_extractor_class)}\n\n"
         udf_code += APPLY_DATACUBE_SOURCE_CODE.format(
-            LAT_HARMONIZED_NAME,
-            LON_HARMONIZED_NAME,
-            EPSG_HARMONIZED_NAME,
-            False,
-            feature_extractor_class.__name__,
+            lat_harmonized_name=LAT_HARMONIZED_NAME,
+            lon_harmonized_name=LON_HARMONIZED_NAME,
+            epsg_harmonized_name=EPSG_HARMONIZED_NAME,
+            is_pixel_based=False,
+            feature_extractor_class=feature_extractor_class.__name__,
         )
     elif issubclass(feature_extractor_class, PointFeatureExtractor):
         udf_code += f"{REQUIRED_IMPORTS}\n\n"
@@ -220,7 +220,11 @@ def generate_udf_code(feature_extractor_class: FeatureExtractor) -> openeo.UDF:
         udf_code += f"{inspect.getsource(PointFeatureExtractor)}\n\n"
         udf_code += f"{inspect.getsource(feature_extractor_class)}\n\n"
         udf_code += APPLY_DATACUBE_SOURCE_CODE.format(
-            True, feature_extractor_class.__name__, EPSG_HARMONIZED_NAME
+            lat_harmonized_name=LAT_HARMONIZED_NAME,
+            lon_harmonized_name=LON_HARMONIZED_NAME,
+            epsg_harmonized_name=EPSG_HARMONIZED_NAME,
+            is_pixel_based=True,
+            feature_extractor_class=feature_extractor_class.__name__,
         )
     else:
         raise NotImplementedError(

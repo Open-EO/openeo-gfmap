@@ -15,10 +15,10 @@ from openeo_gfmap.features import (
 from openeo_gfmap.fetching import build_sentinel2_l2a_extractor
 
 SPATIAL_CONTEXT = BoundingBoxExtent(
-    west=4.260981398605067,
-    south=51.30876935808223,
-    east=4.267355900120883,
-    north=51.313279365173884,
+    west=4.261,
+    south=51.309,
+    east=4.267,
+    north=51.313,
     epsg=4326,
 )
 TEMPORAL_EXTENT = TemporalContext("2023-10-01", "2024-01-01")
