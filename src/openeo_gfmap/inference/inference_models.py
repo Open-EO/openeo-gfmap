@@ -6,7 +6,6 @@ from abc import ABC
 
 import xarray as xr
 
-from openeo_gfmap.features.feature_extractor import EPSG_HARMONIZED_NAME
 
 REQUIRED_IMPORTS = """
 import inspect
