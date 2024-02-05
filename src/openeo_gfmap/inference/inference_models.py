@@ -6,7 +6,6 @@ from abc import ABC
 
 import xarray as xr
 
-
 REQUIRED_IMPORTS = """
 import inspect
 from abc import ABC, abstractmethod
