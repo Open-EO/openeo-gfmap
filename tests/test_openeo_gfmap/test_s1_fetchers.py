@@ -42,7 +42,7 @@ class TestS1Extractors:
         spatial_extent: SpatialContext,
         temporal_extent: TemporalContext,
         backend: Backend,
-        connection=openeo.Connection
+        connection=openeo.Connection,
     ):
         context = BackendContext(backend)
         country = spatial_extent["country"]
@@ -55,7 +55,7 @@ class TestS1Extractors:
             "coefficient": "gamma0-ellipsoid",
             "load_collection": {
                 "polarization": lambda polar: (polar == "VV") or (polar == "VH"),
-            }
+            },
         }
 
         extractor: CollectionFetcher = build_sentinel1_grd_extractor(
@@ -74,9 +74,7 @@ class TestS1Extractors:
             start_date=temporal_extent[0], end_date=temporal_extent[1]
         )
 
-        cube = extractor.get_cube(
-            connection, spatial_extent, temporal_extent
-        )
+        cube = extractor.get_cube(connection, spatial_extent, temporal_extent)
 
         output_file = (
             Path(__file__).parent
@@ -147,16 +145,14 @@ class TestS1Extractors:
             first_tile = normalized_tiles[0]
             for tile_idx in range(1, len(normalized_tiles)):
                 tile_to_compare = normalized_tiles[tile_idx]
-                similarity_score = arrays_cosine_similarity(
-                    first_tile, tile_to_compare
-                )
+                similarity_score = arrays_cosine_similarity(first_tile, tile_to_compare)
                 assert similarity_score >= 0.95
 
     def sentinel1_grd_point_based(
         spatial_context: SpatialContext,
         temporal_context: TemporalContext,
         backend: Backend,
-        connection: openeo.Connection
+        connection: openeo.Connection,
     ):
         """Test the point based extraction from the spatial aggregation of the
         given polygons.
@@ -173,18 +169,16 @@ class TestS1Extractors:
             "coefficient": "gamma0-ellipsoid",
             "load_collection": {
                 "polarization": lambda polar: (polar == "VV") or (polar == "VH"),
-            }
+            },
         }
         extractor = build_sentinel1_grd_extractor(
             backend_context=context,
             bands=bands,
             fetch_type=FetchType.POINT,
-            **fetching_parameters
+            **fetching_parameters,
         )
 
-        cube = extractor.get_cube(
-            connection, spatial_context, temporal_context
-        )
+        cube = extractor.get_cube(connection, spatial_context, temporal_context)
 
         cube = cube.aggregate_spatial(spatial_context, reducer="mean")
 
@@ -214,7 +208,7 @@ class TestS1Extractors:
         spatial_context: SpatialContext,
         temporal_context: TemporalContext,
         backend: Backend,
-        connection: openeo.Connection
+        connection: openeo.Connection,
     ):
         context = BackendContext(backend)
         bands = ["S1-VV", "S1-VH"]
@@ -226,14 +220,14 @@ class TestS1Extractors:
             "coefficient": "gamma0-ellipsoid",
             "load_collection": {
                 "polarization": lambda polar: (polar == "VV") or (polar == "VH"),
-            }
+            },
         }
 
         extractor = build_sentinel1_grd_extractor(
             backend_context=context,
             bands=bands,
             fetch_type=FetchType.POLYGON,
-            **fetching_parameters
+            **fetching_parameters,
         )
 
         cube = extractor.get_cube(connection, spatial_context, temporal_context)
@@ -242,7 +236,9 @@ class TestS1Extractors:
         output_folder.mkdir(exist_ok=True, parents=True)
 
         job = cube.create_job(
-            title="test_extract_polygons_s1", out_format="NetCDF", sample_by_feature=True
+            title="test_extract_polygons_s1",
+            out_format="NetCDF",
+            sample_by_feature=True,
         )
 
         job.start_and_wait()
@@ -258,22 +254,22 @@ class TestS1Extractors:
         assert len(extracted_files) == len(spatial_context["features"])
 
 
-
 @pytest.mark.parametrize(
     "spatial_context, temporal_context, backend", test_configurations
 )
 def test_sentinel1_grd(
-    spatial_context: SpatialContext, temporal_context: TemporalContext,
-    backend: Backend
+    spatial_context: SpatialContext, temporal_context: TemporalContext, backend: Backend
 ):
     connection = BACKEND_CONNECTIONS[backend]()
     TestS1Extractors.sentinel1_grd(
         spatial_context, temporal_context, backend, connection
     )
 
+
 @pytest.mark.depends(on=["test_sentinel1_grd"])
 def test_compare_sentinel1_tiles():
     TestS1Extractors.compare_sentinel1_tiles()
+
 
 @pytest.mark.parametrize("backend", test_backends)
 def test_sentinel1_grd_point_based(backend: Backend):

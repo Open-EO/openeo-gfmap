@@ -29,13 +29,15 @@ class BoundingBoxExtent:
         }
 
     def __iter__(self):
-        return iter([
-            ("west", self.west),
-            ("south", self.south),
-            ("east", self.east),
-            ("north", self.north),
-            ("crs", self.epsg)
-        ])
+        return iter(
+            [
+                ("west", self.west),
+                ("south", self.south),
+                ("east", self.east),
+                ("north", self.north),
+                ("crs", self.epsg),
+            ]
+        )
 
 
 SpatialContext = Union[GeoJSON, BoundingBoxExtent]
