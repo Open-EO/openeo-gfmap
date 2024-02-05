@@ -14,6 +14,7 @@ def median_compositing(cube: openeo.DataCube, period: Union[str, list]) -> opene
     elif isinstance(period, list):
         return cube.aggregate_temporal(intervals=period, reducer="median", dimension="t")
 
+
 def mean_compositing(cube: openeo.DataCube, period: str) -> openeo.DataCube:
     """Perfrom mean compositing on the given datacube."""
     if isinstance(period, str):

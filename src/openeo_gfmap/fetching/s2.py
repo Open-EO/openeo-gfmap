@@ -114,9 +114,7 @@ def get_s2_l2a_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
     return s2_l2a_fetch_default
 
 
-def get_s2_l2a_element84_fetcher(
-    collection_name: str, fetch_type: FetchType
-) -> Callable:
+def get_s2_l2a_element84_fetcher(collection_name: str, fetch_type: FetchType) -> Callable:
     """Fetches the collections from the Sentinel-2 Cloud-Optimized GeoTIFFs
     bucket provided by Amazon and managed by Element84.
     """
@@ -157,9 +155,7 @@ def get_s2_l2a_element84_fetcher(
     return s2_l2a_element84_fetcher
 
 
-def get_s2_l2a_default_processor(
-    collection_name: str, fetch_type: FetchType
-) -> Callable:
+def get_s2_l2a_default_processor(collection_name: str, fetch_type: FetchType) -> Callable:
     """Builds the preprocessing function from the collection name as it stored
     in the target backend.
     """
@@ -188,15 +184,11 @@ def get_s2_l2a_default_processor(
 SENTINEL2_L2A_BACKEND_MAP = {
     Backend.TERRASCOPE: {
         "fetch": partial(get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
-        "preprocessor": partial(
-            get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
-        ),
+        "preprocessor": partial(get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"),
     },
     Backend.CDSE: {
         "fetch": partial(get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
-        "preprocessor": partial(
-            get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
-        ),
+        "preprocessor": partial(get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"),
     },
 }
 
