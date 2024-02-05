@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Union
 
 from geojson import GeoJSON
+from shapely.geometry import Polygon, box
 
 
 @dataclass
@@ -38,6 +39,9 @@ class BoundingBoxExtent:
                 ("crs", self.epsg),
             ]
         )
+
+    def to_geometry(self) -> Polygon:
+        return box(self.west, self.south, self.east, self.north)
 
 
 SpatialContext = Union[GeoJSON, BoundingBoxExtent]
