@@ -13,6 +13,13 @@ from openeo_gfmap import (
 )
 
 
+class UncoveredS1Exception(Exception):
+    """Exception raised when there is no product available to fully cover spatially a given
+    spatio-temporal context for the Sentinel-1 collection."""
+
+    pass
+
+
 def _parse_cdse_products(response: dict):
     """Parses the geometry of products from the CDSE catalogue."""
     geoemetries = []
@@ -63,7 +70,7 @@ def _query_cdse_catalogue(
 
     if response.status_code != 200:
         raise Exception(
-            f"Cannot check S1 catalogue on EODC: Request to {url} failed with "
+            f"Cannot check S1 catalogue on CDSE: Request to {url} failed with "
             f"status code {response.status_code}"
         )
 
@@ -184,3 +191,56 @@ def s1_area_per_orbitstate(
             ),
         },
     }
+
+
+def select_S1_orbitstate(
+    backend: BackendContext,
+    spatial_extent: SpatialContext,
+    temporal_extent: TemporalContext,
+) -> str:
+    """Selects the orbit state that covers the most area of the given spatio-temporal context
+    for the Sentinel-1 collection.
+
+    Parameters
+    ----------
+    backend : BackendContext
+        The backend to be within, as each backend might use different catalogues.
+    spatial_extent : SpatialContext
+        The spatial extent to be checked, it will check within its bounding box.
+    temporal_extent : TemporalContext
+        The temporal period to be checked.
+
+    Returns
+    ------
+    str
+        The orbit state that covers the most area of the given spatio-temporal context
+    """
+
+    # Queries the products in the catalogues
+    if backend.backend == Backend.CDSE:
+        areas = s1_area_per_orbitstate(backend, spatial_extent, temporal_extent)
+    else:
+        raise NotImplementedError(
+            f"This feature is not supported for backend: {backend.backend}."
+        )
+
+    ascending_overlap = areas["ASCENDING"]["full_overlap"]
+    descending_overlap = areas["DESCENDING"]["full_overlap"]
+
+    if ascending_overlap and not descending_overlap:
+        return "ASCENDING"
+    elif descending_overlap and not ascending_overlap:
+        return "DESCENDING"
+    elif ascending_overlap and descending_overlap:
+        ascending_cover_area = areas["ASCENDING"]["area"]
+        descending_cover_area = areas["DESCENDING"]["area"]
+
+        # Selects the orbit state that covers the most area
+        if ascending_cover_area > descending_cover_area:
+            return "ASCENDING"
+        else:
+            return "DESCENDING"
+
+    raise UncoveredS1Exception(
+        "No product available to fully cover the given spatio-temporal context."
+    )

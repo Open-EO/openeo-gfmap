@@ -1,5 +1,5 @@
 from openeo_gfmap import Backend, BackendContext, BoundingBoxExtent, TemporalContext
-from openeo_gfmap.utils.catalogue import s1_area_per_orbitstate
+from openeo_gfmap.utils.catalogue import s1_area_per_orbitstate, select_S1_orbitstate
 
 # Region of Paris, France
 SPATIAL_CONTEXT = BoundingBoxExtent(
@@ -32,3 +32,12 @@ def test_query_cdse_catalogue():
 
     assert response["ASCENDING"]["full_overlap"] is True
     assert response["DESCENDING"]["full_overlap"] is True
+
+    # Testing the decision maker, it should return DESCENDING
+    decision = select_S1_orbitstate(
+        backend=backend_context,
+        spatial_extent=SPATIAL_CONTEXT,
+        temporal_extent=TEMPORAL_CONTEXT,
+    )
+
+    assert decision == "DESCENDING"
