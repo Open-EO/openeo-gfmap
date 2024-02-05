@@ -128,8 +128,7 @@ def load_collection(
     pre_mask = params.get("pre_mask", None)
     if pre_mask is not None:
         assert isinstance(pre_mask, openeo.DataCube), (
-            f"The 'pre_mask' parameter must be an openeo datacube, "
-            f"got {pre_mask}."
+            f"The 'pre_mask' parameter must be an openeo datacube, " f"got {pre_mask}."
         )
         cube = cube.mask(pre_mask.resample_cube_spatial(cube))
 

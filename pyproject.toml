@@ -68,6 +68,10 @@ junit_logging = "log"  # Include logging output in JUnit XML report
 profile = "black"
 
 
+[tool.black]
+line-length = 99
+
+
 [tool.ruff]
 # line-length = 100
 
@@ -76,5 +80,4 @@ select = ["E", "F"]
 ignore = [
   "E501",  # Ignore "line-too-long" issues, let black handle that.
 ]
-
 

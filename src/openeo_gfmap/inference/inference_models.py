@@ -29,9 +29,7 @@ class ModelInference(ABC):
     methods and attributes to be used by other model inference classes.
     """
 
-    def _common_preparations(
-        self, inarr: xr.DataArray, parameters: dict
-    ) -> xr.DataArray:
+    def _common_preparations(self, inarr: xr.DataArray, parameters: dict) -> xr.DataArray:
         """Common preparations for all inference models. This method will be
         executed at the very beginning of the process.
         """

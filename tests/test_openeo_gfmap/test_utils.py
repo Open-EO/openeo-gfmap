@@ -2,9 +2,7 @@ from openeo_gfmap import Backend, BackendContext, BoundingBoxExtent, TemporalCon
 from openeo_gfmap.utils.catalogue import s1_area_per_orbitstate, select_S1_orbitstate
 
 # Region of Paris, France
-SPATIAL_CONTEXT = BoundingBoxExtent(
-    west=1.979, south=48.705, east=2.926, north=49.151, epsg=4326
-)
+SPATIAL_CONTEXT = BoundingBoxExtent(west=1.979, south=48.705, east=2.926, north=49.151, epsg=4326)
 
 # Summer 2023
 TEMPORAL_CONTEXT = TemporalContext(start_date="2023-06-21", end_date="2023-09-21")

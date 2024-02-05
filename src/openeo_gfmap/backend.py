@@ -33,9 +33,7 @@ class BackendContext:
     backend: Backend
 
 
-def _create_connection(
-    url: str, *, env_var_suffix: str, connect_kwargs: Optional[dict] = None
-):
+def _create_connection(url: str, *, env_var_suffix: str, connect_kwargs: Optional[dict] = None):
     """
     Generic helper to create an openEO connection
     with support for multiple client credential configurations from environment variables
@@ -63,9 +61,7 @@ def _create_connection(
 
         # Use a shorter max poll time by default to alleviate the default impression that the test seem to hang
         # because of the OIDC device code poll loop.
-        max_poll_time = int(
-            os.environ.get("OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME") or 30
-        )
+        max_poll_time = int(os.environ.get("OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME") or 30)
         connection.authenticate_oidc(max_poll_time=max_poll_time)
     return connection
 

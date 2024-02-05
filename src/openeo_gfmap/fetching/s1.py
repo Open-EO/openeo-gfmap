@@ -84,9 +84,7 @@ def get_s1_grd_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
     return s1_grd_fetch_default
 
 
-def get_s1_grd_default_processor(
-    collection_name: str, fetch_type: FetchType
-) -> Callable:
+def get_s1_grd_default_processor(collection_name: str, fetch_type: FetchType) -> Callable:
     """Builds the preprocessing function from the collection name as it is stored
     in the target backend.
     """
@@ -113,9 +111,7 @@ def get_s1_grd_default_processor(
         )
 
         cube = resample_reproject(
-            cube,
-            params.get("target_resolution", 10.0),
-            params.get("target_crs", None)
+            cube, params.get("target_resolution", 10.0), params.get("target_crs", None)
         )
 
         cube = rename_bands(cube, BASE_SENTINEL1_GRD_MAPPING)
@@ -128,15 +124,11 @@ def get_s1_grd_default_processor(
 SENTINEL1_GRD_BACKEND_MAP = {
     Backend.TERRASCOPE: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
-        "preprocessor": partial(
-            get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"
-        ),
+        "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
     },
     Backend.CDSE: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
-        "preprocessor": partial(
-            get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"
-        ),
+        "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
     },
 }
 
