@@ -217,12 +217,7 @@ def select_S1_orbitstate(
     """
 
     # Queries the products in the catalogues
-    if backend.backend == Backend.CDSE:
-        areas = s1_area_per_orbitstate(backend, spatial_extent, temporal_extent)
-    else:
-        raise NotImplementedError(
-            f"This feature is not supported for backend: {backend.backend}."
-        )
+    areas = s1_area_per_orbitstate(backend, spatial_extent, temporal_extent)
 
     ascending_overlap = areas["ASCENDING"]["full_overlap"]
     descending_overlap = areas["DESCENDING"]["full_overlap"]

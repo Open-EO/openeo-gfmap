@@ -22,13 +22,12 @@ spatial_extent = BoundingBoxExtent(
     south=51.215806593713,
     east=5.060320484557499,
     north=51.22149744530769,
-    epsg=4326
+    epsg=4326,
 )
 
 # November 2022 to February 2023
-temporal_extent = TemporalContext(
-    start_date="2022-11-01", end_date="2023-02-28"
-)
+temporal_extent = TemporalContext(start_date="2022-11-01", end_date="2023-02-28")
+
 
 @pytest.mark.parametrize("backend", backends)
 def test_bap_score(backend: Backend):
@@ -36,32 +35,26 @@ def test_bap_score(backend: Backend):
     backend_context = BackendContext(backend=backend)
 
     # Additional parameters
-    fetching_parameters = {
-        "fetching_resolution": 10.0
-    }
+    fetching_parameters = {"fetching_resolution": 10.0}
 
-    preprocessing_parameters = {
-        "apply_scl_dilation": True
-    }
+    preprocessing_parameters = {"apply_scl_dilation": True}
 
     # Fetch the datacube
     s2_extractor = build_sentinel2_l2a_extractor(
         backend_context=backend_context,
         bands=["S2-B04", "S2-B08", "S2-SCL"],
         fetch_type=FetchType.TILE,
-        **fetching_parameters
+        **fetching_parameters,
     )
 
-    cube = s2_extractor.get_cube(
-        connection, spatial_extent, temporal_extent
-    )
+    cube = s2_extractor.get_cube(connection, spatial_extent, temporal_extent)
 
     # Compute the BAP score
     bap_score = get_bap_score(cube, **preprocessing_parameters)
     ndvi = cube.ndvi(nir="S2-B08", red="S2-B04")
 
     cube = bap_score.merge_cubes(ndvi).rename_labels(
-        'bands', ['S2-BAPSCORE', 'S2-NDVI']
+        "bands", ["S2-BAPSCORE", "S2-NDVI"]
     )
 
     job = cube.create_job(
@@ -77,27 +70,24 @@ def test_bap_score(backend: Backend):
                 Path(__file__).parent / f"results/bap_score_{backend.value}.nc"
             )
 
+
 @pytest.mark.parametrize("backend", backends)
 def test_bap_masking(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
     backend_context = BackendContext(backend=backend)
 
     # Additional parameters
-    fetching_parameters = {
-        "fetching_resolution": 10.0
-    }
+    fetching_parameters = {"fetching_resolution": 10.0}
 
     # Fetch the datacube
     s2_extractor = build_sentinel2_l2a_extractor(
         backend_context=backend_context,
         bands=["S2-B04", "S2-B03", "S2-B02", "S2-SCL"],
         fetch_type=FetchType.TILE,
-        **fetching_parameters
+        **fetching_parameters,
     )
 
-    cube = s2_extractor.get_cube(
-        connection, spatial_extent, temporal_extent
-    )
+    cube = s2_extractor.get_cube(connection, spatial_extent, temporal_extent)
 
     cube = cube.linear_scale_range(0, 65535, 0, 65535)
 
@@ -127,6 +117,7 @@ def test_bap_masking(backend: Backend):
                 Path(__file__).parent / f"results/bap_composited_{backend.value}.nc"
             )
 
+
 @pytest.mark.parametrize("backend", backends)
 def test_bap_quintad(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
@@ -145,66 +136,62 @@ def test_bap_quintad(backend: Backend):
         backend_context=backend_context,
         bands=["S2-SCL"],
         fetch_type=FetchType.TILE,
-        **fetching_parameters
+        **fetching_parameters,
     )
 
-    cube = s2_extractor.get_cube(
-        connection, spatial_extent, temporal_extent
-    )
+    cube = s2_extractor.get_cube(connection, spatial_extent, temporal_extent)
 
-    compositing_intervals = quintad_intervals(
-        temporal_extent
-    )
+    compositing_intervals = quintad_intervals(temporal_extent)
 
     expected_intervals = [
-        ('2022-11-01', '2022-11-05'),
-        ('2022-11-06', '2022-11-10'),
-        ('2022-11-11', '2022-11-15'),
-        ('2022-11-16', '2022-11-20'),
-        ('2022-11-21', '2022-11-25'),
-        ('2022-11-26', '2022-11-30'),
-        ('2022-12-01', '2022-12-05'),
-        ('2022-12-06', '2022-12-10'),
-        ('2022-12-11', '2022-12-15'),
-        ('2022-12-16', '2022-12-20'),
-        ('2022-12-21', '2022-12-25'),
-        ('2022-12-26', '2022-12-31'),
-        ('2023-01-01', '2023-01-05'),
-        ('2023-01-06', '2023-01-10'),
-        ('2023-01-11', '2023-01-15'),
-        ('2023-01-16', '2023-01-20'),
-        ('2023-01-21', '2023-01-25'),
-        ('2023-01-26', '2023-01-31'),
-        ('2023-02-01', '2023-02-05'),
-        ('2023-02-06', '2023-02-10'),
-        ('2023-02-11', '2023-02-15'),
-        ('2023-02-16', '2023-02-20'),
-        ('2023-02-21', '2023-02-25'),
-        ('2023-02-26', '2023-02-28'),
+        ("2022-11-01", "2022-11-05"),
+        ("2022-11-06", "2022-11-10"),
+        ("2022-11-11", "2022-11-15"),
+        ("2022-11-16", "2022-11-20"),
+        ("2022-11-21", "2022-11-25"),
+        ("2022-11-26", "2022-11-30"),
+        ("2022-12-01", "2022-12-05"),
+        ("2022-12-06", "2022-12-10"),
+        ("2022-12-11", "2022-12-15"),
+        ("2022-12-16", "2022-12-20"),
+        ("2022-12-21", "2022-12-25"),
+        ("2022-12-26", "2022-12-31"),
+        ("2023-01-01", "2023-01-05"),
+        ("2023-01-06", "2023-01-10"),
+        ("2023-01-11", "2023-01-15"),
+        ("2023-01-16", "2023-01-20"),
+        ("2023-01-21", "2023-01-25"),
+        ("2023-01-26", "2023-01-31"),
+        ("2023-02-01", "2023-02-05"),
+        ("2023-02-06", "2023-02-10"),
+        ("2023-02-11", "2023-02-15"),
+        ("2023-02-16", "2023-02-20"),
+        ("2023-02-21", "2023-02-25"),
+        ("2023-02-26", "2023-02-28"),
     ]
 
     assert compositing_intervals == expected_intervals
 
     # Perform masking with BAP, masking optical bands
-    bap_mask = get_bap_mask(cube, period=compositing_intervals, **preprocessing_parameters)
+    bap_mask = get_bap_mask(
+        cube, period=compositing_intervals, **preprocessing_parameters
+    )
 
     # Create a new extractor for the whole data now
     fetching_parameters = {
         "fetching_resolution": 10.0,
-        "pre_mask": bap_mask  # Use of the pre-computed bap mask to load inteligently the data
+        "pre_mask": bap_mask,  # Use of the pre-computed bap mask to load inteligently the data
     }
 
     s2_extractor = build_sentinel2_l2a_extractor(
         backend_context=backend_context,
         bands=["S2-B04", "S2-B03", "S2-B02", "S2-B08", "S2-SCL"],
         fetch_type=FetchType.TILE,
-        **fetching_parameters
+        **fetching_parameters,
     )
 
     # Performs quintal compositing
-    cube = s2_extractor.get_cube(
-        connection, spatial_extent, temporal_extent
-    )
+    cube = s2_extractor.get_cube(connection, spatial_extent, temporal_extent)
 
     cube = median_compositing(cube, period=compositing_intervals)
 

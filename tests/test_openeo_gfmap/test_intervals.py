@@ -19,6 +19,7 @@ def test_quintad_january():
 
     assert quintad_intervals(temporal_extent) == expected
 
+
 def test_quintad_april():
     start_date = "2023-04-01"
     end_date = "2023-04-30"
@@ -35,6 +36,7 @@ def test_quintad_april():
     ]
 
     assert quintad_intervals(temporal_extent) == expected
+
 
 def test_quintad_february_nonleap():
     start_date = "2023-02-01"
@@ -53,6 +55,7 @@ def test_quintad_february_nonleap():
 
     assert quintad_intervals(temporal_extent) == expected
 
+
 def test_quitad_february_leapyear():
     start_date = "2024-02-01"
     end_date = "2024-02-29"
@@ -69,6 +72,7 @@ def test_quitad_february_leapyear():
     ]
 
     assert quintad_intervals(temporal_extent) == expected
+
 
 def test_quintad_four_months():
     start_date = "2023-01-01"
@@ -105,6 +109,7 @@ def test_quintad_four_months():
 
     assert quintad_intervals(temporal_extent) == expected
 
+
 def test_quintad_july_august():
     start_date = "2023-07-01"
     end_date = "2023-08-31"
@@ -128,6 +133,7 @@ def test_quintad_july_august():
 
     assert quintad_intervals(temporal_extent) == expected
 
+
 def test_quintad_mid_month():
     start_date = "2023-01-02"
     end_date = "2023-01-31"
@@ -145,6 +151,7 @@ def test_quintad_mid_month():
 
     assert quintad_intervals(temporal_extent) == expected
 
+
 def test_quintad_full_year():
     # non-leap year
     start_date = "2023-01-01"
@@ -161,6 +168,7 @@ def test_quintad_full_year():
     temporal_extent = TemporalContext(start_date, end_date)
 
     assert len(quintad_intervals(temporal_extent)) == 72
+
 
 def test_quintad_mid_month_february():
     start_date = "2024-01-31"
@@ -181,6 +189,7 @@ def test_quintad_mid_month_february():
 
     assert quintad_intervals(temporal_extent) == expected
 
+
 def test_quintad_single_day():
     start_date = "2024-02-29"
     end_date = "2024-02-29"
@@ -192,6 +201,7 @@ def test_quintad_single_day():
     ]
 
     assert quintad_intervals(temporal_extent) == expected
+
 
 def test_quintad_end_month():
     start_date = "2024-02-14"
@@ -208,6 +218,7 @@ def test_quintad_end_month():
     ]
 
     assert quintad_intervals(temporal_extent) == expected
+
 
 def test_quintad_new_year():
     start_date = "2023-12-04"

@@ -127,28 +127,24 @@ def get_s1_grd_default_processor(
 
 SENTINEL1_GRD_BACKEND_MAP = {
     Backend.TERRASCOPE: {
-        "default": partial(
-            get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
-        ),
+        "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
         "preprocessor": partial(
             get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"
-        )
+        ),
     },
     Backend.CDSE: {
-        "default": partial(
-            get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
-        ),
+        "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
         "preprocessor": partial(
             get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"
-        )
-    }
+        ),
+    },
 }
 
 
 def build_sentinel1_grd_extractor(
     backend_context: BackendContext, bands: list, fetch_type: FetchType, **params
 ) -> CollectionFetcher:
-    """ Creates a S1 GRD collection extractor for the given backend."""
+    """Creates a S1 GRD collection extractor for the given backend."""
     backend_functions = SENTINEL1_GRD_BACKEND_MAP.get(backend_context.backend)
 
     fetcher, preprocessor = (
@@ -156,6 +152,4 @@ def build_sentinel1_grd_extractor(
         backend_functions["preprocessor"](fetch_type=fetch_type),
     )
 
-    return CollectionFetcher(
-        backend_context, bands, fetcher, preprocessor, **params
-    )
+    return CollectionFetcher(backend_context, bands, fetcher, preprocessor, **params)

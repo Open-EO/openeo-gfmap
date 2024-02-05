@@ -15,14 +15,13 @@ def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
     """
     # First check if the period is defined in the context
     intervals = context.get("intervals", None)
-    array = cube.get_array().transpose('t', 'bands', 'y', 'x')
+    array = cube.get_array().transpose("t", "bands", "y", "x")
 
     bap_score = array.sel(bands="S2-BAPSCORE")
 
     def select_maximum(score: xr.DataArray):
         max_score = score.max(dim="t")
         return score == max_score
-
 
     if isinstance(intervals, str):
         raise NotImplementedError(
