@@ -12,10 +12,10 @@ def _resplit_group(
 ) -> List[gpd.GeoDataFrame]:
     """Performs re-splitting of a dataset of polygons in a list of datasets"""
     for i in range(0, len(polygons), max_points):
-        yield polygons.iloc[i : i + max_points]
+        yield polygons.iloc[i : i + max_points].reset_index(drop=True)
 
 
-def split_job(
+def split_job_hex(
     polygons: gpd.GeoDataFrame, max_points: int = 500, grid_resolution: int = 4
 ) -> List[gpd.GeoDataFrame]:
     """Split a job into multiple jobs from the position of the polygons/points. The centroid of
@@ -58,9 +58,7 @@ def split_job(
     for _, sub_gdf in polygons.groupby("h3index"):
         if len(sub_gdf) > max_points:
             # Performs another split
-            split_datasets.extend(
-                _resplit_group(sub_gdf, max_points).reset_index(drop=True)
-            )
+            split_datasets.extend(_resplit_group(sub_gdf, max_points))
         else:
             split_datasets.append(sub_gdf.reset_index(drop=True))
 

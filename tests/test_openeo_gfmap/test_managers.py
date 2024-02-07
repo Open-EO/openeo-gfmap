@@ -3,7 +3,7 @@ from pathlib import Path
 
 import geopandas as gpd
 
-from openeo_gfmap.manager.job_splitters import split_job
+from openeo_gfmap.manager.job_splitters import split_job_hex
 
 
 def test_split_jobs():
@@ -13,7 +13,7 @@ def test_split_jobs():
     dataset = gpd.read_file(dataset_path)
 
     # Split the dataset
-    split_dataset = split_job(dataset, max_points=500)
+    split_dataset = split_job_hex(dataset, max_points=500)
 
     # Check the number of splits
     assert len(split_dataset) > 1

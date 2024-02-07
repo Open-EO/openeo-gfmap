@@ -4,6 +4,7 @@ import queue
 import threading
 from enum import Enum
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Callable, Union
 
 import pandas as pd
@@ -26,6 +27,7 @@ class GFMAPJobManager(MultiBackendJobManager):
     def __init__(
         self,
         output_dir: Path,
+        output_path_generator: Callable,
         post_job_action: Callable,
         poll_sleep: int = 5,
         n_threads: int = 1,
@@ -33,12 +35,15 @@ class GFMAPJobManager(MultiBackendJobManager):
     ):
         self._output_dir = output_dir
 
+        self._downloaded_products = []
+
         # Setup the threads to work on the on_job_done and on_job_error methods
         self._finished_job_queue = queue.Queue()
         self._n_threads = n_threads
 
         self._threads = []
 
+        self._output_path_gen = output_path_generator
         self._post_job_action = post_job_action
         self._post_job_params = post_job_params
         super().__init__(poll_sleep)
@@ -129,14 +134,23 @@ class GFMAPJobManager(MultiBackendJobManager):
         """Method called when a job finishes successfully. It will first download the results of
         the job and then call the `post_job_action` method.
         """
-        output_folder = self._output_dir / row.job_id
-        output_folder.mkdir(parents=True, exist_ok=True)
-
         for idx, asset in enumerate(job.results().get_assets()):
-            # file_name = f"{row.output_prefix}_{idx}.{asset.file_extension}"
-            asset.download(output_folder / asset.filename)
+            with NamedTemporaryFile(delete=False) as temp_file:
+                asset.download(temp_file.name)
+                output_path = self._output_path_gen(
+                    self._output_dir, temp_file.name, idx, row
+                )
+                # Make the output path
+                output_path.mkdir(parents=True, exist_ok=True)
+                # Move the temporary file to the final location
+                temp_file.rename(output_path)
+                # Add to the list of downloaded products
+                self._downloaded_products.append(output_path)
 
-        # TODO trigger post-job action and write STAC metadata
+        # Call the post job action
+        self._post_job_action(job, row, self._post_job_params)
+
+        # TODO STAC metadata
 
     def run_jobs(
         self, df: pd.DataFrame, start_job: Callable, output_file: Union[str, Path]
@@ -148,12 +162,12 @@ class GFMAPJobManager(MultiBackendJobManager):
         df: pd.DataFrame
             The dataframe containing the jobs to be started. The dataframe expects the following columns:
 
-            * `output_folder`: Folder in which the results of the job will be stored.
             * `output_prefix`: Prefix to be used in the output files.
             * `file_extension`: Extension of the output files.
+            * `status`: Current status of the job, should be set to "created" initially.
+            * `description`: Description of the job, should be set to None initially.
             * `backend_name`: Name of the backend to use.
-            * `task_id`: ID of the task to be executed, will be used to retrieve geometry from
-              another dataset.
+            * Additional fields that will be used in your custom job creation function `start_job`.
 
         start_job: Callable
             Callable function that will take in argument the rows of each job and that will
@@ -161,10 +175,10 @@ class GFMAPJobManager(MultiBackendJobManager):
         output_file: Union[str, Path]
             The file to track the results of the jobs.
         """
-        super(MultiBackendJobManager).run_jobs(df, start_job, output_file)
-
         # Starts the thread pool to work on the on_job_done and on_job_error methods
         for _ in range(self._n_threads):
             thread = threading.Thread(target=self._post_job_worker)
             thread.start()
             self._threads.append(thread)
+
+        super(MultiBackendJobManager).run_jobs(df, start_job, output_file)
