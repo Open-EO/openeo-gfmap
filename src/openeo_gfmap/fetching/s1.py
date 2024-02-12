@@ -113,9 +113,7 @@ def get_s1_grd_default_processor(
         )
 
         cube = resample_reproject(
-            cube,
-            params.get("target_resolution", 10.0),
-            params.get("target_crs", None)
+            cube, params.get("target_resolution", 10.0), params.get("target_crs", None)
         )
 
         cube = rename_bands(cube, BASE_SENTINEL1_GRD_MAPPING)

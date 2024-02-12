@@ -124,12 +124,8 @@ def test_bap_quintad(backend: Backend):
     backend_context = BackendContext(backend=backend)
 
     # Additional parameters
-    fetching_parameters = {
-        "fetching_resolution": 10.0
-    }
-    preprocessing_parameters = {
-        "apply_scl_dilation": True
-    }
+    fetching_parameters = {"fetching_resolution": 10.0}
+    preprocessing_parameters = {"apply_scl_dilation": True}
 
     # Fetch the datacube
     s2_extractor = build_sentinel2_l2a_extractor(
