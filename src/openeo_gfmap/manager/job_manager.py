@@ -139,7 +139,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         )
         output_log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if len(error_logs > 0):
+        if len(error_logs) > 0:
             output_log_path.write_text(json.dumps(error_logs, indent=2))
         else:
             output_log_path.write_text(
