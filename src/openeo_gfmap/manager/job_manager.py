@@ -1,11 +1,11 @@
 import json
-import logging
 import queue
+import shutil
 import threading
 from enum import Enum
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 import pandas as pd
 from openeo.extra.job_management import MultiBackendJobManager
@@ -28,7 +28,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         self,
         output_dir: Path,
         output_path_generator: Callable,
-        post_job_action: Callable,
+        post_job_action: Optional[Callable],
         poll_sleep: int = 5,
         n_threads: int = 1,
         post_job_params: dict = {},
@@ -48,19 +48,33 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._post_job_params = post_job_params
         super().__init__(poll_sleep)
 
+        # Monkey patching the _normalize_df method to ensure we have no modification on the
+        # geometry column
+        MultiBackendJobManager._normalize_df = self._normalize_df
+
     def _post_job_worker(self):
         """Checks which jobs are finished or failed and calls the `on_job_done` or `on_job_error`
         methods."""
         while True:
-            status, job, row = self._finished_job_queue.get()
-            if status == PostJobStatus.ERROR:
-                self.on_job_error(job, row)
-            elif status == PostJobStatus.FINISHED:
-                self.on_job_done(job, row)
-            else:
-                raise ValueError(f"Unknown status: {status}")
-            self.on_job_done(job, row)
-            self.job_done_queue.task_done()
+            try:
+                status, job, row = self._finished_job_queue.get(timeout=1)
+                _log.debug(
+                    f"Worker thread {threading.current_thread().name}: polled finished job with status {status}."
+                )
+                if status == PostJobStatus.ERROR:
+                    self.on_job_error(job, row)
+                elif status == PostJobStatus.FINISHED:
+                    self.on_job_done(job, row)
+                else:
+                    raise ValueError(f"Unknown status: {status}")
+                self._finished_job_queue.task_done()
+            except queue.Empty:
+                continue
+            except KeyboardInterrupt:
+                _log.debug(
+                    f"Worker thread {threading.current_thread().name} interrupted."
+                )
+                return
 
     def _update_statuses(self, df: pd.DataFrame):
         """Updates the statues of the jobs in the dataframe from the backend. If a job is finished
@@ -69,15 +83,15 @@ class GFMAPJobManager(MultiBackendJobManager):
         The method is executed every `poll_sleep` seconds.
         """
         active = df[df.status.isin(["created", "queued", "running"])]
-        _log.info(f"Updating status. {len(active)} on {len(df)} active jobs...")
+        _log.debug(f"Updating status. {len(active)} on {len(df)} active jobs...")
         for idx, row in active.iterrows():
             # Parses the backend from the csv
             connection = self._get_connection(row.backend_name)
-            job = connection.job(row.job_id)
+            job = connection.job(row.id)
             job_metadata = job.describe_job()
-            _log.log(
-                level=logging.DEBUG,
-                msg=f"Status of job {job.job_id} is {job_metadata} (on backend {row.backend_name}).",
+            job_status = job_metadata["status"]
+            _log.debug(
+                msg=f"Status of job {job.job_id} is {job_status} (on backend {row.backend_name}).",
             )
 
             # Update the status if the job finished since last check
@@ -89,7 +103,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                     f"Job {job.job_id} finished successfully, queueing on_job_done..."
                 )
                 self._finished_job_queue.put((PostJobStatus.FINISHED, job, row))
-                df.loc[idx, "description"] = job_metadata["description"]
+                df.loc[idx, "costs"] = job_metadata["costs"]
 
             # Case in which it failed
             if (df.loc[idx, "status"] != "error") and (
@@ -99,12 +113,9 @@ class GFMAPJobManager(MultiBackendJobManager):
                     f"Job {job.job_id} finished with error, queueing on_job_error..."
                 )
                 self._finished_job_queue.put((PostJobStatus.ERROR, job, row))
-                df.loc[idx, "description"] = job_metadata["description"]
+                df.loc[idx, "costs"] = job_metadata["costs"]
 
-            df.loc[idx, "status"] = job_metadata["status"]
-
-            # Additional parameters
-            self._update_status(job, row)
+            df.loc[idx, "status"] = job_status
 
     def on_job_error(self, job: BatchJob, row: pd.Series):
         """Method called when a job finishes with an error.
@@ -119,14 +130,19 @@ class GFMAPJobManager(MultiBackendJobManager):
         logs = job.logs()
         error_logs = [log for log in logs if log.level.lower() == "error"]
 
-        # TODO figure out how to handle output file structures.
-        # job_metadata = job.describe_job()
-        # title = job_metadata["title"]
-        output_file = "/temp/error.log"
+        job_metadata = job.describe_job()
+        title = job_metadata["title"]
+        job_id = job_metadata["id"]
+
+        output_log_path = (
+            Path(self._output_dir) / "failed_jobs" / f"{title}_{job_id}.log"
+        )
+        output_log_path.parent.mkdir(parents=True, exist_ok=True)
+
         if len(error_logs > 0):
-            Path(output_file).write_text(json.dumps(error_logs, indent=2))
+            output_log_path.write_text(json.dumps(error_logs, indent=2))
         else:
-            Path(output_file).write_text(
+            output_log_path.write_text(
                 f"Couldn't find any error logs. Please check the error manually on job ID: {job.job_id}."
             )
 
@@ -134,23 +150,80 @@ class GFMAPJobManager(MultiBackendJobManager):
         """Method called when a job finishes successfully. It will first download the results of
         the job and then call the `post_job_action` method.
         """
-        for idx, asset in enumerate(job.results().get_assets()):
-            with NamedTemporaryFile(delete=False) as temp_file:
+        job_products = []
+        for idx, asset in enumerate(job.get_results().get_assets()):
+            temp_file = NamedTemporaryFile(delete=False)
+            try:
+                _log.debug(
+                    f"Downloading asset {asset.name} from job {job.job_id} -> {temp_file.name}"
+                )
                 asset.download(temp_file.name)
+                _log.debug(
+                    f"Generating output path for asset {asset.name} from job {job.job_id}..."
+                )
                 output_path = self._output_path_gen(
                     self._output_dir, temp_file.name, idx, row
                 )
+                _log.debug(
+                    f"Generated path for asset {asset.name} from job {job.job_id} -> {output_path}"
+                )
                 # Make the output path
-                output_path.mkdir(parents=True, exist_ok=True)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
                 # Move the temporary file to the final location
-                temp_file.rename(output_path)
+                shutil.move(temp_file.name, output_path)
                 # Add to the list of downloaded products
-                self._downloaded_products.append(output_path)
+                job_products.append(output_path)
+                _log.info(
+                    f"Downloaded asset {asset.name} from job {job.job_id} -> {output_path}"
+                )
+            except Exception as e:
+                _log.exception(
+                    f"Error downloading asset {asset.name} from job {job.job_id}", e
+                )
+                raise e
+            finally:
+                shutil.rmtree(temp_file.name, ignore_errors=True)
 
         # Call the post job action
-        self._post_job_action(job, row, self._post_job_params)
+        if self._post_job_action is not None:
+            _log.debug(f"Calling post job action for job {job.job_id}...")
+            job_products = self._post_job_action(
+                job_products, row, self._post_job_params
+            )
+
+        self._downloaded_products.extend(job_products)
 
         # TODO STAC metadata
+
+        _log.info(f"Job {job.job_id} and post job action finished successfully.")
+
+    def _normalize_df(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Ensure we have the required columns and the expected type for the geometry column.
+
+        :param df: The dataframe to normalize.
+        :return: a new dataframe that is normalized.
+        """
+
+        # check for some required columns.
+        required_with_default = [
+            ("status", "not_started"),
+            ("id", None),
+            ("start_time", None),
+            ("cpu", None),
+            ("memory", None),
+            ("duration", None),
+            ("backend_name", None),
+            ("description", None),
+            ("costs", None),
+        ]
+        new_columns = {
+            col: val for (col, val) in required_with_default if col not in df.columns
+        }
+        df = df.assign(**new_columns)
+
+        _log.debug(f"Normalizing dataframe. Columns: {df.columns}")
+
+        return df
 
     def run_jobs(
         self, df: pd.DataFrame, start_job: Callable, output_file: Union[str, Path]
@@ -162,12 +235,19 @@ class GFMAPJobManager(MultiBackendJobManager):
         df: pd.DataFrame
             The dataframe containing the jobs to be started. The dataframe expects the following columns:
 
-            * `output_prefix`: Prefix to be used in the output files.
-            * `file_extension`: Extension of the output files.
-            * `status`: Current status of the job, should be set to "created" initially.
-            * `description`: Description of the job, should be set to None initially.
             * `backend_name`: Name of the backend to use.
-            * Additional fields that will be used in your custom job creation function `start_job`.
+            * Additional fields that will be used in your custom job creation function `start_job`
+            as well as in post-job actions and path generator.
+
+            The following column names are RESERVED for the managed of the jobs, please do not
+            provide them in the input df:
+
+            * `status`: Current status of the job.
+            * `id`: Job ID, used to access job information from the backend.
+            * `start_time`: The time at which the job was started.
+            * `cpu`: The amount of CPU used by the job.
+            * `memory`: The amount of memory used by the job.
+            * `duration`: The duration of the job.
 
         start_job: Callable
             Callable function that will take in argument the rows of each job and that will
@@ -175,10 +255,12 @@ class GFMAPJobManager(MultiBackendJobManager):
         output_file: Union[str, Path]
             The file to track the results of the jobs.
         """
+        _log.info(f"Starting job manager using {self._n_threads} worker threads.")
         # Starts the thread pool to work on the on_job_done and on_job_error methods
         for _ in range(self._n_threads):
             thread = threading.Thread(target=self._post_job_worker)
             thread.start()
             self._threads.append(thread)
 
-        super(MultiBackendJobManager).run_jobs(df, start_job, output_file)
+        _log.info("Workers started, creating and running jobs.")
+        super().run_jobs(df, start_job, output_file)

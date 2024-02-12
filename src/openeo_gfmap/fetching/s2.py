@@ -105,10 +105,6 @@ def get_s2_l2a_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
             **params,
         )
 
-        # Apply if the collection is a GeoJSON Feature collection
-        if isinstance(spatial_extent, GeoJSON):
-            cube = cube.filter_spatial(spatial_extent)
-
         return cube
 
     return s2_l2a_fetch_default
