@@ -1,9 +1,11 @@
 import json
+import pystac
 import queue
 import shutil
 import threading
 from enum import Enum
 from pathlib import Path
+from pystac import CatalogType
 from tempfile import NamedTemporaryFile
 from typing import Callable, Optional, Union
 
@@ -28,14 +30,14 @@ class GFMAPJobManager(MultiBackendJobManager):
         self,
         output_dir: Path,
         output_path_generator: Callable,
-        post_job_action: Optional[Callable],
+        post_job_action: Optional[Callable] = None,
         poll_sleep: int = 5,
         n_threads: int = 1,
         post_job_params: dict = {},
     ):
         self._output_dir = output_dir
 
-        self._downloaded_products = []
+        self._downloaded_products = {}
 
         # Setup the threads to work on the on_job_done and on_job_error methods
         self._finished_job_queue = queue.Queue()
@@ -51,6 +53,11 @@ class GFMAPJobManager(MultiBackendJobManager):
         # Monkey patching the _normalize_df method to ensure we have no modification on the
         # geometry column
         MultiBackendJobManager._normalize_df = self._normalize_df
+
+        # Generate the root STAC collection
+        self._root_collection = pystac.Collection(id="Root collection",
+                                                  description="Root collection of the feature extraction",
+                                                  extent=None)  #TODO: make the collection richer
 
     def _post_job_worker(self):
         """Checks which jobs are finished or failed and calls the `on_job_done` or `on_job_error`
@@ -150,7 +157,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         """Method called when a job finishes successfully. It will first download the results of
         the job and then call the `post_job_action` method.
         """
-        job_products = []
+        job_products = {}
         for idx, asset in enumerate(job.get_results().get_assets()):
             temp_file = NamedTemporaryFile(delete=False)
             try:
@@ -172,7 +179,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                 # Move the temporary file to the final location
                 shutil.move(temp_file.name, output_path)
                 # Add to the list of downloaded products
-                job_products.append(output_path)
+                job_products[asset.name] = [output_path]
                 _log.info(
                     f"Downloaded asset {asset.name} from job {job.job_id} -> {output_path}"
                 )
@@ -184,6 +191,21 @@ class GFMAPJobManager(MultiBackendJobManager):
             finally:
                 shutil.rmtree(temp_file.name, ignore_errors=True)
 
+        # TODO: add try-except in the for loop to log all assets that were failed to be added to STAC collection.
+        # First update the STAC collection with the assets directly resulting from the OpenEO batch job
+        job_metadata = pystac.Collection.from_dict(job.get_results().get_metadata())
+        for item_metadata in job_metadata.get_all_items():
+            item = pystac.read_file(item_metadata.get_self_href())
+            asset_path = job_products[item.id][0]
+
+            assert len(item.assets.values()) == 1, "Each item should only contain one asset"
+            for asset in item.assets.values():
+                asset.href = str(asset_path)  # Update the asset href to the output location set by the output_path_generator
+
+            # Add the item to the root_collection
+            self._root_collection.add_item(item)
+        
+        # TODO: post_job_action should return dict with Asset STAC metadata, then add that metadata to the correct STAC items
         # Call the post job action
         if self._post_job_action is not None:
             _log.debug(f"Calling post job action for job {job.job_id}...")
@@ -191,9 +213,9 @@ class GFMAPJobManager(MultiBackendJobManager):
                 job_products, row, self._post_job_params
             )
 
-        self._downloaded_products.extend(job_products)
+        self._downloaded_products.update(job_products)
 
-        # TODO STAC metadata
+
 
         _log.info(f"Job {job.job_id} and post job action finished successfully.")
 
@@ -264,3 +286,12 @@ class GFMAPJobManager(MultiBackendJobManager):
 
         _log.info("Workers started, creating and running jobs.")
         super().run_jobs(df, start_job, output_file)
+    
+    # TODO: immediately make create_stac optional in 'run_jobs'?
+    def create_stac(self):
+        """Method to be called after run_jobs to create a STAC catalog
+        and write it to self._output_dir 
+        """
+        self._root_collection.update_extent_from_items()
+        self._root_collection.normalize_hrefs(str(self._output_dir / "stac"))
+        self._root_collection.save(catalog_type=CatalogType.SELF_CONTAINED)
