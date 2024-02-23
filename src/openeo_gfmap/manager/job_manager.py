@@ -179,7 +179,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                 # Move the temporary file to the final location
                 shutil.move(temp_file.name, output_path)
                 # Add to the list of downloaded products
-                job_products[asset.name] = [output_path]
+                job_products[f"{job.job_id}_{asset.name}"] = [output_path]
                 _log.info(
                     f"Downloaded asset {asset.name} from job {job.job_id} -> {output_path}"
                 )
@@ -196,12 +196,12 @@ class GFMAPJobManager(MultiBackendJobManager):
         job_metadata = pystac.Collection.from_dict(job.get_results().get_metadata())
         for item_metadata in job_metadata.get_all_items():
             item = pystac.read_file(item_metadata.get_self_href())
-            asset_path = job_products[item.id][0]
+            asset_path = job_products[f"{job.job_id}_{item.id}"][0]
 
             assert len(item.assets.values()) == 1, "Each item should only contain one asset"
             for asset in item.assets.values():
                 asset.href = str(asset_path)  # Update the asset href to the output location set by the output_path_generator
-
+            item.id = f"{job.job_id}_{item.id}"
             # Add the item to the root_collection
             self._root_collection.add_item(item)
         
