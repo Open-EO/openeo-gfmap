@@ -1,17 +1,17 @@
 import json
-import pystac
 import queue
 import shutil
 import threading
 from enum import Enum
 from pathlib import Path
-from pystac import CatalogType
 from tempfile import NamedTemporaryFile
 from typing import Callable, Optional, Union
 
 import pandas as pd
+import pystac
 from openeo.extra.job_management import MultiBackendJobManager
 from openeo.rest.job import BatchJob
+from pystac import CatalogType
 
 from openeo_gfmap.manager import _log
 
@@ -55,9 +55,11 @@ class GFMAPJobManager(MultiBackendJobManager):
         MultiBackendJobManager._normalize_df = self._normalize_df
 
         # Generate the root STAC collection
-        self._root_collection = pystac.Collection(id="Root collection",
-                                                  description="Root collection of the feature extraction",
-                                                  extent=None)  #TODO: make the collection richer
+        self._root_collection = pystac.Collection(
+            id="Root collection",
+            description="Root collection of the feature extraction",
+            extent=None,
+        )  # TODO: make the collection richer
 
     def _post_job_worker(self):
         """Checks which jobs are finished or failed and calls the `on_job_done` or `on_job_error`
@@ -191,20 +193,33 @@ class GFMAPJobManager(MultiBackendJobManager):
             finally:
                 shutil.rmtree(temp_file.name, ignore_errors=True)
 
-        # TODO: add try-except in the for loop to log all assets that were failed to be added to STAC collection.
         # First update the STAC collection with the assets directly resulting from the OpenEO batch job
         job_metadata = pystac.Collection.from_dict(job.get_results().get_metadata())
         for item_metadata in job_metadata.get_all_items():
-            item = pystac.read_file(item_metadata.get_self_href())
-            asset_path = job_products[f"{job.job_id}_{item.id}"][0]
+            try:
+                item = pystac.read_file(item_metadata.get_self_href())
+                asset_path = job_products[f"{job.job_id}_{item.id}"][0]
 
-            assert len(item.assets.values()) == 1, "Each item should only contain one asset"
-            for asset in item.assets.values():
-                asset.href = str(asset_path)  # Update the asset href to the output location set by the output_path_generator
-            item.id = f"{job.job_id}_{item.id}"
-            # Add the item to the root_collection
-            self._root_collection.add_item(item)
-        
+                assert (
+                    len(item.assets.values()) == 1
+                ), "Each item should only contain one asset"
+                for asset in item.assets.values():
+                    asset.href = str(
+                        asset_path
+                    )  # Update the asset href to the output location set by the output_path_generator
+                item.id = f"{job.job_id}_{item.id}"
+                # Add the item to the root_collection
+                self._root_collection.add_item(item)
+                _log.info(
+                    f"Added asset {asset.name} from job {job.job_id} to STAC collection"
+                )
+            except Exception as e:
+                _log.exception(
+                    f"Error failed to add asset {asset.name} from job {job.job_id} to STAC collection",
+                    e,
+                )
+                raise e
+
         # TODO: post_job_action should return dict with Asset STAC metadata, then add that metadata to the correct STAC items
         # Call the post job action
         if self._post_job_action is not None:
@@ -214,8 +229,6 @@ class GFMAPJobManager(MultiBackendJobManager):
             )
 
         self._downloaded_products.update(job_products)
-
-
 
         _log.info(f"Job {job.job_id} and post job action finished successfully.")
 
@@ -286,12 +299,15 @@ class GFMAPJobManager(MultiBackendJobManager):
 
         _log.info("Workers started, creating and running jobs.")
         super().run_jobs(df, start_job, output_file)
-    
+
     # TODO: immediately make create_stac optional in 'run_jobs'?
-    def create_stac(self):
+    def create_stac(self, output_path: Optional[Union[str, Path]] = None):
         """Method to be called after run_jobs to create a STAC catalog
-        and write it to self._output_dir 
+        and write it to self._output_dir
         """
+        if output_path is None:
+            output_path = self._output_dir / "stac"
+
         self._root_collection.update_extent_from_items()
-        self._root_collection.normalize_hrefs(str(self._output_dir / "stac"))
+        self._root_collection.normalize_hrefs(str(output_path))
         self._root_collection.save(catalog_type=CatalogType.SELF_CONTAINED)
