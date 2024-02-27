@@ -14,6 +14,7 @@ from openeo.rest.job import BatchJob
 from pystac import CatalogType
 
 from openeo_gfmap.manager import _log
+from openeo_gfmap.stac import constants
 
 
 class PostJobStatus(Enum):
@@ -56,10 +57,10 @@ class GFMAPJobManager(MultiBackendJobManager):
 
         # Generate the root STAC collection
         self._root_collection = pystac.Collection(
-            id="Root collection",
-            description="Root collection of the feature extraction",
+            id=constants.ID,
+            description=constants.DESCRIPTION,
             extent=None,
-        )  # TODO: make the collection richer
+        )
 
     def _post_job_worker(self):
         """Checks which jobs are finished or failed and calls the `on_job_done` or `on_job_error`
@@ -211,11 +212,11 @@ class GFMAPJobManager(MultiBackendJobManager):
                 # Add the item to the root_collection
                 self._root_collection.add_item(item)
                 _log.info(
-                    f"Added asset {asset.name} from job {job.job_id} to STAC collection"
+                    f"Added item {item.id} from job {job.job_id} to STAC collection"
                 )
             except Exception as e:
                 _log.exception(
-                    f"Error failed to add asset {asset.name} from job {job.job_id} to STAC collection",
+                    f"Error failed to add item {item.id} from job {job.job_id} to STAC collection",
                     e,
                 )
                 raise e
@@ -307,6 +308,16 @@ class GFMAPJobManager(MultiBackendJobManager):
         """
         if output_path is None:
             output_path = self._output_dir / "stac"
+        
+        self._root_collection.license = constants.LICENSE
+        self._root_collection.add_link(constants.LICENSE_LINK)
+        self._root_collection.stac_extensions = constants.STAC_EXTENSIONS
+        
+        datacube_extension = pystac.extensions.datacube.DatacubeExtension.ext(self._root_collection, add_if_missing=True)
+        datacube_extension.apply(constants.CUBE_DIMENSIONS)
+
+        item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(self._root_collection, add_if_missing=True)
+        item_asset_extension.item_assets = constants.ITEM_ASSETS
 
         self._root_collection.update_extent_from_items()
         self._root_collection.normalize_hrefs(str(output_path))
