@@ -308,15 +308,19 @@ class GFMAPJobManager(MultiBackendJobManager):
         """
         if output_path is None:
             output_path = self._output_dir / "stac"
-        
+
         self._root_collection.license = constants.LICENSE
         self._root_collection.add_link(constants.LICENSE_LINK)
         self._root_collection.stac_extensions = constants.STAC_EXTENSIONS
-        
-        datacube_extension = pystac.extensions.datacube.DatacubeExtension.ext(self._root_collection, add_if_missing=True)
+
+        datacube_extension = pystac.extensions.datacube.DatacubeExtension.ext(
+            self._root_collection, add_if_missing=True
+        )
         datacube_extension.apply(constants.CUBE_DIMENSIONS)
 
-        item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(self._root_collection, add_if_missing=True)
+        item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(
+            self._root_collection, add_if_missing=True
+        )
         item_asset_extension.item_assets = constants.ITEM_ASSETS
 
         self._root_collection.update_extent_from_items()
