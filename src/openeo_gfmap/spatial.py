@@ -44,4 +44,4 @@ class BoundingBoxExtent:
         return box(self.west, self.south, self.east, self.north)
 
 
-SpatialContext = Union[GeoJSON, BoundingBoxExtent]
+SpatialContext = Union[GeoJSON, BoundingBoxExtent, str]
