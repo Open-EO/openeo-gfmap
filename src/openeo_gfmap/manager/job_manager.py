@@ -46,11 +46,11 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._output_path_gen = output_path_generator
         self._post_job_action = post_job_action
         self._post_job_params = post_job_params
-        super().__init__(poll_sleep)
 
         # Monkey patching the _normalize_df method to ensure we have no modification on the
         # geometry column
         MultiBackendJobManager._normalize_df = self._normalize_df
+        super().__init__(poll_sleep)
 
     def _post_job_worker(self):
         """Checks which jobs are finished or failed and calls the `on_job_done` or `on_job_error`
@@ -83,7 +83,6 @@ class GFMAPJobManager(MultiBackendJobManager):
         The method is executed every `poll_sleep` seconds.
         """
         active = df[df.status.isin(["created", "queued", "running"])]
-        _log.debug(f"Updating status. {len(active)} on {len(df)} active jobs...")
         for idx, row in active.iterrows():
             # Parses the backend from the csv
             connection = self._get_connection(row.backend_name)
