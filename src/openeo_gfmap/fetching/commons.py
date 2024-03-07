@@ -3,7 +3,6 @@
 from typing import Optional, Union
 
 import openeo
-from openeo.rest.vectorcube import VectorCube
 from geojson import GeoJSON
 from rasterio import CRS
 from rasterio.errors import CRSError
@@ -117,8 +116,8 @@ def load_collection(
                 spatial_extent["type"] == "FeatureCollection"
             ), "Please provide a FeatureCollection type of GeoJSON"
         elif isinstance(spatial_extent, str):
-            assert (
-                spatial_extent.startswith('https://') or spatial_extent.startswith('http://')
+            assert spatial_extent.startswith("https://") or spatial_extent.startswith(
+                "http://"
             ), "Please provide a valid URL or a path to a GeoJSON file."
         else:
             raise ValueError(
@@ -141,7 +140,10 @@ def load_collection(
 
     if fetch_type == FetchType.POLYGON:
         if isinstance(spatial_extent, str):
-            geometry = connection.load_url(spatial_extent, format="Parquet" if ".parquet" in spatial_extent else "GeoJSON")
+            geometry = connection.load_url(
+                spatial_extent,
+                format="Parquet" if ".parquet" in spatial_extent else "GeoJSON",
+            )
             cube = cube.filter_spatial(geometry)
         else:
             cube = cube.filter_spatial(spatial_extent)
