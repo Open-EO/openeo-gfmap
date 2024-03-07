@@ -76,9 +76,7 @@ def get_s2_l2a_default_fetcher(collection_name: str) -> Callable:
             ), "CRS not defined within GeoJSON collection."
             spatial_extent = dict(spatial_extent)
 
-        cube = connection.load_collection(
-            collection_name, spatial_extent, temporal_extent, bands
-        )
+        cube = connection.load_collection(collection_name, spatial_extent, temporal_extent, bands)
 
         # Apply if the collection is a GeoJSON Feature collection
         if isinstance(spatial_extent, GeoJSON):

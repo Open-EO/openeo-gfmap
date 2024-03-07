@@ -50,14 +50,10 @@ SPATIAL_EXTENT_2 = {
 TEMPORAL_EXTENT_2 = ["2023-01-01", "2023-02-01"]
 
 # Dataset of polygons for POINT based extraction
-POINT_EXTRACTION_DF = (
-    Path(__file__).parent / "resources/malawi_extraction_polygons.gpkg"
-)
+POINT_EXTRACTION_DF = Path(__file__).parent / "resources/malawi_extraction_polygons.gpkg"
 
 # Datase of polygons for Polygon based extraction
-POLYGON_EXTRACTION_DF = (
-    Path(__file__).parent / "resources/puglia_extraction_polygons.gpkg"
-)
+POLYGON_EXTRACTION_DF = Path(__file__).parent / "resources/puglia_extraction_polygons.gpkg"
 
 # test_backends = [Backend.TERRASCOPE, Backend.CDSE]
 test_backends = [Backend.CDSE]
@@ -100,9 +96,7 @@ class TestS2Extractors:
             "S2-AOT",
         ]
         fetching_parameters = (
-            {"target_resolution": 10.0, "target_crs": 3035}
-            if country == "Belgium"
-            else {}
+            {"target_resolution": 10.0, "target_crs": 3035} if country == "Belgium" else {}
         )
         extractor: CollectionFetcher = build_sentinel2_l2a_extractor(
             context=context,
@@ -125,10 +119,7 @@ class TestS2Extractors:
 
         cube = extractor.get_cube(connection, spatial_extent, temporal_extent)
 
-        output_file = (
-            Path(__file__).parent
-            / f"results/{country}_{backend.value}_sentinel2_l2a.nc"
-        )
+        output_file = Path(__file__).parent / f"results/{country}_{backend.value}_sentinel2_l2a.nc"
 
         cube.download(output_file, format="NetCDF")
 
@@ -153,8 +144,7 @@ class TestS2Extractors:
                 if backend == Backend.EODC:  # TODO fix EDOC backend first
                     continue
                 tile_path = (
-                    Path(__file__).parent
-                    / f"results/{country}_{backend.value}_sentinel2_l2a.nc"
+                    Path(__file__).parent / f"results/{country}_{backend.value}_sentinel2_l2a.nc"
                 )
                 loaded_tiles.append(xr.open_dataset(tile_path, engine="h5netcdf"))
 
@@ -216,9 +206,7 @@ class TestS2Extractors:
 
         cube = cube.aggregate_spatial(spatial_context, reducer="mean")
 
-        output_file = (
-            Path(__file__).parent / f"results/points_{backend.value}_sentinel2_l2a.json"
-        )
+        output_file = Path(__file__).parent / f"results/points_{backend.value}_sentinel2_l2a.json"
 
         cube.download(output_file, format="JSON")
 
@@ -273,23 +261,17 @@ class TestS2Extractors:
         results.download_files(output_folder)
 
         # List all the files available in the folder
-        extracted_files = list(
-            filter(lambda file: file.suffix == ".nc", output_folder.iterdir())
-        )
+        extracted_files = list(filter(lambda file: file.suffix == ".nc", output_folder.iterdir()))
         # Check if there is one file for each polygon
         assert len(extracted_files) == len(spatial_context["features"])
 
 
-@pytest.mark.parametrize(
-    "spatial_context, temporal_context, backend", test_configurations
-)
+@pytest.mark.parametrize("spatial_context, temporal_context, backend", test_configurations)
 def test_sentinel2_l2a(
     spatial_context: SpatialContext, temporal_context: TemporalContext, backend: Backend
 ):
     connection = BACKEND_CONNECTIONS[backend]()
-    TestS2Extractors.sentinel2_l2a(
-        spatial_context, temporal_context, backend, connection
-    )
+    TestS2Extractors.sentinel2_l2a(spatial_context, temporal_context, backend, connection)
 
 
 @pytest.mark.depends(on=["test_sentinel2_l2a"])

@@ -160,9 +160,7 @@ def s1_area_per_orbitstate(
             )
         )
     else:
-        raise NotImplementedError(
-            f"This feature is not supported for backend: {backend.backend}."
-        )
+        raise NotImplementedError(f"This feature is not supported for backend: {backend.backend}.")
 
     # Builds the shape of the spatial extent and computes the area
     spatial_extent = spatial_extent.to_geometry()
@@ -179,15 +177,13 @@ def s1_area_per_orbitstate(
         "ASCENDING": {
             "full_overlap": ascending_covers,
             "area": sum(
-                product.intersection(spatial_extent).area
-                for product in ascending_products
+                product.intersection(spatial_extent).area for product in ascending_products
             ),
         },
         "DESCENDING": {
             "full_overlap": descending_covers,
             "area": sum(
-                product.intersection(spatial_extent).area
-                for product in descending_products
+                product.intersection(spatial_extent).area for product in descending_products
             ),
         },
     }

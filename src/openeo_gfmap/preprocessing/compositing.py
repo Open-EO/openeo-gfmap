@@ -21,6 +21,7 @@ def median_compositing(
         )
 
 
+
 def mean_compositing(cube: openeo.DataCube, period: str) -> openeo.DataCube:
     """Perfrom mean compositing on the given datacube."""
     if isinstance(period, str):

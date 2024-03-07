@@ -76,14 +76,9 @@ class TestS1Extractors:
 
         cube = extractor.get_cube(connection, spatial_extent, temporal_extent)
 
-        output_file = (
-            Path(__file__).parent
-            / f"results/{country}_{backend.value}_sentinel1_grd.nc"
-        )
+        output_file = Path(__file__).parent / f"results/{country}_{backend.value}_sentinel1_grd.nc"
 
-        job = cube.create_job(
-            title="Sentinel1 GRD tile extraction", out_format="NetCDF"
-        )
+        job = cube.create_job(title="Sentinel1 GRD tile extraction", out_format="NetCDF")
 
         job.start_and_wait()
 
@@ -113,8 +108,7 @@ class TestS1Extractors:
             loaded_tiles = []
             for backend in backend_types:
                 tile_path = (
-                    Path(__file__).parent
-                    / f"results/{country}_{backend.value}_sentinel1_grd.nc"
+                    Path(__file__).parent / f"results/{country}_{backend.value}_sentinel1_grd.nc"
                 )
                 loaded_tiles.append(xr.open_dataset(tile_path, engine="h5netcdf"))
 
@@ -182,9 +176,7 @@ class TestS1Extractors:
 
         cube = cube.aggregate_spatial(spatial_context, reducer="mean")
 
-        output_file = (
-            Path(__file__).parent / f"results/points_{backend.value}_sentinel1_grd.nc"
-        )
+        output_file = Path(__file__).parent / f"results/points_{backend.value}_sentinel1_grd.nc"
 
         cube.download(output_file, format="JSON")
 
@@ -247,23 +239,17 @@ class TestS1Extractors:
         results.download_files(output_folder)
 
         # List all the files available in the folder
-        extracted_files = list(
-            filter(lambda file: file.suffix == ".nc", output_folder.iterdir())
-        )
+        extracted_files = list(filter(lambda file: file.suffix == ".nc", output_folder.iterdir()))
         # Check if there is one file for each polygon
         assert len(extracted_files) == len(spatial_context["features"])
 
 
-@pytest.mark.parametrize(
-    "spatial_context, temporal_context, backend", test_configurations
-)
+@pytest.mark.parametrize("spatial_context, temporal_context, backend", test_configurations)
 def test_sentinel1_grd(
     spatial_context: SpatialContext, temporal_context: TemporalContext, backend: Backend
 ):
     connection = BACKEND_CONNECTIONS[backend]()
-    TestS1Extractors.sentinel1_grd(
-        spatial_context, temporal_context, backend, connection
-    )
+    TestS1Extractors.sentinel1_grd(spatial_context, temporal_context, backend, connection)
 
 
 @pytest.mark.depends(on=["test_sentinel1_grd"])

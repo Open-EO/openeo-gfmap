@@ -75,9 +75,7 @@ class FeatureExtractor(ABC):
     point based extraction or dense Cubes for tile/polygon based extraction.
     """
 
-    def _common_preparations(
-        self, inarr: xr.DataArray, parameters: dict
-    ) -> xr.DataArray:
+    def _common_preparations(self, inarr: xr.DataArray, parameters: dict) -> xr.DataArray:
         """Common preparations to be executed before the feature extractor is
         executed. This method should be called by the `_execute` method of the
         feature extractor.
@@ -102,8 +100,7 @@ class FeatureExtractor(ABC):
 
     def _execute(self, cube: XarrayDataCube, parameters: dict) -> XarrayDataCube:
         raise NotImplementedError(
-            "FeatureExtractor is a base abstract class, please implement the "
-            "_execute method."
+            "FeatureExtractor is a base abstract class, please implement the " "_execute method."
         )
 
 
@@ -130,8 +127,7 @@ class PatchFeatureExtractor(FeatureExtractor):
 
         if self.epsg is None:
             raise Exception(
-                "EPSG code was not defined, cannot extract lat/lon array "
-                "as the CRS is unknown."
+                "EPSG code was not defined, cannot extract lat/lon array " "as the CRS is unknown."
             )
 
         # If the coordiantes are not in EPSG:4326, we need to reproject them
@@ -257,9 +253,7 @@ def apply_feature_extractor(
     udf = openeo.UDF(code=udf_code, context=parameters)
 
     cube = cube.apply_neighborhood(process=udf, size=size, overlap=overlap)
-    return cube.rename_labels(
-        dimension="bands", target=feature_extractor_class().output_labels()
-    )
+    return cube.rename_labels(dimension="bands", target=feature_extractor_class().output_labels())
 
 
 def apply_feature_extractor_local(
