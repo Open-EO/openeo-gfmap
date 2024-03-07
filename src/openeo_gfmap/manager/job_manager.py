@@ -38,8 +38,6 @@ class GFMAPJobManager(MultiBackendJobManager):
     ):
         self._output_dir = output_dir
 
-        self._downloaded_products = {}
-
         # Setup the threads to work on the on_job_done and on_job_error methods
         self._finished_job_queue = queue.Queue()
         self._n_threads = n_threads
@@ -195,6 +193,8 @@ class GFMAPJobManager(MultiBackendJobManager):
 
         # First update the STAC collection with the assets directly resulting from the OpenEO batch job
         job_metadata = pystac.Collection.from_dict(job.get_results().get_metadata())
+        job_items = []
+
         for item_metadata in job_metadata.get_all_items():
             try:
                 item = pystac.read_file(item_metadata.get_self_href())
@@ -208,11 +208,9 @@ class GFMAPJobManager(MultiBackendJobManager):
                         asset_path
                     )  # Update the asset href to the output location set by the output_path_generator
                 item.id = f"{job.job_id}_{item.id}"
-                # Add the item to the root_collection
-                self._root_collection.add_item(item)
-                _log.info(
-                    f"Added item {item.id} from job {job.job_id} to STAC collection"
-                )
+                # Add the item to the the current job items.
+                job_items.append(item)
+                _log.info(f"Parsed item {item.id} from job {job.job_id}")
             except Exception as e:
                 _log.exception(
                     f"Error failed to add item {item.id} from job {job.job_id} to STAC collection",
@@ -220,15 +218,15 @@ class GFMAPJobManager(MultiBackendJobManager):
                 )
                 raise e
 
-        # TODO: post_job_action should return dict with Asset STAC metadata, then add that metadata to the correct STAC items
-        # Call the post job action
+        # _post_job_action returns an updated list of stac items. Post job action can therefore
+        # update the stac items and access their products through the HREF. It is also the
+        # reponsible of adding the appropriate metadata/assets to the items.
         if self._post_job_action is not None:
             _log.debug(f"Calling post job action for job {job.job_id}...")
-            job_products = self._post_job_action(
-                job_products, row, self._post_job_params
-            )
+            job_items = self._post_job_action(job_items, row, self._post_job_params)
 
-        self._downloaded_products.update(job_products)
+        self._root_collection.add_items(job_items)
+        _log.info(f"Added {len(job_items)} items to the STAC collection.")
 
         _log.info(f"Job {job.job_id} and post job action finished successfully.")
 
@@ -300,7 +298,6 @@ class GFMAPJobManager(MultiBackendJobManager):
         _log.info("Workers started, creating and running jobs.")
         super().run_jobs(df, start_job, output_file)
 
-    # TODO: immediately make create_stac optional in 'run_jobs'?
     def create_stac(self, output_path: Optional[Union[str, Path]] = None):
         """Method to be called after run_jobs to create a STAC catalog
         and write it to self._output_dir
