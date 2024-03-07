@@ -7,9 +7,7 @@ import geopandas as gpd
 import h3
 
 
-def _resplit_group(
-    polygons: gpd.GeoDataFrame, max_points: int
-) -> List[gpd.GeoDataFrame]:
+def _resplit_group(polygons: gpd.GeoDataFrame, max_points: int) -> List[gpd.GeoDataFrame]:
     """Performs re-splitting of a dataset of polygons in a list of datasets"""
     for i in range(0, len(polygons), max_points):
         yield polygons.iloc[i : i + max_points].reset_index(drop=True)

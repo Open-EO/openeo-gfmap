@@ -120,9 +120,7 @@ def load_collection(
                 "http://"
             ), "Please provide a valid URL or a path to a GeoJSON file."
         else:
-            raise ValueError(
-                "Please provide a valid URL to a GeoParquet or GeoJSON file."
-            )
+            raise ValueError("Please provide a valid URL to a GeoParquet or GeoJSON file.")
         cube = connection.load_collection(
             collection_id=collection_name,
             temporal_extent=[temporal_extent.start_date, temporal_extent.end_date],

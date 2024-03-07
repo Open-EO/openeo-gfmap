@@ -79,9 +79,7 @@ class GFMAPJobManager(MultiBackendJobManager):
             except queue.Empty:
                 continue
             except KeyboardInterrupt:
-                _log.debug(
-                    f"Worker thread {threading.current_thread().name} interrupted."
-                )
+                _log.debug(f"Worker thread {threading.current_thread().name} interrupted.")
                 return
 
     def _update_statuses(self, df: pd.DataFrame):
@@ -106,19 +104,13 @@ class GFMAPJobManager(MultiBackendJobManager):
             if (df.loc[idx, "status"] in ["created", "queued", "running"]) and (
                 job_metadata["status"] == "finished"
             ):
-                _log.info(
-                    f"Job {job.job_id} finished successfully, queueing on_job_done..."
-                )
+                _log.info(f"Job {job.job_id} finished successfully, queueing on_job_done...")
                 self._finished_job_queue.put((PostJobStatus.FINISHED, job, row))
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
             # Case in which it failed
-            if (df.loc[idx, "status"] != "error") and (
-                job_metadata["status"] == "error"
-            ):
-                _log.info(
-                    f"Job {job.job_id} finished with error, queueing on_job_error..."
-                )
+            if (df.loc[idx, "status"] != "error") and (job_metadata["status"] == "error"):
+                _log.info(f"Job {job.job_id} finished with error, queueing on_job_error...")
                 self._finished_job_queue.put((PostJobStatus.ERROR, job, row))
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
@@ -141,9 +133,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         title = job_metadata["title"]
         job_id = job_metadata["id"]
 
-        output_log_path = (
-            Path(self._output_dir) / "failed_jobs" / f"{title}_{job_id}.log"
-        )
+        output_log_path = Path(self._output_dir) / "failed_jobs" / f"{title}_{job_id}.log"
         output_log_path.parent.mkdir(parents=True, exist_ok=True)
 
         if len(error_logs) > 0:
@@ -168,9 +158,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                 _log.debug(
                     f"Generating output path for asset {asset.name} from job {job.job_id}..."
                 )
-                output_path = self._output_path_gen(
-                    self._output_dir, temp_file.name, idx, row
-                )
+                output_path = self._output_path_gen(self._output_dir, temp_file.name, idx, row)
                 _log.debug(
                     f"Generated path for asset {asset.name} from job {job.job_id} -> {output_path}"
                 )
@@ -180,13 +168,9 @@ class GFMAPJobManager(MultiBackendJobManager):
                 shutil.move(temp_file.name, output_path)
                 # Add to the list of downloaded products
                 job_products[f"{job.job_id}_{asset.name}"] = [output_path]
-                _log.info(
-                    f"Downloaded asset {asset.name} from job {job.job_id} -> {output_path}"
-                )
+                _log.info(f"Downloaded asset {asset.name} from job {job.job_id} -> {output_path}")
             except Exception as e:
-                _log.exception(
-                    f"Error downloading asset {asset.name} from job {job.job_id}", e
-                )
+                _log.exception(f"Error downloading asset {asset.name} from job {job.job_id}", e)
                 raise e
             finally:
                 shutil.rmtree(temp_file.name, ignore_errors=True)
@@ -200,9 +184,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                 item = pystac.read_file(item_metadata.get_self_href())
                 asset_path = job_products[f"{job.job_id}_{item.id}"][0]
 
-                assert (
-                    len(item.assets.values()) == 1
-                ), "Each item should only contain one asset"
+                assert len(item.assets.values()) == 1, "Each item should only contain one asset"
                 for asset in item.assets.values():
                     asset.href = str(
                         asset_path
@@ -249,18 +231,14 @@ class GFMAPJobManager(MultiBackendJobManager):
             ("description", None),
             ("costs", None),
         ]
-        new_columns = {
-            col: val for (col, val) in required_with_default if col not in df.columns
-        }
+        new_columns = {col: val for (col, val) in required_with_default if col not in df.columns}
         df = df.assign(**new_columns)
 
         _log.debug(f"Normalizing dataframe. Columns: {df.columns}")
 
         return df
 
-    def run_jobs(
-        self, df: pd.DataFrame, start_job: Callable, output_file: Union[str, Path]
-    ):
+    def run_jobs(self, df: pd.DataFrame, start_job: Callable, output_file: Union[str, Path]):
         """Starts the jobs defined in the dataframe and runs the `start_job` function on each job.
 
         Parameters

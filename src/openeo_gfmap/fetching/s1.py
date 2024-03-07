@@ -132,9 +132,7 @@ SENTINEL1_GRD_BACKEND_MAP = {
     },
     Backend.CDSE_STAGING: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
-        "preprocessor": partial(
-            get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"
-        ),
+        "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
     },
 }
 

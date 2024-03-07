@@ -217,9 +217,7 @@ AUXILIARY = pystac.extensions.item_assets.AssetDefinition(
         "type": "application/x-netcdf",
         "roles": ["data"],
         "proj:shape": [64, 64],
-        "raster:bands": [
-            {"name": "CROPTYPE", "data_type": "uint16", "bits_per_sample": 16}
-        ],
+        "raster:bands": [{"name": "CROPTYPE", "data_type": "uint16", "bits_per_sample": 16}],
     }
 )
 
