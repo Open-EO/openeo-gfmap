@@ -106,5 +106,5 @@ def eodc_connection() -> openeo.Connection:
 BACKEND_CONNECTIONS: Dict[Backend, Callable] = {
     Backend.TERRASCOPE: vito_connection,
     Backend.CDSE: cdse_connection,
-    Backend.CDSE_STAGING: cdse_staging_connection
+    Backend.CDSE_STAGING: cdse_staging_connection,
 }
