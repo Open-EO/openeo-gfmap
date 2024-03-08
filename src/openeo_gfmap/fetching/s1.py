@@ -19,10 +19,10 @@ from .commons import (
 from .fetching import CollectionFetcher, FetchType
 
 BASE_SENTINEL1_GRD_MAPPING = {
-    "VH": "S1-VH",
-    "HH": "S1-HH",
-    "HV": "S1-HV",
-    "VV": "S1-VV",
+    "VH": "S1-SIGMA0-VH",
+    "HH": "S1-SIGMA0-HH",
+    "HV": "S1-SIGMA0-HV",
+    "VV": "S1-SIGMA0-VV",
 }
 
 
