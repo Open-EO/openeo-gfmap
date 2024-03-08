@@ -14,7 +14,7 @@ def _resplit_group(polygons: gpd.GeoDataFrame, max_points: int) -> List[gpd.GeoD
 
 
 def split_job_hex(
-    polygons: gpd.GeoDataFrame, max_points: int = 500, grid_resolution: int = 4
+    polygons: gpd.GeoDataFrame, max_points: int = 500, grid_resolution: int = 3
 ) -> List[gpd.GeoDataFrame]:
     """Split a job into multiple jobs from the position of the polygons/points. The centroid of
     the geometries to extract are used to select a hexagon in the H3 grid. Using the H3 grid

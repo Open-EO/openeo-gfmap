@@ -31,6 +31,8 @@ class GFMAPJobManager(MultiBackendJobManager):
         self,
         output_dir: Path,
         output_path_generator: Callable,
+        collection_id: str,
+        collection_description: str = "",
         post_job_action: Optional[Callable] = None,
         poll_sleep: int = 5,
         n_threads: int = 1,
@@ -55,8 +57,8 @@ class GFMAPJobManager(MultiBackendJobManager):
 
         # Generate the root STAC collection
         self._root_collection = pystac.Collection(
-            id=constants.ID,
-            description=constants.DESCRIPTION,
+            id=collection_id,
+            description=collection_description,
             extent=None,
         )
 

@@ -3,9 +3,6 @@ Constants in the STAC collection generated after a series of batch jobs
 """
 import pystac
 
-TITLE = "WorldCereal Level 1 cache"
-ID = "L1-CACHE"
-DESCRIPTION = "The Level 1 input data cache contains extracted samples of EO data. It's main use is model calibration, allowing faster iterations by providing a cache."
 LICENSE = "CC-BY-4.0"
 LICENSE_LINK = pystac.Link(
     rel="license",
@@ -137,7 +134,7 @@ SENTINEL2 = pystac.extensions.item_assets.AssetDefinition(
             "S2-B08": {"dimensions": ["time", "y", "x"], "type": "data"},
             "S2-B11": {"dimensions": ["time", "y", "x"], "type": "data"},
             "S2-B12": {"dimensions": ["time", "y", "x"], "type": "data"},
-            "SCL": {"dimensions": ["time", "y", "x"], "type": "data"},
+            "S2-SCL": {"dimensions": ["time", "y", "x"], "type": "data"},
         },
         "eo:bands": [
             {
