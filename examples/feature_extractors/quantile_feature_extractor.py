@@ -42,13 +42,13 @@ class QuantileIndicesExtractor(PatchFeatureExtractor):
 
     def execute(self, inarr: xr.DataArray) -> xr.DataArray:
         # compute indices
-        b03 = inarr.sel(bands="S2-B03")
-        b04 = inarr.sel(bands="S2-B04")
-        b05 = inarr.sel(bands="S2-B05")
-        b06 = inarr.sel(bands="S2-B06")
-        b08 = inarr.sel(bands="S2-B08")
-        b11 = inarr.sel(bands="S2-B11")
-        b12 = inarr.sel(bands="S2-B12")
+        b03 = inarr.sel(bands="S2-L2A-B03")
+        b04 = inarr.sel(bands="S2-L2A-B04")
+        b05 = inarr.sel(bands="S2-L2A-B05")
+        b06 = inarr.sel(bands="S2-L2A-B06")
+        b08 = inarr.sel(bands="S2-L2A-B08")
+        b11 = inarr.sel(bands="S2-L2A-B11")
+        b12 = inarr.sel(bands="S2-L2A-B12")
 
         ndvi = (b08 - b04) / (b08 + b04)
         ndwi = (b03 - b08) / (b03 + b08)
@@ -100,14 +100,14 @@ if __name__ == "__main__":
 
     # The bands that you can extract are defined in the code openeo_gfmap.fetching.s2.BASE_SENTINEL2_L2A_MAPPING
     bands = [
-        "S2-B03",
-        "S2-B04",
-        "S2-B05",
-        "S2-B06",
-        "S2-B08",
-        "S2-B11",
-        "S2-B12",
-        "S2-SCL",
+        "S2-L2A-B03",
+        "S2-L2A-B04",
+        "S2-L2A-B05",
+        "S2-L2A-B06",
+        "S2-L2A-B08",
+        "S2-L2A-B11",
+        "S2-L2A-B12",
+        "S2-L2A-SCL",
     ]
 
     # Use the base feching

@@ -34,7 +34,7 @@ class DummyPatchExtractor(PatchFeatureExtractor):
         from scipy.ndimage import gaussian_filter
 
         # Performs some gaussian filtering to blur the RGB bands
-        rgb_bands = inarr.sel(bands=["S2-B04", "S2-B03", "S2-B02"])
+        rgb_bands = inarr.sel(bands=["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02"])
 
         for band in rgb_bands.bands:
             for timestamp in rgb_bands.t:
@@ -78,7 +78,7 @@ def test_patch_feature_udf(backend: Backend, connection_fn: Callable):
     connection = connection_fn()
     output_path = Path(__file__).parent / f"results/patch_features_{backend.value}.nc/"
 
-    bands_to_extract = ["S2-B04", "S2-B03", "S2-B02"]
+    bands_to_extract = ["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02"]
 
     # Setup the RGB cube extraction
     extractor = build_sentinel2_l2a_extractor(backend_context, bands_to_extract, FetchType.TILE)
@@ -120,7 +120,7 @@ def test_latlon_extractor(backend: Backend, connection_fn: Callable):
 
     REDUCED_TEMPORAL_CONTEXT = TemporalContext(start_date="2023-06-01", end_date="2023-06-30")
 
-    bands_to_extract = ["S2-B04"]
+    bands_to_extract = ["S2-L2A-B04"]
 
     extractor = build_sentinel2_l2a_extractor(backend_context, bands_to_extract, FetchType.TILE)
 
