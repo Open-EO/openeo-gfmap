@@ -101,7 +101,7 @@ BANDS_DIMENSION = pystac.extensions.datacube.AdditionalDimension(
             "S2-L2A-B10",
             "S2-L2A-B11",
             "S2-L2A-B12",
-            "CROPTYPE",
+            "LABEL",
         ]
     }
 )
