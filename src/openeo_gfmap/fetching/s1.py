@@ -19,10 +19,10 @@ from .commons import (
 from .fetching import CollectionFetcher, FetchType
 
 BASE_SENTINEL1_GRD_MAPPING = {
-    "VH": "S1-VH",
-    "HH": "S1-HH",
-    "HV": "S1-HV",
-    "VV": "S1-VV",
+    "VH": "S1-SIGMA0-VH",
+    "HH": "S1-SIGMA0-HH",
+    "HV": "S1-SIGMA0-HV",
+    "VV": "S1-SIGMA0-VV",
 }
 
 
@@ -127,6 +127,10 @@ SENTINEL1_GRD_BACKEND_MAP = {
         "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
     },
     Backend.CDSE: {
+        "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
+        "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
+    },
+    Backend.CDSE_STAGING: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
         "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
     },

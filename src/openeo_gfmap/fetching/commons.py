@@ -111,12 +111,16 @@ def load_collection(
             properties=load_collection_parameters,
         )
     elif fetch_type == FetchType.POLYGON:
-        assert isinstance(
-            spatial_extent, GeoJSON
-        ), "Please provide only a GeoJSON FeatureCollection for point based fetching."
-        assert (
-            spatial_extent["type"] == "FeatureCollection"
-        ), "Please provide a FeatureCollection type of GeoJSON"
+        if isinstance(spatial_extent, GeoJSON):
+            assert (
+                spatial_extent["type"] == "FeatureCollection"
+            ), "Please provide a FeatureCollection type of GeoJSON"
+        elif isinstance(spatial_extent, str):
+            assert spatial_extent.startswith("https://") or spatial_extent.startswith(
+                "http://"
+            ), "Please provide a valid URL or a path to a GeoJSON file."
+        else:
+            raise ValueError("Please provide a valid URL to a GeoParquet or GeoJSON file.")
         cube = connection.load_collection(
             collection_id=collection_name,
             temporal_extent=[temporal_extent.start_date, temporal_extent.end_date],
@@ -133,6 +137,13 @@ def load_collection(
         cube = cube.mask(pre_mask.resample_cube_spatial(cube))
 
     if fetch_type == FetchType.POLYGON:
-        cube = cube.filter_spatial(spatial_extent)
+        if isinstance(spatial_extent, str):
+            geometry = connection.load_url(
+                spatial_extent,
+                format="Parquet" if ".parquet" in spatial_extent else "GeoJSON",
+            )
+            cube = cube.filter_spatial(geometry)
+        else:
+            cube = cube.filter_spatial(spatial_extent)
 
     return cube

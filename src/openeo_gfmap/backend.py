@@ -19,6 +19,7 @@ class Backend(Enum):
     TERRASCOPE = "terrascope"
     EODC = "eodc"  # Dask implementation. Do not test on this yet.
     CDSE = "cdse"  # Terrascope implementation (pyspark) #URL: openeo.dataspace.copernicus.eu (need to register)
+    CDSE_STAGING = "cdse-staging"
     LOCAL = "local"  # Based on the same components of EODc
 
 
@@ -82,6 +83,14 @@ def cdse_connection() -> openeo.Connection:
     )
 
 
+def cdse_staging_connection() -> openeo.Connection:
+    """Performs a connection to the CDSE backend using oidc authentication."""
+    return _create_connection(
+        url="openeo-staging.dataspace.copernicus.eu",
+        env_var_suffix="CDSE_STAGING",
+    )
+
+
 def eodc_connection() -> openeo.Connection:
     """Perfroms a connection to the EODC backend using the oidc authentication."""
     return _create_connection(
@@ -93,4 +102,5 @@ def eodc_connection() -> openeo.Connection:
 BACKEND_CONNECTIONS: Dict[Backend, Callable] = {
     Backend.TERRASCOPE: vito_connection,
     Backend.CDSE: cdse_connection,
+    Backend.CDSE_STAGING: cdse_staging_connection,
 }

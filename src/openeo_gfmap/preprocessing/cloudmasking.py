@@ -6,8 +6,8 @@ from typing import Union
 import openeo
 from openeo.processes import if_, is_nan
 
-SCL_HARMONIZED_NAME: str = "S2-SCL"
-BAPSCORE_HARMONIZED_NAME: str = "S2-BAPSCORE"
+SCL_HARMONIZED_NAME: str = "S2-L2A-SCL"
+BAPSCORE_HARMONIZED_NAME: str = "S2-L2A-BAPSCORE"
 
 
 def mask_scl_dilation(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
@@ -91,7 +91,7 @@ def get_bap_score(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
     Returns
     -------
     openeo.DataCube
-        A 4D datacube containing the BAP score as name 'S2-BAPSCORE'.
+        A 4D datacube containing the BAP score as name 'S2-L2A-BAPSCORE'.
     """
     udf_path = Path(__file__).parent / "udf_score.py"
 
@@ -159,7 +159,7 @@ def get_bap_mask(cube: openeo.DataCube, period: Union[str, list], **params: dict
     openeo.DataCube
         The datacube with the BAP mask applied.
     """
-    # Checks if the S2-SCL band is present in the datacube
+    # Checks if the S2-L2A-SCL band is present in the datacube
     assert (
         SCL_HARMONIZED_NAME in cube.metadata.band_names
     ), f"The {SCL_HARMONIZED_NAME} band is not present in the datacube."
@@ -196,7 +196,7 @@ def get_bap_mask(cube: openeo.DataCube, period: Union[str, list], **params: dict
             f"'period' must be a string or a list of dates (in YYYY-mm-dd format), got {period}."
         )
 
-    return rank_mask.rename_labels("bands", ["S2-BAPMASK"])
+    return rank_mask.rename_labels("bands", ["S2-L2A-BAPMASK"])
 
 
 def bap_masking(cube: openeo.DataCube, period: Union[str, list], **params: dict):

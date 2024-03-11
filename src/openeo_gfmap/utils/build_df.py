@@ -27,7 +27,7 @@ def load_json(input_file: Path, bands: list) -> pd.DataFrame:
         A `pandas.DataFrame` containing a combination of the band names and the
         timestamps as column names.
         For example, the Sentinel-2 green band on the 1st October 2020 is will
-        have the column name `S2-B02:2020-10-01`
+        have the column name `S2-L2A-B02:2020-10-01`
     """
 
     df = pd.read_json(input_file)

@@ -46,8 +46,8 @@ class TestS1Extractors:
     ):
         context = BackendContext(backend)
         country = spatial_extent["country"]
-        bands = ["S1-VV", "S1-VH"]
-        expected_harmonized_bands = ["S1-VV", "S1-VH"]
+        bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
+        expected_harmonized_bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
 
         fetching_parameters = {
             "target_resolution": 10.0,
@@ -152,7 +152,7 @@ class TestS1Extractors:
         given polygons.
         """
         context = BackendContext(backend)
-        bands = ["S1-VV", "S1-VH"]
+        bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
 
         # Because it is tested in malawi, and this is the EPSG code for
         # the UTM projection in that zone
@@ -203,7 +203,7 @@ class TestS1Extractors:
         connection: openeo.Connection,
     ):
         context = BackendContext(backend)
-        bands = ["S1-VV", "S1-VH"]
+        bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
 
         fetching_parameters = {
             "target_crs": 3035,  # Location in Europe

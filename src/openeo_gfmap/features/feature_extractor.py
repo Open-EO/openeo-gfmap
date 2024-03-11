@@ -2,6 +2,8 @@
 implementation of feature extractors of a UDF.
 """
 
+import inspect
+import re
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -13,58 +15,9 @@ from openeo.udf.udf_data import UdfData
 from pyproj import Transformer
 from pyproj.crs import CRS
 
-REQUIRED_IMPORTS = """
-from abc import ABC, abstractmethod
-
-import openeo
-from openeo.udf import XarrayDataCube, inspect
-from openeo.udf.udf_data import UdfData
-
-import xarray as xr
-import numpy as np
-from pyproj import Transformer
-from pyproj.crs import CRS
-
-from typing import Union
-"""
-
-
 LAT_HARMONIZED_NAME = "GEO-LAT"
 LON_HARMONIZED_NAME = "GEO-LON"
 EPSG_HARMONIZED_NAME = "GEO-EPSG"
-
-# To fill in: EPSG_HARMONIZED_NAME, Is it pixel based and Feature Extractor class
-APPLY_DATACUBE_SOURCE_CODE = """
-LAT_HARMONIZED_NAME = "{lat_harmonized_name}"
-LON_HARMONIZED_NAME = "{lon_harmonized_name}"
-EPSG_HARMONIZED_NAME = "{epsg_harmonized_name}"
-
-from openeo.udf import XarrayDataCube
-from openeo.udf.udf_data import UdfData
-
-IS_PIXEL_BASED = {is_pixel_based}
-
-def apply_udf_data(udf_data: UdfData) -> XarrayDataCube:
-    feature_extractor = {feature_extractor_class}()  # User-defined, feature extractor class initialized here
-
-    if not IS_PIXEL_BASED:
-        assert len(udf_data.datacube_list) == 1, "OpenEO GFMAP Feature extractor pipeline only supports single input cubes for the tile."
-
-    cube = udf_data.datacube_list[0]
-    parameters = udf_data.user_context
-
-    proj = udf_data.proj
-    if proj is not None:
-        proj = proj["EPSG"]
-
-    parameters[EPSG_HARMONIZED_NAME] = proj
-
-    cube = feature_extractor._execute(cube, parameters=parameters)
-
-    udf_data.datacube_list = [cube]
-
-    return udf_data
-"""
 
 
 class FeatureExtractor(ABC):
@@ -184,12 +137,65 @@ class PointFeatureExtractor(FeatureExtractor):
         pass
 
 
+def apply_udf_data(udf_data: UdfData) -> XarrayDataCube:
+    feature_extractor_class = "<feature_extractor_class>"
+
+    # User-defined, feature extractor class initialized here
+    feature_extractor = feature_extractor_class()
+
+    is_pixel_based = issubclass(feature_extractor_class, PointFeatureExtractor)
+
+    if not is_pixel_based:
+        assert (
+            len(udf_data.datacube_list) == 1
+        ), "OpenEO GFMAP Feature extractor pipeline only supports single input cubes for the tile."
+
+    cube = udf_data.datacube_list[0]
+    parameters = udf_data.user_context
+
+    proj = udf_data.proj
+    if proj is not None:
+        proj = proj["EPSG"]
+
+    parameters[EPSG_HARMONIZED_NAME] = proj
+
+    cube = feature_extractor._execute(cube, parameters=parameters)
+
+    udf_data.datacube_list = [cube]
+
+    return udf_data
+
+
+def _get_imports() -> str:
+    with open(__file__, "r", encoding="UTF-8") as f:
+        script_source = f.read()
+
+    lines = script_source.split("\n")
+
+    imports = []
+    static_globals = []
+
+    for line in lines:
+        if line.strip().startswith(("import ", "from ")):
+            imports.append(line)
+        elif re.match("^[A-Z_0-9]+\s*=.*$", line):
+            static_globals.append(line)
+
+    return "\n".join(imports) + "\n\n" + "\n".join(static_globals)
+
+
+def _get_apply_udf_data(feature_extractor: FeatureExtractor) -> str:
+    source_lines = inspect.getsource(apply_udf_data)
+    source = "".join(source_lines)
+    # replace in the source function the `feature_extractor_class`
+    return source.replace('"<feature_extractor_class>"', feature_extractor.__name__)
+
+
 def generate_udf_code(feature_extractor_class: FeatureExtractor) -> openeo.UDF:
     """Generates the udf code by packing imports of this file, the necessary
     superclass and subclasses as well as the user defined feature extractor
     class and the apply_datacube function.
     """
-    import inspect
 
     # UDF code that will be built here
     udf_code = ""
@@ -198,36 +204,12 @@ def generate_udf_code(feature_extractor_class: FeatureExtractor) -> openeo.UDF:
         feature_extractor_class, FeatureExtractor
     ), "The feature extractor class must be a subclass of FeatureExtractor."
 
-    if issubclass(feature_extractor_class, PatchFeatureExtractor):
-        udf_code += f"{REQUIRED_IMPORTS}\n\n"
-        udf_code += f"{inspect.getsource(FeatureExtractor)}\n\n"
-        udf_code += f"{inspect.getsource(PatchFeatureExtractor)}\n\n"
-        udf_code += f"{inspect.getsource(feature_extractor_class)}\n\n"
-        udf_code += APPLY_DATACUBE_SOURCE_CODE.format(
-            lat_harmonized_name=LAT_HARMONIZED_NAME,
-            lon_harmonized_name=LON_HARMONIZED_NAME,
-            epsg_harmonized_name=EPSG_HARMONIZED_NAME,
-            is_pixel_based=False,
-            feature_extractor_class=feature_extractor_class.__name__,
-        )
-    elif issubclass(feature_extractor_class, PointFeatureExtractor):
-        udf_code += f"{REQUIRED_IMPORTS}\n\n"
-        udf_code += f"{inspect.getsource(FeatureExtractor)}\n\n"
-        udf_code += f"{inspect.getsource(PointFeatureExtractor)}\n\n"
-        udf_code += f"{inspect.getsource(feature_extractor_class)}\n\n"
-        udf_code += APPLY_DATACUBE_SOURCE_CODE.format(
-            lat_harmonized_name=LAT_HARMONIZED_NAME,
-            lon_harmonized_name=LON_HARMONIZED_NAME,
-            epsg_harmonized_name=EPSG_HARMONIZED_NAME,
-            is_pixel_based=True,
-            feature_extractor_class=feature_extractor_class.__name__,
-        )
-    else:
-        raise NotImplementedError(
-            "The feature extractor must be a subclass of either "
-            "PatchFeatureExtractor or PointFeatureExtractor."
-        )
-
+    udf_code += _get_imports() + "\n\n"
+    udf_code += f"{inspect.getsource(FeatureExtractor)}\n\n"
+    udf_code += f"{inspect.getsource(PatchFeatureExtractor)}\n\n"
+    udf_code += f"{inspect.getsource(PointFeatureExtractor)}\n\n"
+    udf_code += f"{inspect.getsource(feature_extractor_class)}\n\n"
+    udf_code += _get_apply_udf_data(feature_extractor_class)
     return udf_code
 
 
@@ -247,13 +229,16 @@ def apply_feature_extractor(
     default, the feature extractor expects to receive S1 and S2 data stored in
     uint16 with the harmonized naming as implemented in the fetching module.
     """
+    feature_extractor = feature_extractor_class()
+    feature_extractor._parameters = parameters
+    output_labels = feature_extractor.output_labels()
 
     udf_code = generate_udf_code(feature_extractor_class)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 
     cube = cube.apply_neighborhood(process=udf, size=size, overlap=overlap)
-    return cube.rename_labels(dimension="bands", target=feature_extractor_class().output_labels())
+    return cube.rename_labels(dimension="bands", target=output_labels)
 
 
 def apply_feature_extractor_local(
@@ -264,6 +249,10 @@ def apply_feature_extractor_local(
     excepts for the cube parameter which expects a `xarray.DataArray` instead of
     a `openeo.rest.datacube.DataCube` object.
     """
+    feature_extractor = feature_extractor_class()
+    feature_extractor._parameters = parameters
+    output_labels = feature_extractor.output_labels()
+
     udf_code = generate_udf_code(feature_extractor_class)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
@@ -276,8 +265,4 @@ def apply_feature_extractor_local(
 
     assert len(output_cubes) == 1, "UDF should have only a single output cube."
 
-    return (
-        output_cubes[0]
-        .get_array()
-        .assign_coords({"bands": feature_extractor_class().output_labels()})
-    )
+    return output_cubes[0].get_array().assign_coords({"bands": output_labels})

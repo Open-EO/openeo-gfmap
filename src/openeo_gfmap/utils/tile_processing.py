@@ -20,7 +20,7 @@ def normalize_array(inarr: xr.DataArray, percentile: float = 0.99) -> xr.DataArr
 def select_optical_bands(inarr: xr.DataArray) -> xr.DataArray:
     """Filters and keep only the optical bands for a given array."""
     return inarr.sel(
-        bands=[band for band in inarr.coords["bands"].to_numpy() if band.startswith("S2-B")]
+        bands=[band for band in inarr.coords["bands"].to_numpy() if band.startswith("S2-L2A-B")]
     )
 
 

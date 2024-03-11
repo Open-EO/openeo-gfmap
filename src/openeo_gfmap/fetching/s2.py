@@ -20,39 +20,39 @@ from .commons import (
 from .fetching import CollectionFetcher, FetchType
 
 BASE_SENTINEL2_L2A_MAPPING = {
-    "B01": "S2-B01",
-    "B02": "S2-B02",
-    "B03": "S2-B03",
-    "B04": "S2-B04",
-    "B05": "S2-B05",
-    "B06": "S2-B06",
-    "B07": "S2-B07",
-    "B08": "S2-B08",
-    "B8A": "S2-B8A",
-    "B09": "S2-B09",
-    "B11": "S2-B11",
-    "B12": "S2-B12",
-    "AOT": "S2-AOT",
-    "SCL": "S2-SCL",
-    "SNW": "S2-SNW",
+    "B01": "S2-L2A-B01",
+    "B02": "S2-L2A-B02",
+    "B03": "S2-L2A-B03",
+    "B04": "S2-L2A-B04",
+    "B05": "S2-L2A-B05",
+    "B06": "S2-L2A-B06",
+    "B07": "S2-L2A-B07",
+    "B08": "S2-L2A-B08",
+    "B8A": "S2-L2A-B8A",
+    "B09": "S2-L2A-B09",
+    "B11": "S2-L2A-B11",
+    "B12": "S2-L2A-B12",
+    "AOT": "S2-L2A-AOT",
+    "SCL": "S2-L2A-SCL",
+    "SNW": "S2-L2A-SNW",
 }
 
 ELEMENT84_SENTINEL2_L2A_MAPPING = {
-    "coastal": "S2-B01",
-    "blue": "S2-B02",
-    "green": "S2-B03",
-    "red": "S2-B04",
-    "rededge1": "S2-B05",
-    "rededge2": "S2-B06",
-    "rededge3": "S2-B07",
-    "nir": "S2-B08",
-    "nir08": "S2-B8A",
-    "nir09": "S2-B09",
-    "cirrus": "S2-B10",
-    "swir16": "S2-B11",
-    "swir22": "S2-B12",
-    "scl": "S2-SCL",
-    "aot": "S2-AOT",
+    "coastal": "S2-L2A-B01",
+    "blue": "S2-L2A-B02",
+    "green": "S2-L2A-B03",
+    "red": "S2-L2A-B04",
+    "rededge1": "S2-L2A-B05",
+    "rededge2": "S2-L2A-B06",
+    "rededge3": "S2-L2A-B07",
+    "nir": "S2-L2A-B08",
+    "nir08": "S2-L2A-B8A",
+    "nir09": "S2-L2A-B09",
+    "cirrus": "S2-L2A-B10",
+    "swir16": "S2-L2A-B11",
+    "swir22": "S2-L2A-B12",
+    "scl": "S2-L2A-SCL",
+    "aot": "S2-L2A-AOT",
 }
 
 
@@ -104,10 +104,6 @@ def get_s2_l2a_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
             fetch_type,
             **params,
         )
-
-        # Apply if the collection is a GeoJSON Feature collection
-        if isinstance(spatial_extent, GeoJSON):
-            cube = cube.filter_spatial(spatial_extent)
 
         return cube
 
@@ -187,6 +183,10 @@ SENTINEL2_L2A_BACKEND_MAP = {
         "preprocessor": partial(get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"),
     },
     Backend.CDSE: {
+        "fetch": partial(get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
+        "preprocessor": partial(get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"),
+    },
+    Backend.CDSE_STAGING: {
         "fetch": partial(get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
         "preprocessor": partial(get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"),
     },

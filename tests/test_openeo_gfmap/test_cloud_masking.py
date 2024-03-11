@@ -42,7 +42,7 @@ def test_bap_score(backend: Backend):
     # Fetch the datacube
     s2_extractor = build_sentinel2_l2a_extractor(
         backend_context=backend_context,
-        bands=["S2-B04", "S2-B08", "S2-SCL"],
+        bands=["S2-L2A-B04", "S2-L2A-B08", "S2-L2A-SCL"],
         fetch_type=FetchType.TILE,
         **fetching_parameters,
     )
@@ -51,9 +51,9 @@ def test_bap_score(backend: Backend):
 
     # Compute the BAP score
     bap_score = get_bap_score(cube, **preprocessing_parameters)
-    ndvi = cube.ndvi(nir="S2-B08", red="S2-B04")
+    ndvi = cube.ndvi(nir="S2-L2A-B08", red="S2-L2A-B04")
 
-    cube = bap_score.merge_cubes(ndvi).rename_labels("bands", ["S2-BAPSCORE", "S2-NDVI"])
+    cube = bap_score.merge_cubes(ndvi).rename_labels("bands", ["S2-L2A-BAPSCORE", "S2-L2A-NDVI"])
 
     job = cube.create_job(
         title="BAP score unittest",
@@ -78,7 +78,7 @@ def test_bap_masking(backend: Backend):
     # Fetch the datacube
     s2_extractor = build_sentinel2_l2a_extractor(
         backend_context=backend_context,
-        bands=["S2-B04", "S2-B03", "S2-B02", "S2-SCL"],
+        bands=["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02", "S2-L2A-SCL"],
         fetch_type=FetchType.TILE,
         **fetching_parameters,
     )
@@ -96,7 +96,7 @@ def test_bap_masking(backend: Backend):
     cube = cube.linear_scale_range(0, 65535, 0, 65535)
 
     # Remove SCL
-    cube = cube.filter_bands([band for band in cube.metadata.band_names if band != "S2-SCL"])
+    cube = cube.filter_bands([band for band in cube.metadata.band_names if band != "S2-L2A-SCL"])
 
     job = cube.create_job(
         title="BAP compositing unittest",
@@ -122,7 +122,7 @@ def test_bap_quintad(backend: Backend):
     # Fetch the datacube
     s2_extractor = build_sentinel2_l2a_extractor(
         backend_context=backend_context,
-        bands=["S2-SCL"],
+        bands=["S2-L2A-SCL"],
         fetch_type=FetchType.TILE,
         **fetching_parameters,
     )
@@ -171,7 +171,7 @@ def test_bap_quintad(backend: Backend):
 
     s2_extractor = build_sentinel2_l2a_extractor(
         backend_context=backend_context,
-        bands=["S2-B04", "S2-B03", "S2-B02", "S2-B08", "S2-SCL"],
+        bands=["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02", "S2-L2A-B08", "S2-L2A-SCL"],
         fetch_type=FetchType.TILE,
         **fetching_parameters,
     )

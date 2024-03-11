@@ -86,14 +86,21 @@ class TestS2Extractors:
         country = spatial_extent["country"]
         # Fetch a variety of spatial resolution and metadata from different
         # providers.
-        bands = ["S2-B01", "S2-B04", "S2-B08", "S2-B11", "S2-SCL", "S2-AOT"]
+        bands = [
+            "S2-L2A-B01",
+            "S2-L2A-B04",
+            "S2-L2A-B08",
+            "S2-L2A-B11",
+            "S2-L2A-SCL",
+            "S2-L2A-AOT",
+        ]
         expected_harmonized_names = [
-            "S2-B01",
-            "S2-B04",
-            "S2-B08",
-            "S2-B11",
-            "S2-SCL",
-            "S2-AOT",
+            "S2-L2A-B01",
+            "S2-L2A-B04",
+            "S2-L2A-B08",
+            "S2-L2A-B11",
+            "S2-L2A-SCL",
+            "S2-L2A-AOT",
         ]
         fetching_parameters = (
             {"target_resolution": 10.0, "target_crs": 3035} if country == "Belgium" else {}
@@ -190,7 +197,7 @@ class TestS2Extractors:
         given polygons.
         """
         context = BackendContext(backend)
-        bands = ["S2-B01", "S2-B04", "S2-B08", "S2-B11"]
+        bands = ["S2-L2A-B01", "S2-L2A-B04", "S2-L2A-B08", "S2-L2A-B11"]
 
         # Because it it tested in malawi, and this is the EPSG code for the
         # UTM projection for that zone
@@ -234,7 +241,7 @@ class TestS2Extractors:
         connection: openeo.Connection,
     ):
         context = BackendContext(backend)
-        bands = ["S2-B02", "S2-B03", "S2-B04"]
+        bands = ["S2-L2A-B02", "S2-L2A-B03", "S2-L2A-B04"]
 
         fetching_parameters = {"target_crs": 3035}  # Location in Europe
         extractor = build_sentinel2_l2a_extractor(
