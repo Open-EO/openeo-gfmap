@@ -229,13 +229,16 @@ def apply_feature_extractor(
     default, the feature extractor expects to receive S1 and S2 data stored in
     uint16 with the harmonized naming as implemented in the fetching module.
     """
+    feature_extractor = feature_extractor_class()
+    feature_extractor._parameters = parameters
+    output_labels = feature_extractor.output_labels()
 
     udf_code = generate_udf_code(feature_extractor_class)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 
     cube = cube.apply_neighborhood(process=udf, size=size, overlap=overlap)
-    return cube.rename_labels(dimension="bands", target=feature_extractor_class().output_labels())
+    return cube.rename_labels(dimension="bands", target=output_labels)
 
 
 def apply_feature_extractor_local(
@@ -246,9 +249,11 @@ def apply_feature_extractor_local(
     excepts for the cube parameter which expects a `xarray.DataArray` instead of
     a `openeo.rest.datacube.DataCube` object.
     """
-    udf_code = generate_udf_code(feature_extractor_class)
+    feature_extractor = feature_extractor_class()
+    feature_extractor._parameters = parameters
+    output_labels = feature_extractor.output_labels()
 
-    print(udf_code)
+    udf_code = generate_udf_code(feature_extractor_class)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 
@@ -260,8 +265,4 @@ def apply_feature_extractor_local(
 
     assert len(output_cubes) == 1, "UDF should have only a single output cube."
 
-    return (
-        output_cubes[0]
-        .get_array()
-        .assign_coords({"bands": feature_extractor_class().output_labels()})
-    )
+    return output_cubes[0].get_array().assign_coords({"bands": output_labels})
