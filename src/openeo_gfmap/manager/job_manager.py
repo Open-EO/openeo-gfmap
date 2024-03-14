@@ -1,10 +1,8 @@
 import json
 import queue
-import shutil
 import threading
 from enum import Enum
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Callable, Optional, Union
 
 import pandas as pd
@@ -151,7 +149,6 @@ class GFMAPJobManager(MultiBackendJobManager):
         """
         job_products = {}
         for idx, asset in enumerate(job.get_results().get_assets()):
-            temp_file = NamedTemporaryFile(delete=False)
             try:
                 _log.debug(
                     f"Generating output path for asset {asset.name} from job {job.job_id}..."
@@ -159,17 +156,13 @@ class GFMAPJobManager(MultiBackendJobManager):
                 output_path = self._output_path_gen(self._output_dir, idx, row)
                 # Make the output path
                 output_path.parent.mkdir(parents=True, exist_ok=True)
-                asset.download(temp_file.name)
+                asset.download(output_path)
                 # Add to the list of downloaded products
                 job_products[f"{job.job_id}_{asset.name}"] = [output_path]
-                _log.debug(
-                    f"Downloaded {asset.name} from job {job.job_id} -> {output_path}"
-                )
+                _log.debug(f"Downloaded {asset.name} from job {job.job_id} -> {output_path}")
             except Exception as e:
                 _log.exception(f"Error downloading asset {asset.name} from job {job.job_id}", e)
                 raise e
-            finally:
-                shutil.rmtree(temp_file.name, ignore_errors=True)
 
         # First update the STAC collection with the assets directly resulting from the OpenEO batch job
         job_metadata = pystac.Collection.from_dict(job.get_results().get_metadata())
