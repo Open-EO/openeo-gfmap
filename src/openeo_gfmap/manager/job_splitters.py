@@ -4,9 +4,9 @@ form of a GeoDataFrames.
 from pathlib import Path
 from typing import List
 
-import requests
 import geopandas as gpd
 import h3
+import requests
 
 from openeo_gfmap.manager import _log
 
@@ -16,14 +16,14 @@ def _load_s2_grid() -> gpd.GeoDataFrame:
     # Builds the path where the geodataframe should be
     gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_bounds.geojson"
     if not gdf_path.exists():
-        _log.info('S2 grid not found, downloading it from artifactory.')
+        _log.info("S2 grid not found, downloading it from artifactory.")
         # Downloads the file from the artifactory URL
         gdf_path.parent.mkdir(exist_ok=True)
         response = requests.get(
-            'https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds.geojson',
-            timeout=180  # 3mins
+            "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds.geojson",
+            timeout=180,  # 3mins
         )
-        with open(gdf_path, 'wb') as f:
+        with open(gdf_path, "wb") as f:
             f.write(response.content)
     return gpd.read_file(gdf_path)
 
@@ -34,12 +34,10 @@ def _resplit_group(polygons: gpd.GeoDataFrame, max_points: int) -> List[gpd.GeoD
         yield polygons.iloc[i : i + max_points].reset_index(drop=True)
 
 
-def split_job_s2grid(
-    polygons: gpd.GeoDataFrame, max_points: int = 500
-) -> List[gpd.GeoDataFrame]:
+def split_job_s2grid(polygons: gpd.GeoDataFrame, max_points: int = 500) -> List[gpd.GeoDataFrame]:
     """Split a job into multiple jobs from the position of the polygons/points. The centroid of
     the geometries to extract are used to select tile in the Sentinel-2 tile grid.
-    
+
     Parameters
     ----------
     polygons: gpd.GeoDataFrae
@@ -53,24 +51,24 @@ def split_job_s2grid(
     """
     if "geometry" not in polygons.columns:
         raise ValueError("The GeoDataFrame must contain a 'geometry' column.")
-    
+
     if polygons.crs is None:
         raise ValueError("The GeoDataFrame must contain a CRS")
-    
+
     polygons = polygons.to_crs(epsg=4326)
-    if polygons.geometry.geom_type[0] != 'Point':
-        polygons['geometry'] = polygons.geometry.centroid
+    if polygons.geometry.geom_type[0] != "Point":
+        polygons["geometry"] = polygons.geometry.centroid
 
     # Dataset containing all the S2 tiles, find the nearest S2 tile for each point
     s2_grid = _load_s2_grid()
-    s2_grid['geometry'] = s2_grid.geometry.centroid
+    s2_grid["geometry"] = s2_grid.geometry.centroid
 
-    polygons = gpd.sjoin_nearest(
-        polygons, s2_grid[['tile', 'geometry']]
-    ).drop(columns=['index_right'])
+    polygons = gpd.sjoin_nearest(polygons, s2_grid[["tile", "geometry"]]).drop(
+        columns=["index_right"]
+    )
 
     split_datasets = []
-    for _, sub_gdf in polygons.groupby('tile'):
+    for _, sub_gdf in polygons.groupby("tile"):
         if len(sub_gdf) > max_points:
             # Performs another split
             split_datasets.extend(_resplit_group(sub_gdf, max_points))
@@ -85,10 +83,9 @@ def _append_h3_index(polygons: gpd.GeoDataFrame, grid_resolution: int = 3) -> gp
         geom_col = polygons.geometry.centroid
     else:
         geom_col = polygons.geometry
-    polygons["h3index"] = geom_col.apply(
-        lambda pt: h3.geo_to_h3(pt.y, pt.x, grid_resolution)
-    )
+    polygons["h3index"] = geom_col.apply(lambda pt: h3.geo_to_h3(pt.y, pt.x, grid_resolution))
     return polygons
+
 
 def split_job_hex(
     polygons: gpd.GeoDataFrame, max_points: int = 500, grid_resolution: int = 3
