@@ -154,23 +154,17 @@ class GFMAPJobManager(MultiBackendJobManager):
             temp_file = NamedTemporaryFile(delete=False)
             try:
                 _log.debug(
-                    f"Downloading asset {asset.name} from job {job.job_id} -> {temp_file.name}"
-                )
-                asset.download(temp_file.name)
-                _log.debug(
                     f"Generating output path for asset {asset.name} from job {job.job_id}..."
                 )
-                output_path = self._output_path_gen(self._output_dir, temp_file.name, idx, row)
-                _log.debug(
-                    f"Generated path for asset {asset.name} from job {job.job_id} -> {output_path}"
-                )
+                output_path = self._output_path_gen(self._output_dir, idx, row)
                 # Make the output path
                 output_path.parent.mkdir(parents=True, exist_ok=True)
-                # Move the temporary file to the final location
-                shutil.move(temp_file.name, output_path)
+                asset.download(temp_file.name)
                 # Add to the list of downloaded products
                 job_products[f"{job.job_id}_{asset.name}"] = [output_path]
-                _log.info(f"Downloaded asset {asset.name} from job {job.job_id} -> {output_path}")
+                _log.debug(
+                    f"Downloaded {asset.name} from job {job.job_id} -> {output_path}"
+                )
             except Exception as e:
                 _log.exception(f"Error downloading asset {asset.name} from job {job.job_id}", e)
                 raise e
