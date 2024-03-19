@@ -58,8 +58,6 @@ def resample_reproject(
 def rename_bands(datacube: openeo.DataCube, mapping: dict) -> openeo.DataCube:
     """Rename the bands from the given mapping scheme"""
     # Filter out bands that are not part of the datacube
-    print(datacube.dimension_labels("bands"))
-
     def filter_condition(band_name, _):
         return band_name in datacube.metadata.band_names
 
@@ -135,6 +133,14 @@ def load_collection(
             f"The 'pre_mask' parameter must be an openeo datacube, " f"got {pre_mask}."
         )
         cube = cube.mask(pre_mask.resample_cube_spatial(cube))
+
+    # Include a band containing the SCL dilated band
+    additional_mask = params.get("additional_mask", None)
+    if additional_mask is not None:
+        assert isinstance(additional_mask, openeo.DataCube), (
+            f"The 'include_scl_dilation' parameter must be an openeo datacube, " f"got {additional_mask}."
+        )
+        cube = cube.merge_cubes(additional_mask.resample_cube_spatial(cube))
 
     if fetch_type == FetchType.POLYGON:
         if isinstance(spatial_extent, str):
