@@ -1,6 +1,5 @@
 import json
-import queue
-import threading
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Optional, Union
@@ -39,10 +38,9 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._output_dir = output_dir
 
         # Setup the threads to work on the on_job_done and on_job_error methods
-        self._finished_job_queue = queue.Queue()
         self._n_threads = n_threads
-
-        self._threads = []
+        self._executor = None  # Will be set in run_jobs, is a threadpool executor
+        self._futures = []
 
         self._output_path_gen = output_path_generator
         self._post_job_action = post_job_action
@@ -59,28 +57,6 @@ class GFMAPJobManager(MultiBackendJobManager):
             description=collection_description,
             extent=None,
         )
-
-    def _post_job_worker(self):
-        """Checks which jobs are finished or failed and calls the `on_job_done` or `on_job_error`
-        methods."""
-        while True:
-            try:
-                status, job, row = self._finished_job_queue.get(timeout=1)
-                _log.debug(
-                    f"Worker thread {threading.current_thread().name}: polled finished job with status {status}."
-                )
-                if status == PostJobStatus.ERROR:
-                    self.on_job_error(job, row)
-                elif status == PostJobStatus.FINISHED:
-                    self.on_job_done(job, row)
-                else:
-                    raise ValueError(f"Unknown status: {status}")
-                self._finished_job_queue.task_done()
-            except queue.Empty:
-                continue
-            except KeyboardInterrupt:
-                _log.debug(f"Worker thread {threading.current_thread().name} interrupted.")
-                return
 
     def _update_statuses(self, df: pd.DataFrame):
         """Updates the statues of the jobs in the dataframe from the backend. If a job is finished
@@ -105,16 +81,26 @@ class GFMAPJobManager(MultiBackendJobManager):
                 job_metadata["status"] == "finished"
             ):
                 _log.info(f"Job {job.job_id} finished successfully, queueing on_job_done...")
-                self._finished_job_queue.put((PostJobStatus.FINISHED, job, row))
+                self._futures.append(self._executor.submit(self.on_job_done, job, row))
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
             # Case in which it failed
             if (df.loc[idx, "status"] != "error") and (job_metadata["status"] == "error"):
                 _log.info(f"Job {job.job_id} finished with error, queueing on_job_error...")
-                self._finished_job_queue.put((PostJobStatus.ERROR, job, row))
+                self._futures.append(self._executor.submit(self.on_job_error, self, job, row))
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
             df.loc[idx, "status"] = job_status
+
+        futures_to_clear = []
+        for future in self._futures:
+            if future.done():
+                exception = future.exception(timeout=1.0)
+                if exception:
+                    raise exception
+                futures_to_clear.append(future)
+        for future in futures_to_clear:
+            self._futures.remove(future)
 
     def on_job_error(self, job: BatchJob, row: pd.Series):
         """Method called when a job finishes with an error.
@@ -255,15 +241,13 @@ class GFMAPJobManager(MultiBackendJobManager):
         output_file: Union[str, Path]
             The file to track the results of the jobs.
         """
-        _log.info(f"Starting job manager using {self._n_threads} worker threads.")
         # Starts the thread pool to work on the on_job_done and on_job_error methods
-        for _ in range(self._n_threads):
-            thread = threading.Thread(target=self._post_job_worker)
-            thread.start()
-            self._threads.append(thread)
-
-        _log.info("Workers started, creating and running jobs.")
-        super().run_jobs(df, start_job, output_file)
+        _log.info(f"Starting ThreadPoolExecutor with {self._n_threads} workers.")
+        with ThreadPoolExecutor(max_workers=self._n_threads) as executor:
+            _log.info("Creating and running jobs.")
+            self._executor = executor
+            super().run_jobs(df, start_job, output_file)
+            self._executor = None
 
     def create_stac(self, output_path: Optional[Union[str, Path]] = None):
         """Method to be called after run_jobs to create a STAC catalog
