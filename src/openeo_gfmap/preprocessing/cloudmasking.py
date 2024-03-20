@@ -252,7 +252,7 @@ def cldmask_percentage(cube: openeo.DataCube, percentage: float = 0.95) -> opene
         size=[
             {"dimension": "x", "unit": "px", "value": 1024},
             {"dimension": "y", "unit": "px", "value": 1024},
-            {"dimension": "t", "value": 1}
+            {"dimension": "t", "value": 1},
         ],
         overlap=[],
     )
@@ -260,4 +260,3 @@ def cldmask_percentage(cube: openeo.DataCube, percentage: float = 0.95) -> opene
     non_scl_cube = non_scl_cube.mask(cld_mask.resample_cube_spatial(cube))
 
     return non_scl_cube.merge_cubes(scl_cube)
-

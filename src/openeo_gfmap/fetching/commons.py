@@ -57,6 +57,7 @@ def resample_reproject(
 
 def rename_bands(datacube: openeo.DataCube, mapping: dict) -> openeo.DataCube:
     """Rename the bands from the given mapping scheme"""
+
     # Filter out bands that are not part of the datacube
     def filter_condition(band_name, _):
         return band_name in datacube.metadata.band_names
@@ -138,7 +139,8 @@ def load_collection(
     additional_mask = params.get("additional_mask", None)
     if additional_mask is not None:
         assert isinstance(additional_mask, openeo.DataCube), (
-            f"The 'include_scl_dilation' parameter must be an openeo datacube, " f"got {additional_mask}."
+            f"The 'include_scl_dilation' parameter must be an openeo datacube, "
+            f"got {additional_mask}."
         )
         cube = cube.merge_cubes(additional_mask.resample_cube_spatial(cube))
 

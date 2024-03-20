@@ -12,19 +12,16 @@ def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
     array = cube.get_array().transpose("t", "bands", "y", "x")
 
     output_array = np.zeros(
-        shape=(array.shape[0], 1, array.shape[2], array.shape[3]),
-        dtype=np.uint8
+        shape=(array.shape[0], 1, array.shape[2], array.shape[3]), dtype=np.uint8
     )
 
     for i in range(array.shape[0]):
-        high_proba_count = (
-            (array[i] == 9) * 1
-        ).sum()
+        high_proba_count = ((array[i] == 9) * 1).sum()
         high_proba_percentage = high_proba_count / (array.shape[2] * array.shape[3])
 
         if high_proba_percentage > 0.95:
             output_array[i] = 1
-            
+
     output_array = xr.DataArray(
         output_array,
         dims=["t", "bands", "y", "x"],
