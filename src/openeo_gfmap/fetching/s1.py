@@ -5,6 +5,7 @@ from typing import Callable
 
 import openeo
 from geojson import GeoJSON
+from openeo.processes import array_create, power
 
 from openeo_gfmap.backend import Backend, BackendContext
 from openeo_gfmap.spatial import SpatialContext
@@ -113,6 +114,18 @@ def get_s1_grd_default_processor(collection_name: str, fetch_type: FetchType) ->
         cube = resample_reproject(
             cube, params.get("target_resolution", 10.0), params.get("target_crs", None)
         )
+
+        # Scaling the bands from float32 power values to uint16 for memory optimization
+        cube = cube.apply_dimension(
+            dimension="bands",
+            process=lambda x: array_create(
+                [
+                    power(base=10, p=(10.0 * x[0].log(base=10) + 83.0) / 20.0),
+                    power(base=10, p=(10.0 * x[1].log(base=10) + 83.0) / 20.0),
+                ]
+            ),
+        )
+        cube = cube.linear_scale_range(1, 65534, 1, 65534)
 
         cube = rename_bands(cube, BASE_SENTINEL1_GRD_MAPPING)
 
