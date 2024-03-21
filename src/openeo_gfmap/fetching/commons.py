@@ -127,22 +127,22 @@ def load_collection(
             properties=load_collection_parameters,
         )
 
+    # Merges additional bands continuing the operations.
+    pre_merge_cube = params.get("pre_merge", None)
+    if pre_merge_cube is not None:
+        assert isinstance(pre_merge_cube, openeo.DataCube), (
+            f"The 'pre_merge' parameter value must be an openeo datacube, "
+            f"got {pre_merge_cube}."
+        )
+        cube = cube.merge_cubes(pre_merge_cube)
+
     # Peforming pre-mask optimization
     pre_mask = params.get("pre_mask", None)
     if pre_mask is not None:
         assert isinstance(pre_mask, openeo.DataCube), (
             f"The 'pre_mask' parameter must be an openeo datacube, " f"got {pre_mask}."
         )
-        cube = cube.mask(pre_mask.resample_cube_spatial(cube))
-
-    # Include a band containing the SCL dilated band
-    additional_mask = params.get("additional_mask", None)
-    if additional_mask is not None:
-        assert isinstance(additional_mask, openeo.DataCube), (
-            f"The 'include_scl_dilation' parameter must be an openeo datacube, "
-            f"got {additional_mask}."
-        )
-        cube = cube.merge_cubes(additional_mask.resample_cube_spatial(cube))
+        cube = cube.mask(pre_mask)
 
     if fetch_type == FetchType.POLYGON:
         if isinstance(spatial_extent, str):

@@ -6,13 +6,21 @@ import pytest
 import xarray as xr
 
 from openeo_gfmap import BoundingBoxExtent, FetchType, TemporalContext
-from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
+from openeo_gfmap.backend import (
+    BACKEND_CONNECTIONS,
+    Backend,
+    BackendContext,
+    cdse_connection,
+)
 from openeo_gfmap.features import (
     PatchFeatureExtractor,
     apply_feature_extractor,
     apply_feature_extractor_local,
 )
-from openeo_gfmap.fetching import build_sentinel2_l2a_extractor
+from openeo_gfmap.fetching import (
+    build_sentinel1_grd_extractor,
+    build_sentinel2_l2a_extractor,
+)
 
 SPATIAL_CONTEXT = BoundingBoxExtent(
     west=4.261,
@@ -47,6 +55,14 @@ class DummyPatchExtractor(PatchFeatureExtractor):
 
         # Returns the rgb bands only in the feature, y, x order
         return rgb_bands.transpose("bands", "y", "x")
+
+
+class DummyS1PassthroughExtractor(PatchFeatureExtractor):
+    def output_labels(self) -> list:
+        return ["S1-SIGMA0-VH", "S1-SIGMA0-VV"]
+
+    def execute(self, inarr: xr.DataArray):
+        return inarr.mean(dim="t")
 
 
 class LatLonExtractor(PatchFeatureExtractor):
@@ -110,6 +126,46 @@ def test_patch_feature_udf(backend: Backend, connection_fn: Callable):
     output_cube = xr.open_dataset(output_path)
 
     assert set(output_cube.keys()) == set(["red", "green", "blue", "crs"])
+
+
+CUSTOM_BACKEND_CONNECTIONS = {
+    Backend.CDSE: cdse_connection,
+}
+
+
+@pytest.mark.parametrize("backend, connection_fn", CUSTOM_BACKEND_CONNECTIONS.items())
+def test_s1_rescale(backend: Backend, connection_fn: Callable):
+    backend_context = BackendContext(backend=backend)
+    connection = connection_fn()
+    output_path = Path(__file__).parent / f"results/s1_rescaled_features_{backend.value}.nc"
+
+    REDUCED_TEMPORAL_CONTEXT = TemporalContext(start_date="2023-06-01", end_date="2023-06-30")
+
+    bands_to_extract = ["S1-SIGMA0-VH", "S1-SIGMA0-VV"]
+
+    extractor = build_sentinel1_grd_extractor(backend_context, bands_to_extract, FetchType.TILE)
+
+    cube = extractor.get_cube(connection, SPATIAL_CONTEXT, REDUCED_TEMPORAL_CONTEXT)
+
+    features = apply_feature_extractor(
+        DummyS1PassthroughExtractor,
+        cube,
+        parameters={},
+        size=[
+            {"dimension": "x", "unit": "px", "value": 128},
+            {"dimension": "y", "unit": "px", "value": 128},
+        ],
+    )
+
+    job = features.create_job(title="s1_rescale_feature_extractor", out_format="NetCDF")
+    job.start_and_wait()
+
+    for asset in job.get_results().get_assets():
+        if asset.metadata["type"].startswith("application/x-netcdf"):
+            asset.download(output_path)
+            break
+
+    assert output_path.exists()
 
 
 @pytest.mark.parametrize("backend, connection_fn", BACKEND_CONNECTIONS.items())

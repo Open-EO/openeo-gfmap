@@ -113,9 +113,16 @@ def get_s1_grd_default_processor(
             local_incidence_angle=False,
         )
 
-        cube = resample_reproject(
-            cube, params.get("target_resolution", 10.0), params.get("target_crs", None)
-        )
+        # Reproject collection data to target CRS and resolution, if specified so.
+        # Can be disabled by setting target_resolution=None in the parameters
+        if params.get("target_resolution", True) is not None:
+            cube = resample_reproject(
+                cube, params.get("target_resolution", 10.0), params.get("target_crs", None)
+            )
+        elif params.get("target_crs") is not None:
+            raise ValueError(
+                "In fetching parameters: `target_crs` specified but not `target_resolution`, which is required to perform reprojection."
+            )
 
         # Scaling the bands from float32 power values to uint16 for memory optimization
 
@@ -149,9 +156,12 @@ def get_s1_grd_default_processor(
                     ]
                 ),
             )
-        cube = cube.linear_scale_range(1, 65534, 1, 65534)
 
+        # Harmonizing the collection band names to the default GFMAP band names
         cube = rename_bands(cube, BASE_SENTINEL1_GRD_MAPPING)
+
+        # Change the data type to uint16 for optimization purposes
+        cube = cube.linear_scale_range(1, 65534, 1, 65534)
 
         return cube
 
