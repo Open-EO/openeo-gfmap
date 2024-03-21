@@ -207,23 +207,12 @@ SENTINEL2 = pystac.extensions.item_assets.AssetDefinition(
     }
 )
 
-AUXILIARY = pystac.extensions.item_assets.AssetDefinition(
-    {
-        "title": "ground truth data",
-        "description": "This asset contains the crop type codes.",
-        "type": "application/x-netcdf",
-        "roles": ["data"],
-        "proj:shape": [64, 64],
-        "raster:bands": [{"name": "CROPTYPE", "data_type": "uint16", "bits_per_sample": 16}],
-    }
-)
-
 SENTINEL1 = pystac.extensions.item_assets.AssetDefinition({})
 
 AGERA5 = pystac.extensions.item_assets.AssetDefinition({})
+
 ITEM_ASSETS = {
     "sentinel2": SENTINEL2,
-    "auxiliary": AUXILIARY,
     "sentinel1": SENTINEL1,
     "agera5": AGERA5,
 }
