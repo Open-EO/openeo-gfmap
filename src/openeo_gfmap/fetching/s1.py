@@ -5,7 +5,7 @@ from typing import Callable
 
 import openeo
 from geojson import GeoJSON
-from openeo.processes import array_create, power
+from openeo.processes import array_create, if_, is_nodata, power
 
 from openeo_gfmap.backend import Backend, BackendContext
 from openeo_gfmap.spatial import SpatialContext
@@ -85,7 +85,9 @@ def get_s1_grd_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
     return s1_grd_fetch_default
 
 
-def get_s1_grd_default_processor(collection_name: str, fetch_type: FetchType) -> Callable:
+def get_s1_grd_default_processor(
+    collection_name: str, fetch_type: FetchType, backend: Backend
+) -> Callable:
     """Builds the preprocessing function from the collection name as it is stored
     in the target backend.
     """
@@ -116,15 +118,37 @@ def get_s1_grd_default_processor(collection_name: str, fetch_type: FetchType) ->
         )
 
         # Scaling the bands from float32 power values to uint16 for memory optimization
-        cube = cube.apply_dimension(
-            dimension="bands",
-            process=lambda x: array_create(
-                [
-                    power(base=10, p=(10.0 * x[0].log(base=10) + 83.0) / 20.0),
-                    power(base=10, p=(10.0 * x[1].log(base=10) + 83.0) / 20.0),
-                ]
-            ),
-        )
+
+        # Additional check related to problematic values present in creodias collections.
+        # https://github.com/Open-EO/openeo-geopyspark-driver/issues/293
+        if backend in [Backend.CDSE, Backend.CDSE_STAGING]:
+            cube = cube.apply_dimension(
+                dimension="bands",
+                process=lambda x: array_create(
+                    [
+                        if_(
+                            is_nodata(x[0]),
+                            1,
+                            power(base=10, p=(10.0 * x[0].log(base=10) + 83.0) / 20.0),
+                        ),
+                        if_(
+                            is_nodata(x[1]),
+                            1,
+                            power(base=10, p=(10.0 * x[1].log(base=10) + 83.0) / 20.0),
+                        ),
+                    ]
+                ),
+            )
+        else:
+            cube = cube.apply_dimension(
+                dimension="bands",
+                process=lambda x: array_create(
+                    [
+                        power(base=10, p=(10.0 * x[0].log(base=10) + 83.0) / 20.0),
+                        power(base=10, p=(10.0 * x[1].log(base=10) + 83.0) / 20.0),
+                    ]
+                ),
+            )
         cube = cube.linear_scale_range(1, 65534, 1, 65534)
 
         cube = rename_bands(cube, BASE_SENTINEL1_GRD_MAPPING)
@@ -137,15 +161,25 @@ def get_s1_grd_default_processor(collection_name: str, fetch_type: FetchType) ->
 SENTINEL1_GRD_BACKEND_MAP = {
     Backend.TERRASCOPE: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
-        "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
+        "preprocessor": partial(
+            get_s1_grd_default_processor,
+            collection_name="SENTINEL1_GRD",
+            backend=Backend.TERRASCOPE,
+        ),
     },
     Backend.CDSE: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
-        "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
+        "preprocessor": partial(
+            get_s1_grd_default_processor, collection_name="SENTINEL1_GRD", backend=Backend.CDSE
+        ),
     },
     Backend.CDSE_STAGING: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
-        "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
+        "preprocessor": partial(
+            get_s1_grd_default_processor,
+            collection_name="SENTINEL1_GRD",
+            backend=Backend.CDSE_STAGING,
+        ),
     },
 }
 
