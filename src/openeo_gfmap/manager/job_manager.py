@@ -87,7 +87,7 @@ class GFMAPJobManager(MultiBackendJobManager):
             # Case in which it failed
             if (df.loc[idx, "status"] != "error") and (job_metadata["status"] == "error"):
                 _log.info(f"Job {job.job_id} finished with error, queueing on_job_error...")
-                self._futures.append(self._executor.submit(self.on_job_error, self, job, row))
+                self._futures.append(self._executor.submit(self.on_job_error, job, row))
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
             df.loc[idx, "status"] = job_status

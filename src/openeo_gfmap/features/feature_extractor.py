@@ -107,9 +107,47 @@ class PatchFeatureExtractor(FeatureExtractor):
             },
         )
 
+    def _rescale_s1_backscatter(self, arr: xr.DataArray) -> xr.DataArray:
+        """Rescales the input array from uint16 to float32 decibel values.
+        The input array should be in uint16 format, as this optimizes memory usage in Open-EO
+        processes. This function is called automatically on the bands of the input array, except
+        if the parameter `rescale_s1` is set to False.
+        """
+        s1_bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH", "S1-SIGMA0-HV", "S1-SIGMA0-HH"]
+        s1_bands_to_select = list(set(arr.bands.values) & set(s1_bands))
+
+        if len(s1_bands_to_select) == 0:
+            return arr
+
+        data_to_rescale = arr.sel(bands=s1_bands_to_select).astype(np.float32).data
+
+        # Assert that the values are set between 1 and 65535
+        if data_to_rescale.min().item() < 1 or data_to_rescale.max().item() > 65535:
+            raise ValueError(
+                "The input array should be in uint16 format, with values between 1 and 65535. "
+                "This restriction assures that the data was processed according to the S1 fetcher "
+                "preprocessor. The user can disable this scaling manually by setting the "
+                "`rescale_s1` parameter to False in the feature extractor."
+            )
+
+        # Converting back to power values
+        data_to_rescale = 20.0 * np.log10(data_to_rescale) - 83.0
+        data_to_rescale = np.power(10, data_to_rescale / 10.0)
+        data_to_rescale[~np.isfinite(data_to_rescale)] = np.nan
+
+        # Converting power values to decibels
+        data_to_rescale = 10.0 * np.log10(data_to_rescale)
+
+        # Change the bands within the array
+        arr.loc[dict(bands=s1_bands_to_select)] = data_to_rescale
+        return arr
+
     def _execute(self, cube: XarrayDataCube, parameters: dict) -> XarrayDataCube:
         arr = cube.get_array().transpose("bands", "t", "y", "x")
         arr = self._common_preparations(arr, parameters)
+        if self._parameters.get("rescale_s1", True):
+            arr = self._rescale_s1_backscatter(arr)
+
         arr = self.execute(arr).transpose("bands", "y", "x")
         return XarrayDataCube(arr)
 

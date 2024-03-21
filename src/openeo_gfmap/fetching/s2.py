@@ -162,14 +162,21 @@ def get_s2_l2a_default_processor(collection_name: str, fetch_type: FetchType) ->
         at 10m resolution as well as band reprojection. Finally, it converts
         the type of the cube values to uint16
         """
-        # Reproject collection data to target CRS, if specified so
-        cube = resample_reproject(
-            cube, params.get("target_resolution", 10.0), params.get("target_crs", None)
-        )
+        # Reproject collection data to target CRS and resolution, if specified so.
+        # Can be disabled by setting target_resolution=None in the parameters
+        if params.get("target_resolution", True) is not None:
+            cube = resample_reproject(
+                cube, params.get("target_resolution", 10.0), params.get("target_crs", None)
+            )
+        elif params.get("target_crs") is not None:
+            raise ValueError(
+                "In fetching parameters: `target_crs` specified but not `target_resolution`, which is required to perform reprojection."
+            )
 
+        # Harmonizing the collection band names to the default GFMAP band names
         cube = rename_bands(cube, BASE_SENTINEL2_L2A_MAPPING)
 
-        # Change the data type to uint16, giving optimization
+        # Change the data type to uint16 for optimization purposes
         cube = cube.linear_scale_range(0, 65534, 0, 65534)
 
         return cube
