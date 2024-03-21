@@ -213,7 +213,6 @@ AGERA5 = pystac.extensions.item_assets.AssetDefinition({})
 
 ITEM_ASSETS = {
     "sentinel2": SENTINEL2,
-    # "auxiliary": AUXILIARY,
     "sentinel1": SENTINEL1,
     "agera5": AGERA5,
 }
