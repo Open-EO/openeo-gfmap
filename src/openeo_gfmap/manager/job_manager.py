@@ -196,6 +196,7 @@ class GFMAPJobManager(MultiBackendJobManager):
             _log.debug(f"Calling post job action for job {job.job_id}...")
             job_items = self._post_job_action(job_items, row, self._post_job_params)
 
+        _log.info(f"Adding {len(job_items)} items to the STAC collection...")
         self._root_collection.add_items(job_items)
         _log.info(f"Added {len(job_items)} items to the STAC collection.")
 
@@ -265,12 +266,18 @@ class GFMAPJobManager(MultiBackendJobManager):
         _log.info("Workers started, creating and running jobs.")
         super().run_jobs(df, start_job, output_file)
 
-    def create_stac(self, output_path: Optional[Union[str, Path]] = None):
+    def create_stac(
+        self, output_path: Optional[Union[str, Path]] = None, asset_definitions: dict = None
+    ):
         """Method to be called after run_jobs to create a STAC catalog
         and write it to self._output_dir
         """
         if output_path is None:
             output_path = self._output_dir / "stac"
+
+        item_assets = constants.ITEM_ASSETS
+        if asset_definitions:
+            item_assets = {**constants.ITEM_ASSETS, **asset_definitions}
 
         self._root_collection.license = constants.LICENSE
         self._root_collection.add_link(constants.LICENSE_LINK)
@@ -284,7 +291,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(
             self._root_collection, add_if_missing=True
         )
-        item_asset_extension.item_assets = constants.ITEM_ASSETS
+        item_asset_extension.item_assets = item_assets
 
         self._root_collection.update_extent_from_items()
         self._root_collection.normalize_hrefs(str(output_path))
