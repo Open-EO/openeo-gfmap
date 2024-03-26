@@ -251,31 +251,44 @@ class GFMAPJobManager(MultiBackendJobManager):
             self._executor = None
 
     def create_stac(
-        self, output_path: Optional[Union[str, Path]] = None, asset_definitions: dict = None
+        self,
+        constellation: Optional[str] = None,
+        output_path: Optional[Union[str, Path]] = None,
+        item_assets: Optional[dict] = None,
     ):
-        """Method to be called after run_jobs to create a STAC catalog
+        """Method to be called after run_jobs to create a STAC collection
         and write it to self._output_dir
+
+        Parameters
+        ----------
+        constellation: Optional[str]
+            The constellation for which to create the STAC metadata, if None no STAC metadata will be added
+            The following constellations are supported:
+
+            * 'sentinel1'
+            * 'sentinel2'
+
+        output_path: Optional[Union[str, Path]]
+            The path to write the STAC collection to. If None, the STAC collection will be written to self.output_dir / 'stac'
+        item_assets: Optional[dict]
+            A dictionary containing pystac.extensions.item_assets.AssetDefinition objects to be added to the STAC collection
+            https://github.com/stac-extensions/item-assets
         """
         if output_path is None:
             output_path = self._output_dir / "stac"
 
-        item_assets = constants.ITEM_ASSETS
-        if asset_definitions:
-            item_assets = {**constants.ITEM_ASSETS, **asset_definitions}
-
         self._root_collection.license = constants.LICENSE
         self._root_collection.add_link(constants.LICENSE_LINK)
         self._root_collection.stac_extensions = constants.STAC_EXTENSIONS
+        self._root_collection.extra_fields["summaries"] = constants.SUMMARIES.get(
+            constellation, pystac.summaries.Summaries({})
+        ).to_dict()
 
-        datacube_extension = pystac.extensions.datacube.DatacubeExtension.ext(
-            self._root_collection, add_if_missing=True
-        )
-        datacube_extension.apply(constants.CUBE_DIMENSIONS)
-
-        item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(
-            self._root_collection, add_if_missing=True
-        )
-        item_asset_extension.item_assets = item_assets
+        if item_assets:
+            item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(
+                self._root_collection, add_if_missing=True
+            )
+            item_asset_extension.item_assets = item_assets
 
         self._root_collection.update_extent_from_items()
         self._root_collection.normalize_hrefs(str(output_path))
