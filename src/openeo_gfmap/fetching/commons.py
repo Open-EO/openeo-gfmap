@@ -127,15 +127,6 @@ def load_collection(
             properties=load_collection_parameters,
         )
 
-    # Merges additional bands continuing the operations.
-    pre_merge_cube = params.get("pre_merge", None)
-    if pre_merge_cube is not None:
-        assert isinstance(pre_merge_cube, openeo.DataCube), (
-            f"The 'pre_merge' parameter value must be an openeo datacube, "
-            f"got {pre_merge_cube}."
-        )
-        cube = cube.merge_cubes(pre_merge_cube)
-
     # Peforming pre-mask optimization
     pre_mask = params.get("pre_mask", None)
     if pre_mask is not None:
@@ -143,6 +134,17 @@ def load_collection(
             f"The 'pre_mask' parameter must be an openeo datacube, " f"got {pre_mask}."
         )
         cube = cube.mask(pre_mask)
+
+    # Merges additional bands continuing the operations.
+    pre_merge_cube = params.get("pre_merge", None)
+    if pre_merge_cube is not None:
+        assert isinstance(pre_merge_cube, openeo.DataCube), (
+            f"The 'pre_merge' parameter value must be an openeo datacube, "
+            f"got {pre_merge_cube}."
+        )
+        if pre_mask is not None:
+            pre_merge_cube = pre_merge_cube.mask(pre_mask)
+        cube = cube.merge_cubes(pre_merge_cube)
 
     if fetch_type == FetchType.POLYGON:
         if isinstance(spatial_extent, str):
