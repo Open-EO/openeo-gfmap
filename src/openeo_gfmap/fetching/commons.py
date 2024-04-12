@@ -127,6 +127,10 @@ def load_collection(
             properties=load_collection_parameters,
         )
 
+    # Adding the process graph updates for experimental features
+    if params.get("update_arguments") is not None:
+        cube.result_node().update_arguments(**params["update_arguments"])
+
     # Peforming pre-mask optimization
     pre_mask = params.get("pre_mask", None)
     if pre_mask is not None:

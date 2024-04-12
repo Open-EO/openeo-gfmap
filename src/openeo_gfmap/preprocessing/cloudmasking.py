@@ -183,7 +183,10 @@ def get_bap_mask(cube: openeo.DataCube, period: Union[str, list], **params: dict
         )
     elif isinstance(period, list):
         udf_path = Path(__file__).parent / "udf_rank.py"
-        rank_mask = bap_score.apply_neighborhood(
+        rank_mask = bap_score.add_dimension(
+            name="bands",
+            label=BAPSCORE_HARMONIZED_NAME
+        ).apply_neighborhood(
             process=openeo.UDF.from_file(str(udf_path), context={"intervals": period}),
             size=[
                 {"dimension": "x", "unit": "px", "value": 256},

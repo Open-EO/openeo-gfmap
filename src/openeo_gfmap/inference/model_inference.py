@@ -13,6 +13,7 @@ import openeo
 import requests
 import xarray as xr
 from openeo.udf import XarrayDataCube
+from openeo.udf import inspect as udf_inspect
 from openeo.udf.run_code import execute_local_udf
 from openeo.udf.udf_data import UdfData
 
@@ -56,7 +57,6 @@ class ModelInference(ABC):
             model generated. For example, CatBoost models have their input tensor named as
             features: https://catboost.ai/en/docs/concepts/apply-onnx-ml
         """
-        tensor = tensor.reshape((1, *tensor.shape))
         return session.run(None, {input_name: tensor})[0]
 
     def _common_preparations(self, inarr: xr.DataArray, parameters: dict) -> xr.DataArray:
@@ -64,6 +64,7 @@ class ModelInference(ABC):
         executed at the very beginning of the process.
         """
         self._epsg = parameters.pop(EPSG_HARMONIZED_NAME)
+        self._parameters = parameters
         return inarr
 
     def _execute(self, cube: XarrayDataCube, parameters: dict) -> XarrayDataCube:
@@ -90,6 +91,59 @@ class ModelInference(ABC):
         """Executes the model inference."""
         raise NotImplementedError(
             "ModelInference is a base abstract class, please implement the " "execute method."
+        )
+
+
+class ONNXModelInference(ModelInference):
+    """Basic implementation of model inference that loads an ONNX model and runs the data
+    through it. The input data, as model inference classes, is expected to have ('bands', 'y', 'x')
+    as dimension orders, where 'bands' are the features that were computed the same way as for the
+    training data.
+
+    The following parameters are necessary:
+    - `model_url`: URL to download the ONNX model.
+    - `input_name`: Name of the input tensor in the ONNX model.
+    - `output_labels`: Labels of the output data.
+
+    """
+
+    def output_labels(self) -> list:
+        return self._parameters["output_labels"]
+
+    def execute(self, inarr: xr.DataArray) -> xr.DataArray:
+        if self._parameters.get("model_url") is None:
+            raise ValueError("The model_url must be defined in the parameters.")
+
+        # Load the model and the input_name parameters
+        session = self.load_ort_session(self._parameters.get("model_url"))
+        
+        input_name = self._parameters.get("input_name")
+        if input_name is None:
+            input_name = session.get_inputs()[0].name
+            udf_inspect(message=f"Input name not defined. Using name of parameters from the model session: {input_name}.", level="warning")
+
+        # Run the model inference on the input data
+        input_data = inarr.values.astype(np.float32)
+        n_bands, height, width = input_data.shape
+
+        # Flatten the x and y coordiantes into one
+        input_data = input_data.reshape(n_bands, -1).T
+
+        # Make the prediction
+        output = self.apply_ml(input_data, session, input_name)
+
+        output = output.reshape(
+            len(self.output_labels()), height, width
+        )
+
+        return xr.DataArray(
+            output,
+            dims=["bands", "y", "x"],
+            coords={
+                "bands": self.output_labels(),
+                "x": inarr.x,
+                "y": inarr.y
+            }
         )
 
 
@@ -125,7 +179,7 @@ def _get_imports() -> str:
     static_globals = []
 
     for line in lines:
-        if line.strip().startswith(("import ", "from ")):
+        if line.strip().startswith(("import ", "from ", "sys.path.insert(", "sys.path.append(")):
             imports.append(line)
         elif re.match("^[A-Z_0-9]+\s*=.*$", line):
             static_globals.append(line)
