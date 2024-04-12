@@ -116,11 +116,14 @@ class ONNXModelInference(ModelInference):
 
         # Load the model and the input_name parameters
         session = self.load_ort_session(self._parameters.get("model_url"))
-        
+
         input_name = self._parameters.get("input_name")
         if input_name is None:
             input_name = session.get_inputs()[0].name
-            udf_inspect(message=f"Input name not defined. Using name of parameters from the model session: {input_name}.", level="warning")
+            udf_inspect(
+                message=f"Input name not defined. Using name of parameters from the model session: {input_name}.",
+                level="warning",
+            )
 
         # Run the model inference on the input data
         input_data = inarr.values.astype(np.float32)
@@ -132,18 +135,12 @@ class ONNXModelInference(ModelInference):
         # Make the prediction
         output = self.apply_ml(input_data, session, input_name)
 
-        output = output.reshape(
-            len(self.output_labels()), height, width
-        )
+        output = output.reshape(len(self.output_labels()), height, width)
 
         return xr.DataArray(
             output,
             dims=["bands", "y", "x"],
-            coords={
-                "bands": self.output_labels(),
-                "x": inarr.x,
-                "y": inarr.y
-            }
+            coords={"bands": self.output_labels(), "x": inarr.x, "y": inarr.y},
         )
 
 
