@@ -229,7 +229,7 @@ def _get_apply_udf_data(feature_extractor: FeatureExtractor) -> str:
     return source.replace('"<feature_extractor_class>"', feature_extractor.__name__)
 
 
-def generate_udf_code(feature_extractor_class: FeatureExtractor) -> openeo.UDF:
+def _generate_udf_code(feature_extractor_class: FeatureExtractor) -> openeo.UDF:
     """Generates the udf code by packing imports of this file, the necessary
     superclass and subclasses as well as the user defined feature extractor
     class and the apply_datacube function.
@@ -271,7 +271,7 @@ def apply_feature_extractor(
     feature_extractor._parameters = parameters
     output_labels = feature_extractor.output_labels()
 
-    udf_code = generate_udf_code(feature_extractor_class)
+    udf_code = _generate_udf_code(feature_extractor_class)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 
@@ -282,7 +282,7 @@ def apply_feature_extractor(
 def apply_feature_extractor_local(
     feature_extractor_class: FeatureExtractor, cube: xr.DataArray, parameters: dict
 ) -> xr.DataArray:
-    """Applies and user-define feature extractor, but locally. The
+    """Applies and user-defined feature extractor, but locally. The
     parameters are the same as in the `apply_feature_extractor` function,
     excepts for the cube parameter which expects a `xarray.DataArray` instead of
     a `openeo.rest.datacube.DataCube` object.
@@ -291,7 +291,7 @@ def apply_feature_extractor_local(
     feature_extractor._parameters = parameters
     output_labels = feature_extractor.output_labels()
 
-    udf_code = generate_udf_code(feature_extractor_class)
+    udf_code = _generate_udf_code(feature_extractor_class)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 

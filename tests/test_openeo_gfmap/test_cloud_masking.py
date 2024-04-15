@@ -122,13 +122,12 @@ def test_bap_quintad(backend: Backend):
     # Fetch the datacube
     s2_extractor = build_sentinel2_l2a_extractor(
         backend_context=backend_context,
-        bands=["S2-L2A-SCL"],
+        bands=["S2-L2A-B04", "S2-L2A-SCL"],
         fetch_type=FetchType.TILE,
         **fetching_parameters,
     )
 
     cube = s2_extractor.get_cube(connection, spatial_extent, temporal_extent)
-
     compositing_intervals = quintad_intervals(temporal_extent)
 
     expected_intervals = [
