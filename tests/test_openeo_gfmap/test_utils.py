@@ -1,4 +1,11 @@
+import os
+from pathlib import Path
+
+import pytest
+from netCDF4 import Dataset
+
 from openeo_gfmap import Backend, BackendContext, BoundingBoxExtent, TemporalContext
+from openeo_gfmap.utils import update_nc_attributes
 from openeo_gfmap.utils.catalogue import s1_area_per_orbitstate, select_S1_orbitstate
 
 # Region of Paris, France
@@ -39,3 +46,27 @@ def test_query_cdse_catalogue():
     )
 
     assert decision == "DESCENDING"
+
+
+@pytest.fixture
+def temp_nc_file():
+    temp_file = Path("temp_test.nc")
+    yield temp_file
+    os.remove(temp_file)
+
+
+def test_update_nc_attributes(temp_nc_file):
+    test_attributes = {"one": "two", "three": "four", "changing_attribute": "changed_value"}
+
+    with Dataset(temp_nc_file, "w") as nc:
+        nc.setncattr("existing_attribute", "existing_value")
+        nc.setncattr("changing_attribute", "changing_value")
+
+    update_nc_attributes(temp_nc_file, test_attributes)
+
+    with Dataset(temp_nc_file, "r") as nc:
+        for attr_name, attr_value in test_attributes.items():
+            assert attr_name in nc.ncattrs()
+            assert getattr(nc, attr_name) == attr_value
+        assert "existing_attribute" in nc.ncattrs()
+        assert nc.getncattr("existing_attribute") == "existing_value"
