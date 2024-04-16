@@ -37,6 +37,7 @@ dependencies = [
     "pyarrow",
     "fastparquet",
     "h3",
+    "netCDF4"
 ]
 
 [project.urls]
