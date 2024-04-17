@@ -21,6 +21,9 @@ from openeo_gfmap.fetching import (
     FetchType,
     build_sentinel1_grd_extractor,
 )
+from openeo_gfmap.preprocessing.sar import (
+    compress_backscatter_uint16
+)
 from openeo_gfmap.utils import (
     array_bounds,
     arrays_cosine_similarity,
@@ -75,6 +78,7 @@ class TestS1Extractors:
         )
 
         cube = extractor.get_cube(connection, spatial_extent, temporal_extent)
+        cube = compress_backscatter_uint16(context, cube)
 
         output_file = Path(__file__).parent / f"results/{country}_{backend.value}_sentinel1_grd.nc"
 
@@ -173,6 +177,7 @@ class TestS1Extractors:
         )
 
         cube = extractor.get_cube(connection, spatial_context, temporal_context)
+        cube = compress_backscatter_uint16(context, cube)
 
         cube = cube.aggregate_spatial(spatial_context, reducer="mean")
 
@@ -223,6 +228,7 @@ class TestS1Extractors:
         )
 
         cube = extractor.get_cube(connection, spatial_context, temporal_context)
+        cube = compress_backscatter_uint16(context, cube)
 
         output_folder = Path(__file__).parent / f"results/polygons_s1_{backend.value}/"
         output_folder.mkdir(exist_ok=True, parents=True)

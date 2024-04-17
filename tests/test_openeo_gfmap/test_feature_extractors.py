@@ -12,6 +12,7 @@ from openeo_gfmap.backend import (
     BackendContext,
     cdse_connection,
 )
+from openeo_gfmap.preprocessing.sar import compress_backscatter_uint16
 from openeo_gfmap.features import (
     PatchFeatureExtractor,
     apply_feature_extractor,
@@ -146,6 +147,8 @@ def test_s1_rescale(backend: Backend, connection_fn: Callable):
     extractor = build_sentinel1_grd_extractor(backend_context, bands_to_extract, FetchType.TILE)
 
     cube = extractor.get_cube(connection, SPATIAL_CONTEXT, REDUCED_TEMPORAL_CONTEXT)
+
+    cube = compress_backscatter_uint16(backend_context, cube)
 
     features = apply_feature_extractor(
         DummyS1PassthroughExtractor,
