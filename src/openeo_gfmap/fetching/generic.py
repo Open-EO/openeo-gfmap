@@ -7,11 +7,12 @@ import openeo
 from geojson import GeoJSON
 
 from openeo_gfmap.backend import Backend, BackendContext
-from openeo_gfmap.fetching import CollectionFetcher, FetchType
+from openeo_gfmap.fetching import CollectionFetcher, FetchType, _log
 from openeo_gfmap.fetching.commons import (
     convert_band_names,
     load_collection,
     rename_bands,
+    resample_reproject,
 )
 from openeo_gfmap.spatial import SpatialContext
 from openeo_gfmap.temporal import TemporalContext
@@ -45,6 +46,10 @@ def get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callable
         **params,
     ) -> openeo.DataCube:
         bands = convert_band_names(bands, BASE_MAPPING)
+
+        if collection_name == "COPERNICUS_30":
+            _log.warning("User set-up non None temporal extent for DEM collection. Ignoring it.")
+            temporal_extent = None
 
         cube = load_collection(
             connection,
@@ -81,11 +86,19 @@ def get_generic_processor(collection_name: str, fetch_type: FetchType) -> Callab
         This method renames bands and removes the time dimension in case the
         requested dataset is DEM
         """
+        if params.get("target_resolution", True) is not None:
+            cube = resample_reproject(
+                cube,
+                params.get("target_resolution", 10.0),
+                params.get("target_crs", None),
+                method=params.get("resampling_method", "near"),
+            )
 
-        cube = rename_bands(cube, BASE_MAPPING)
 
         if collection_name == "COPERNICUS_30":
             cube = cube.min_time()
+
+        cube = rename_bands(cube, BASE_MAPPING)
 
         return cube
 

@@ -37,7 +37,7 @@ def convert_band_names(desired_bands: list, band_dict: dict) -> list:
 
 
 def resample_reproject(
-    datacube: openeo.DataCube, resolution: float, epsg_code: Optional[Union[str, int]]
+    datacube: openeo.DataCube, resolution: float, epsg_code: Optional[Union[str, int]] = None, method: str = 'near'
 ) -> openeo.DataCube:
     """Reprojects the given datacube to the target epsg code, if the provided
     epsg code is not None. Also performs checks on the give code to check
@@ -51,8 +51,8 @@ def resample_reproject(
             raise ValueError(
                 f"Specified target_crs: {epsg_code} is not a valid " "EPSG code."
             ) from exc
-        return datacube.resample_spatial(resolution=resolution, projection=epsg_code)
-    return datacube.resample_spatial(resolution=resolution)
+        return datacube.resample_spatial(resolution=resolution, projection=epsg_code, method=method)
+    return datacube.resample_spatial(resolution=resolution, method=method)
 
 
 def rename_bands(datacube: openeo.DataCube, mapping: dict) -> openeo.DataCube:
@@ -74,7 +74,7 @@ def load_collection(
     bands: list,
     collection_name: str,
     spatial_extent: SpatialContext,
-    temporal_extent: TemporalContext,
+    temporal_extent: Optional[TemporalContext],
     fetch_type: FetchType,
     **params,
 ):
@@ -82,6 +82,9 @@ def load_collection(
     on the fetch type.
     """
     load_collection_parameters = params.get("load_collection", {})
+
+    if temporal_extent is not None:  # Can be ignored for intemporal collections such as DEM
+        temporal_extent = [temporal_extent.start_date, temporal_extent.end_date]
 
     if fetch_type == FetchType.TILE:
         assert isinstance(
@@ -91,7 +94,7 @@ def load_collection(
         cube = connection.load_collection(
             collection_id=collection_name,
             spatial_extent=spatial_extent,
-            temporal_extent=[temporal_extent.start_date, temporal_extent.end_date],
+            temporal_extent=temporal_extent,
             bands=bands,
             properties=load_collection_parameters,
         )
@@ -105,7 +108,7 @@ def load_collection(
         cube = connection.load_collection(
             collection_id=collection_name,
             spatial_extent=spatial_extent,
-            temporal_extent=[temporal_extent.start_date, temporal_extent.end_date],
+            temporal_extent=temporal_extent,
             bands=bands,
             properties=load_collection_parameters,
         )

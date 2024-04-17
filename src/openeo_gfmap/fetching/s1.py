@@ -116,7 +116,10 @@ def get_s1_grd_default_processor(
         # Can be disabled by setting target_resolution=None in the parameters
         if params.get("target_resolution", True) is not None:
             cube = resample_reproject(
-                cube, params.get("target_resolution", 10.0), params.get("target_crs", None)
+                cube,
+                params.get("target_resolution", 10.0),
+                params.get("target_crs", None),
+                method=params.get("resampling_method", "near"),
             )
         elif params.get("target_crs") is not None:
             raise ValueError(
