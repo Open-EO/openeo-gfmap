@@ -1,11 +1,13 @@
 """Routines to pre-process sar signals."""
 import openeo
-from openeo.processes import if_, power, is_nodata, array_create
+from openeo.processes import array_create, if_, is_nodata, power
 
-from openeo_gfmap import BackendContext, Backend
+from openeo_gfmap import Backend, BackendContext
 
 
-def compress_backscatter_uint16(backend_context: BackendContext, cube: openeo.DataCube) -> openeo.DataCube:
+def compress_backscatter_uint16(
+    backend_context: BackendContext, cube: openeo.DataCube
+) -> openeo.DataCube:
     """
     Scaling the bands from float32 power values to uint16 for memory optimization. The scaling
     casts the values from power to decibels and applies a linear scaling from 0 to 65534.

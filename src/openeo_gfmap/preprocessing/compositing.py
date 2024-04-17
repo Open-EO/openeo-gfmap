@@ -39,14 +39,12 @@ def max_ndvi_compositing(cube: openeo.DataCube, period: str) -> openeo.DataCube:
             size=[
                 {"dimension": "x", "unit": "px", "value": 1},
                 {"dimension": "y", "unit": "px", "value": 1},
-                {"dimension": "t", "value": period}
+                {"dimension": "t", "value": period},
             ],
-            overlap=[]
+            overlap=[],
         )
 
-        cube = cube.mask(mask=rank_mask).aggregate_temporal_period(
-            period, "first"
-        )
+        cube = cube.mask(mask=rank_mask).aggregate_temporal_period(period, "first")
 
     else:
         raise ValueError(
