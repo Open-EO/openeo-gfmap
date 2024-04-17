@@ -37,7 +37,10 @@ def convert_band_names(desired_bands: list, band_dict: dict) -> list:
 
 
 def resample_reproject(
-    datacube: openeo.DataCube, resolution: float, epsg_code: Optional[Union[str, int]] = None, method: str = 'near'
+    datacube: openeo.DataCube,
+    resolution: float,
+    epsg_code: Optional[Union[str, int]] = None,
+    method: str = "near",
 ) -> openeo.DataCube:
     """Reprojects the given datacube to the target epsg code, if the provided
     epsg code is not None. Also performs checks on the give code to check
@@ -51,7 +54,9 @@ def resample_reproject(
             raise ValueError(
                 f"Specified target_crs: {epsg_code} is not a valid " "EPSG code."
             ) from exc
-        return datacube.resample_spatial(resolution=resolution, projection=epsg_code, method=method)
+        return datacube.resample_spatial(
+            resolution=resolution, projection=epsg_code, method=method
+        )
     return datacube.resample_spatial(resolution=resolution, method=method)
 
 

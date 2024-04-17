@@ -169,7 +169,7 @@ def get_s2_l2a_default_processor(collection_name: str, fetch_type: FetchType) ->
                 cube,
                 params.get("target_resolution", 10.0),
                 params.get("target_crs", None),
-                method=params.get("resampling_method", "near")
+                method=params.get("resampling_method", "near"),
             )
         elif params.get("target_crs") is not None:
             raise ValueError(

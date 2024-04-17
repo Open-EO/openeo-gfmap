@@ -94,7 +94,6 @@ def get_generic_processor(collection_name: str, fetch_type: FetchType) -> Callab
                 method=params.get("resampling_method", "near"),
             )
 
-
         if collection_name == "COPERNICUS_30":
             cube = cube.min_time()
 
