@@ -28,8 +28,9 @@ class GFMAPJobManager(MultiBackendJobManager):
         self,
         output_dir: Path,
         output_path_generator: Callable,
-        collection_id: str,
-        collection_description: str = "",
+        collection_id: Optional[str] = None,
+        collection_description: Optional[str] = "",
+        stac : Optional[Union[str, Path]] = None,
         post_job_action: Optional[Callable] = None,
         poll_sleep: int = 5,
         n_threads: int = 1,
@@ -51,12 +52,16 @@ class GFMAPJobManager(MultiBackendJobManager):
         MultiBackendJobManager._normalize_df = self._normalize_df
         super().__init__(poll_sleep)
 
-        # Generate the root STAC collection
-        self._root_collection = pystac.Collection(
-            id=collection_id,
-            description=collection_description,
-            extent=None,
-        )
+        if stac is not None:
+            self._root_collection = pystac.read_file(str(stac))
+        else:
+            assert collection_id is not None, "A collection ID is required to generate a STAC collection."
+            # Generate the root STAC collection
+            self._root_collection = pystac.Collection(
+                id=collection_id,
+                description=collection_description,
+                extent=None,
+            )
 
     def _update_statuses(self, df: pd.DataFrame):
         """Updates the statues of the jobs in the dataframe from the backend. If a job is finished
@@ -157,14 +162,15 @@ class GFMAPJobManager(MultiBackendJobManager):
         for item_metadata in job_metadata.get_all_items():
             try:
                 item = pystac.read_file(item_metadata.get_self_href())
-                asset_path = job_products[f"{job.job_id}_{item.id}"][0]
+                asset_name = list(item.assets.values())[0].title
+                asset_path = job_products[f"{job.job_id}_{asset_name}"][0]
 
                 assert len(item.assets.values()) == 1, "Each item should only contain one asset"
                 for asset in item.assets.values():
                     asset.href = str(
                         asset_path
                     )  # Update the asset href to the output location set by the output_path_generator
-                item.id = f"{job.job_id}_{item.id}"
+                # item.id = f"{job.job_id}_{item.id}"
                 # Add the item to the the current job items.
                 job_items.append(item)
                 _log.info(f"Parsed item {item.id} from job {job.job_id}")
