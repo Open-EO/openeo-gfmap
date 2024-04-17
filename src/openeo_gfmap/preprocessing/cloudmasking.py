@@ -183,7 +183,9 @@ def get_bap_mask(cube: openeo.DataCube, period: Union[str, list], **params: dict
         )
     elif isinstance(period, list):
         udf_path = Path(__file__).parent / "udf_rank.py"
-        rank_mask = bap_score.apply_neighborhood(
+        rank_mask = bap_score.add_dimension(
+            name="bands", label=BAPSCORE_HARMONIZED_NAME
+        ).apply_neighborhood(
             process=openeo.UDF.from_file(str(udf_path), context={"intervals": period}),
             size=[
                 {"dimension": "x", "unit": "px", "value": 256},
@@ -234,3 +236,29 @@ def bap_masking(cube: openeo.DataCube, period: Union[str, list], **params: dict)
         return optical_cube
 
     return optical_cube.merge_cubes(nonoptical_cube)
+
+
+def cldmask_percentage(cube: openeo.DataCube, percentage: float = 0.95) -> openeo.DataCube:
+    """Compute a cloud mask array, that either fully covers an observation or is empty.
+    It computes the percentage of HIGH_CLOUD_PROBABILITY pixels in the SCL mask. If the percentage
+    is higher than the given threshold, the mask will be covering the observation, otherwise False.
+    """
+    non_scl_cube = cube.filter_bands(
+        bands=list(filter(lambda band: "SCL" not in band, cube.metadata.band_names))
+    )
+
+    scl_cube = cube.filter_bands(["SCL"])
+
+    cld_mask = scl_cube.apply_neighborhood(
+        process=openeo.UDF.from_file("udf_mask.py", context={}),
+        size=[
+            {"dimension": "x", "unit": "px", "value": 1024},
+            {"dimension": "y", "unit": "px", "value": 1024},
+            {"dimension": "t", "value": 1},
+        ],
+        overlap=[],
+    )
+
+    non_scl_cube = non_scl_cube.mask(cld_mask.resample_cube_spatial(cube))
+
+    return non_scl_cube.merge_cubes(scl_cube)

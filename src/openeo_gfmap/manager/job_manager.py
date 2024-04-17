@@ -1,10 +1,7 @@
 import json
-import queue
-import shutil
-import threading
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Callable, Optional, Union
 
 import pandas as pd
@@ -41,10 +38,9 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._output_dir = output_dir
 
         # Setup the threads to work on the on_job_done and on_job_error methods
-        self._finished_job_queue = queue.Queue()
         self._n_threads = n_threads
-
-        self._threads = []
+        self._executor = None  # Will be set in run_jobs, is a threadpool executor
+        self._futures = []
 
         self._output_path_gen = output_path_generator
         self._post_job_action = post_job_action
@@ -61,28 +57,6 @@ class GFMAPJobManager(MultiBackendJobManager):
             description=collection_description,
             extent=None,
         )
-
-    def _post_job_worker(self):
-        """Checks which jobs are finished or failed and calls the `on_job_done` or `on_job_error`
-        methods."""
-        while True:
-            try:
-                status, job, row = self._finished_job_queue.get(timeout=1)
-                _log.debug(
-                    f"Worker thread {threading.current_thread().name}: polled finished job with status {status}."
-                )
-                if status == PostJobStatus.ERROR:
-                    self.on_job_error(job, row)
-                elif status == PostJobStatus.FINISHED:
-                    self.on_job_done(job, row)
-                else:
-                    raise ValueError(f"Unknown status: {status}")
-                self._finished_job_queue.task_done()
-            except queue.Empty:
-                continue
-            except KeyboardInterrupt:
-                _log.debug(f"Worker thread {threading.current_thread().name} interrupted.")
-                return
 
     def _update_statuses(self, df: pd.DataFrame):
         """Updates the statues of the jobs in the dataframe from the backend. If a job is finished
@@ -107,16 +81,26 @@ class GFMAPJobManager(MultiBackendJobManager):
                 job_metadata["status"] == "finished"
             ):
                 _log.info(f"Job {job.job_id} finished successfully, queueing on_job_done...")
-                self._finished_job_queue.put((PostJobStatus.FINISHED, job, row))
+                self._futures.append(self._executor.submit(self.on_job_done, job, row))
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
             # Case in which it failed
             if (df.loc[idx, "status"] != "error") and (job_metadata["status"] == "error"):
                 _log.info(f"Job {job.job_id} finished with error, queueing on_job_error...")
-                self._finished_job_queue.put((PostJobStatus.ERROR, job, row))
+                self._futures.append(self._executor.submit(self.on_job_error, job, row))
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
             df.loc[idx, "status"] = job_status
+
+        futures_to_clear = []
+        for future in self._futures:
+            if future.done():
+                exception = future.exception(timeout=1.0)
+                if exception:
+                    raise exception
+                futures_to_clear.append(future)
+        for future in futures_to_clear:
+            self._futures.remove(future)
 
     def on_job_error(self, job: BatchJob, row: pd.Series):
         """Method called when a job finishes with an error.
@@ -151,31 +135,20 @@ class GFMAPJobManager(MultiBackendJobManager):
         """
         job_products = {}
         for idx, asset in enumerate(job.get_results().get_assets()):
-            temp_file = NamedTemporaryFile(delete=False)
             try:
-                _log.debug(
-                    f"Downloading asset {asset.name} from job {job.job_id} -> {temp_file.name}"
-                )
-                asset.download(temp_file.name)
                 _log.debug(
                     f"Generating output path for asset {asset.name} from job {job.job_id}..."
                 )
-                output_path = self._output_path_gen(self._output_dir, temp_file.name, idx, row)
-                _log.debug(
-                    f"Generated path for asset {asset.name} from job {job.job_id} -> {output_path}"
-                )
+                output_path = self._output_path_gen(self._output_dir, idx, row)
                 # Make the output path
                 output_path.parent.mkdir(parents=True, exist_ok=True)
-                # Move the temporary file to the final location
-                shutil.move(temp_file.name, output_path)
+                asset.download(output_path)
                 # Add to the list of downloaded products
                 job_products[f"{job.job_id}_{asset.name}"] = [output_path]
-                _log.info(f"Downloaded asset {asset.name} from job {job.job_id} -> {output_path}")
+                _log.debug(f"Downloaded {asset.name} from job {job.job_id} -> {output_path}")
             except Exception as e:
                 _log.exception(f"Error downloading asset {asset.name} from job {job.job_id}", e)
                 raise e
-            finally:
-                shutil.rmtree(temp_file.name, ignore_errors=True)
 
         # First update the STAC collection with the assets directly resulting from the OpenEO batch job
         job_metadata = pystac.Collection.from_dict(job.get_results().get_metadata())
@@ -209,6 +182,7 @@ class GFMAPJobManager(MultiBackendJobManager):
             _log.debug(f"Calling post job action for job {job.job_id}...")
             job_items = self._post_job_action(job_items, row, self._post_job_params)
 
+        _log.info(f"Adding {len(job_items)} items to the STAC collection...")
         self._root_collection.add_items(job_items)
         _log.info(f"Added {len(job_items)} items to the STAC collection.")
 
@@ -268,19 +242,37 @@ class GFMAPJobManager(MultiBackendJobManager):
         output_file: Union[str, Path]
             The file to track the results of the jobs.
         """
-        _log.info(f"Starting job manager using {self._n_threads} worker threads.")
         # Starts the thread pool to work on the on_job_done and on_job_error methods
-        for _ in range(self._n_threads):
-            thread = threading.Thread(target=self._post_job_worker)
-            thread.start()
-            self._threads.append(thread)
+        _log.info(f"Starting ThreadPoolExecutor with {self._n_threads} workers.")
+        with ThreadPoolExecutor(max_workers=self._n_threads) as executor:
+            _log.info("Creating and running jobs.")
+            self._executor = executor
+            super().run_jobs(df, start_job, output_file)
+            self._executor = None
 
-        _log.info("Workers started, creating and running jobs.")
-        super().run_jobs(df, start_job, output_file)
-
-    def create_stac(self, output_path: Optional[Union[str, Path]] = None):
-        """Method to be called after run_jobs to create a STAC catalog
+    def create_stac(
+        self,
+        constellation: Optional[str] = None,
+        output_path: Optional[Union[str, Path]] = None,
+        item_assets: Optional[dict] = None,
+    ):
+        """Method to be called after run_jobs to create a STAC collection
         and write it to self._output_dir
+
+        Parameters
+        ----------
+        constellation: Optional[str]
+            The constellation for which to create the STAC metadata, if None no STAC metadata will be added
+            The following constellations are supported:
+
+            * 'sentinel1'
+            * 'sentinel2'
+
+        output_path: Optional[Union[str, Path]]
+            The path to write the STAC collection to. If None, the STAC collection will be written to self.output_dir / 'stac'
+        item_assets: Optional[dict]
+            A dictionary containing pystac.extensions.item_assets.AssetDefinition objects to be added to the STAC collection
+            https://github.com/stac-extensions/item-assets
         """
         if output_path is None:
             output_path = self._output_dir / "stac"
@@ -288,16 +280,15 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._root_collection.license = constants.LICENSE
         self._root_collection.add_link(constants.LICENSE_LINK)
         self._root_collection.stac_extensions = constants.STAC_EXTENSIONS
+        self._root_collection.extra_fields["summaries"] = constants.SUMMARIES.get(
+            constellation, pystac.summaries.Summaries({})
+        ).to_dict()
 
-        datacube_extension = pystac.extensions.datacube.DatacubeExtension.ext(
-            self._root_collection, add_if_missing=True
-        )
-        datacube_extension.apply(constants.CUBE_DIMENSIONS)
-
-        item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(
-            self._root_collection, add_if_missing=True
-        )
-        item_asset_extension.item_assets = constants.ITEM_ASSETS
+        if item_assets:
+            item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(
+                self._root_collection, add_if_missing=True
+            )
+            item_asset_extension.item_assets = item_assets
 
         self._root_collection.update_extent_from_items()
         self._root_collection.normalize_hrefs(str(output_path))

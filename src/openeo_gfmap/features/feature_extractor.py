@@ -107,9 +107,47 @@ class PatchFeatureExtractor(FeatureExtractor):
             },
         )
 
+    def _rescale_s1_backscatter(self, arr: xr.DataArray) -> xr.DataArray:
+        """Rescales the input array from uint16 to float32 decibel values.
+        The input array should be in uint16 format, as this optimizes memory usage in Open-EO
+        processes. This function is called automatically on the bands of the input array, except
+        if the parameter `rescale_s1` is set to False.
+        """
+        s1_bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH", "S1-SIGMA0-HV", "S1-SIGMA0-HH"]
+        s1_bands_to_select = list(set(arr.bands.values) & set(s1_bands))
+
+        if len(s1_bands_to_select) == 0:
+            return arr
+
+        data_to_rescale = arr.sel(bands=s1_bands_to_select).astype(np.float32).data
+
+        # Assert that the values are set between 1 and 65535
+        if data_to_rescale.min().item() < 1 or data_to_rescale.max().item() > 65535:
+            raise ValueError(
+                "The input array should be in uint16 format, with values between 1 and 65535. "
+                "This restriction assures that the data was processed according to the S1 fetcher "
+                "preprocessor. The user can disable this scaling manually by setting the "
+                "`rescale_s1` parameter to False in the feature extractor."
+            )
+
+        # Converting back to power values
+        data_to_rescale = 20.0 * np.log10(data_to_rescale) - 83.0
+        data_to_rescale = np.power(10, data_to_rescale / 10.0)
+        data_to_rescale[~np.isfinite(data_to_rescale)] = np.nan
+
+        # Converting power values to decibels
+        data_to_rescale = 10.0 * np.log10(data_to_rescale)
+
+        # Change the bands within the array
+        arr.loc[dict(bands=s1_bands_to_select)] = data_to_rescale
+        return arr
+
     def _execute(self, cube: XarrayDataCube, parameters: dict) -> XarrayDataCube:
         arr = cube.get_array().transpose("bands", "t", "y", "x")
         arr = self._common_preparations(arr, parameters)
+        if self._parameters.get("rescale_s1", True):
+            arr = self._rescale_s1_backscatter(arr)
+
         arr = self.execute(arr).transpose("bands", "y", "x")
         return XarrayDataCube(arr)
 
@@ -191,7 +229,7 @@ def _get_apply_udf_data(feature_extractor: FeatureExtractor) -> str:
     return source.replace('"<feature_extractor_class>"', feature_extractor.__name__)
 
 
-def generate_udf_code(feature_extractor_class: FeatureExtractor) -> openeo.UDF:
+def _generate_udf_code(feature_extractor_class: FeatureExtractor) -> openeo.UDF:
     """Generates the udf code by packing imports of this file, the necessary
     superclass and subclasses as well as the user defined feature extractor
     class and the apply_datacube function.
@@ -233,7 +271,7 @@ def apply_feature_extractor(
     feature_extractor._parameters = parameters
     output_labels = feature_extractor.output_labels()
 
-    udf_code = generate_udf_code(feature_extractor_class)
+    udf_code = _generate_udf_code(feature_extractor_class)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 
@@ -244,7 +282,7 @@ def apply_feature_extractor(
 def apply_feature_extractor_local(
     feature_extractor_class: FeatureExtractor, cube: xr.DataArray, parameters: dict
 ) -> xr.DataArray:
-    """Applies and user-define feature extractor, but locally. The
+    """Applies and user-defined feature extractor, but locally. The
     parameters are the same as in the `apply_feature_extractor` function,
     excepts for the cube parameter which expects a `xarray.DataArray` instead of
     a `openeo.rest.datacube.DataCube` object.
@@ -253,7 +291,7 @@ def apply_feature_extractor_local(
     feature_extractor._parameters = parameters
     output_labels = feature_extractor.output_labels()
 
-    udf_code = generate_udf_code(feature_extractor_class)
+    udf_code = _generate_udf_code(feature_extractor_class)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 

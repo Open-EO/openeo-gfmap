@@ -57,9 +57,8 @@ def resample_reproject(
 
 def rename_bands(datacube: openeo.DataCube, mapping: dict) -> openeo.DataCube:
     """Rename the bands from the given mapping scheme"""
-    # Filter out bands that are not part of the datacube
-    print(datacube.dimension_labels("bands"))
 
+    # Filter out bands that are not part of the datacube
     def filter_condition(band_name, _):
         return band_name in datacube.metadata.band_names
 
@@ -128,13 +127,28 @@ def load_collection(
             properties=load_collection_parameters,
         )
 
+    # Adding the process graph updates for experimental features
+    if params.get("update_arguments") is not None:
+        cube.result_node().update_arguments(**params["update_arguments"])
+
     # Peforming pre-mask optimization
     pre_mask = params.get("pre_mask", None)
     if pre_mask is not None:
         assert isinstance(pre_mask, openeo.DataCube), (
             f"The 'pre_mask' parameter must be an openeo datacube, " f"got {pre_mask}."
         )
-        cube = cube.mask(pre_mask.resample_cube_spatial(cube))
+        cube = cube.mask(pre_mask)
+
+    # Merges additional bands continuing the operations.
+    pre_merge_cube = params.get("pre_merge", None)
+    if pre_merge_cube is not None:
+        assert isinstance(pre_merge_cube, openeo.DataCube), (
+            f"The 'pre_merge' parameter value must be an openeo datacube, "
+            f"got {pre_merge_cube}."
+        )
+        if pre_mask is not None:
+            pre_merge_cube = pre_merge_cube.mask(pre_mask)
+        cube = cube.merge_cubes(pre_merge_cube)
 
     if fetch_type == FetchType.POLYGON:
         if isinstance(spatial_extent, str):

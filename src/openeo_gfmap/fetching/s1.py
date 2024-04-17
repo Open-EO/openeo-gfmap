@@ -5,6 +5,7 @@ from typing import Callable
 
 import openeo
 from geojson import GeoJSON
+from openeo.processes import array_create, if_, is_nodata, power
 
 from openeo_gfmap.backend import Backend, BackendContext
 from openeo_gfmap.spatial import SpatialContext
@@ -76,7 +77,7 @@ def get_s1_grd_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
             **load_collection_parameters,
         )
 
-        if isinstance(spatial_extent, GeoJSON):
+        if fetch_type is not FetchType.POINT and isinstance(spatial_extent, GeoJSON):
             cube = cube.filter_spatial(spatial_extent)
 
         return cube
@@ -84,7 +85,9 @@ def get_s1_grd_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
     return s1_grd_fetch_default
 
 
-def get_s1_grd_default_processor(collection_name: str, fetch_type: FetchType) -> Callable:
+def get_s1_grd_default_processor(
+    collection_name: str, fetch_type: FetchType, backend: Backend
+) -> Callable:
     """Builds the preprocessing function from the collection name as it is stored
     in the target backend.
     """
@@ -110,10 +113,18 @@ def get_s1_grd_default_processor(collection_name: str, fetch_type: FetchType) ->
             local_incidence_angle=False,
         )
 
-        cube = resample_reproject(
-            cube, params.get("target_resolution", 10.0), params.get("target_crs", None)
-        )
+        # Reproject collection data to target CRS and resolution, if specified so.
+        # Can be disabled by setting target_resolution=None in the parameters
+        if params.get("target_resolution", True) is not None:
+            cube = resample_reproject(
+                cube, params.get("target_resolution", 10.0), params.get("target_crs", None)
+            )
+        elif params.get("target_crs") is not None:
+            raise ValueError(
+                "In fetching parameters: `target_crs` specified but not `target_resolution`, which is required to perform reprojection."
+            )
 
+        # Harmonizing the collection band names to the default GFMAP band names
         cube = rename_bands(cube, BASE_SENTINEL1_GRD_MAPPING)
 
         return cube
@@ -124,15 +135,25 @@ def get_s1_grd_default_processor(collection_name: str, fetch_type: FetchType) ->
 SENTINEL1_GRD_BACKEND_MAP = {
     Backend.TERRASCOPE: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
-        "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
+        "preprocessor": partial(
+            get_s1_grd_default_processor,
+            collection_name="SENTINEL1_GRD",
+            backend=Backend.TERRASCOPE,
+        ),
     },
     Backend.CDSE: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
-        "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
+        "preprocessor": partial(
+            get_s1_grd_default_processor, collection_name="SENTINEL1_GRD", backend=Backend.CDSE
+        ),
     },
     Backend.CDSE_STAGING: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
-        "preprocessor": partial(get_s1_grd_default_processor, collection_name="SENTINEL1_GRD"),
+        "preprocessor": partial(
+            get_s1_grd_default_processor,
+            collection_name="SENTINEL1_GRD",
+            backend=Backend.CDSE_STAGING,
+        ),
     },
 }
 

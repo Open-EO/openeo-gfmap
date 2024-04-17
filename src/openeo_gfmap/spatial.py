@@ -26,7 +26,7 @@ class BoundingBoxExtent:
             "south": self.south,
             "east": self.east,
             "north": self.north,
-            "crs": self.epsg,
+            "crs": f"EPSG:{self.epsg}",
         }
 
     def __iter__(self):
@@ -36,12 +36,15 @@ class BoundingBoxExtent:
                 ("south", self.south),
                 ("east", self.east),
                 ("north", self.north),
-                ("crs", self.epsg),
+                ("crs", f"EPSG:{self.epsg}"),
             ]
         )
 
     def to_geometry(self) -> Polygon:
         return box(self.west, self.south, self.east, self.north)
+    
+    def to_geojson(self) -> GeoJSON:
+        return self.to_geometry().__geo_interface__
 
 
 SpatialContext = Union[GeoJSON, BoundingBoxExtent, str]
