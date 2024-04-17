@@ -5,7 +5,6 @@ from typing import Callable
 
 import openeo
 from geojson import GeoJSON
-from openeo.processes import array_create, if_, is_nodata, power
 
 from openeo_gfmap.backend import Backend, BackendContext
 from openeo_gfmap.spatial import SpatialContext

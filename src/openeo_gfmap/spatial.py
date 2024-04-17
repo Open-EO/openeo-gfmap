@@ -42,7 +42,7 @@ class BoundingBoxExtent:
 
     def to_geometry(self) -> Polygon:
         return box(self.west, self.south, self.east, self.north)
-    
+
     def to_geojson(self) -> GeoJSON:
         return self.to_geometry().__geo_interface__
 

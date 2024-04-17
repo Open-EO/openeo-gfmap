@@ -12,7 +12,6 @@ from openeo_gfmap.backend import (
     BackendContext,
     cdse_connection,
 )
-from openeo_gfmap.preprocessing.sar import compress_backscatter_uint16
 from openeo_gfmap.features import (
     PatchFeatureExtractor,
     apply_feature_extractor,
@@ -22,6 +21,7 @@ from openeo_gfmap.fetching import (
     build_sentinel1_grd_extractor,
     build_sentinel2_l2a_extractor,
 )
+from openeo_gfmap.preprocessing.sar import compress_backscatter_uint16
 
 SPATIAL_CONTEXT = BoundingBoxExtent(
     west=4.261,

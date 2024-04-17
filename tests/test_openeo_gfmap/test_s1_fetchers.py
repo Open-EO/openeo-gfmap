@@ -21,9 +21,7 @@ from openeo_gfmap.fetching import (
     FetchType,
     build_sentinel1_grd_extractor,
 )
-from openeo_gfmap.preprocessing.sar import (
-    compress_backscatter_uint16
-)
+from openeo_gfmap.preprocessing.sar import compress_backscatter_uint16
 from openeo_gfmap.utils import (
     array_bounds,
     arrays_cosine_similarity,
