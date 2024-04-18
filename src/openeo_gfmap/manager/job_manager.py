@@ -38,6 +38,10 @@ class GFMAPJobManager(MultiBackendJobManager):
     ):
         self._output_dir = output_dir
 
+        self.stac = stac
+        self.collection_id = collection_id
+        self.collection_description = collection_description
+
         # Setup the threads to work on the on_job_done and on_job_error methods
         self._n_threads = n_threads
         self._executor = None  # Will be set in run_jobs, is a threadpool executor
@@ -52,17 +56,24 @@ class GFMAPJobManager(MultiBackendJobManager):
         MultiBackendJobManager._normalize_df = self._normalize_df
         super().__init__(poll_sleep)
 
-        if stac is not None:
-            self._root_collection = pystac.read_file(str(stac))
+        self._root_collection = self._normalize_stac()
+
+    def _normalize_stac(self):
+        if self.stac is not None:
+            root_collection = pystac.read_file(str(self.stac))
         else:
-            assert collection_id is not None, "A collection ID is required to generate a STAC collection."
-            # Generate the root STAC collection
-            self._root_collection = pystac.Collection(
-                id=collection_id,
-                description=collection_description,
+            assert self.collection_id is not None, "A collection ID is required to generate a STAC collection."
+            root_collection = pystac.Collection(
+                id=self.collection_id,
+                description=self.collection_description,
                 extent=None,
             )
-
+            root_collection.license = constants.LICENSE
+            root_collection.add_link(constants.LICENSE_LINK)
+            root_collection.stac_extensions = constants.STAC_EXTENSIONS
+        
+        return root_collection
+    
     def _update_statuses(self, df: pd.DataFrame):
         """Updates the statues of the jobs in the dataframe from the backend. If a job is finished
         or failed, it will be queued to the `on_job_done` or `on_job_error` methods.
@@ -283,14 +294,12 @@ class GFMAPJobManager(MultiBackendJobManager):
         if output_path is None:
             output_path = self._output_dir / "stac"
 
-        self._root_collection.license = constants.LICENSE
-        self._root_collection.add_link(constants.LICENSE_LINK)
-        self._root_collection.stac_extensions = constants.STAC_EXTENSIONS
-        self._root_collection.extra_fields["summaries"] = constants.SUMMARIES.get(
-            constellation, pystac.summaries.Summaries({})
-        ).to_dict()
+        if not "summaries" in self._root_collection.extra_fields:
+            self._root_collection.extra_fields["summaries"] = constants.SUMMARIES.get(
+                constellation, pystac.summaries.Summaries({})
+            ).to_dict()
 
-        if item_assets:
+        if item_assets and not 'item_assets' in self._root_collection.extra_fields:
             item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(
                 self._root_collection, add_if_missing=True
             )
