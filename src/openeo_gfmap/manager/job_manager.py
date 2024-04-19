@@ -30,7 +30,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         output_path_generator: Callable,
         collection_id: Optional[str] = None,
         collection_description: Optional[str] = "",
-        stac : Optional[Union[str, Path]] = None,
+        stac: Optional[Union[str, Path]] = None,
         post_job_action: Optional[Callable] = None,
         poll_sleep: int = 5,
         n_threads: int = 1,
@@ -62,7 +62,9 @@ class GFMAPJobManager(MultiBackendJobManager):
         if self.stac is not None:
             root_collection = pystac.read_file(str(self.stac))
         else:
-            assert self.collection_id is not None, "A collection ID is required to generate a STAC collection."
+            assert (
+                self.collection_id is not None
+            ), "A collection ID is required to generate a STAC collection."
             root_collection = pystac.Collection(
                 id=self.collection_id,
                 description=self.collection_description,
@@ -71,9 +73,9 @@ class GFMAPJobManager(MultiBackendJobManager):
             root_collection.license = constants.LICENSE
             root_collection.add_link(constants.LICENSE_LINK)
             root_collection.stac_extensions = constants.STAC_EXTENSIONS
-        
+
         return root_collection
-    
+
     def _update_statuses(self, df: pd.DataFrame):
         """Updates the statues of the jobs in the dataframe from the backend. If a job is finished
         or failed, it will be queued to the `on_job_done` or `on_job_error` methods.
@@ -294,12 +296,12 @@ class GFMAPJobManager(MultiBackendJobManager):
         if output_path is None:
             output_path = self._output_dir / "stac"
 
-        if not "summaries" in self._root_collection.extra_fields:
+        if "summaries" not in self._root_collection.extra_fields:
             self._root_collection.extra_fields["summaries"] = constants.SUMMARIES.get(
                 constellation, pystac.summaries.Summaries({})
             ).to_dict()
 
-        if item_assets and not 'item_assets' in self._root_collection.extra_fields:
+        if item_assets and "item_assets" not in self._root_collection.extra_fields:
             item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(
                 self._root_collection, add_if_missing=True
             )
