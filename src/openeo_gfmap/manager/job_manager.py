@@ -59,9 +59,18 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._root_collection = self._normalize_stac()
 
     def _normalize_stac(self):
+        default_collection_path = self._output_dir / "stac/collection.json"
         if self.stac is not None:
+            _log.info(f"Reloading the STAC collection from the provided path: {self.stac}.")
+            root_collection = pystac.read_file(str(self.stac))
+        elif default_collection_path.exists():
+            _log.info(
+                f"Reload the STAC collection from the default path: {default_collection_path}."
+            )
+            self.stac = default_collection_path
             root_collection = pystac.read_file(str(self.stac))
         else:
+            _log.info("Starting a fresh STAC collection.")
             assert (
                 self.collection_id is not None
             ), "A collection ID is required to generate a STAC collection."
