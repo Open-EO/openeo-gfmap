@@ -14,6 +14,17 @@ from openeo_gfmap.manager import _log
 from openeo_gfmap.stac import constants
 
 
+def done_callback(future, df, idx):
+    """Sets the status of the job to the given status when the future is done."""
+    current_status = df.loc[idx, "status"]
+    if not future.exception():
+        if current_status == "postprocessing":
+            df.loc[idx, "status"] = "finished"
+        elif current_status == "postprocessing-error":
+            df.loc[idx, "status"] = "error"
+        else:
+            raise ValueError(f"Invalid status {current_status} for job {df.loc[idx, 'id']} for done_callback!")
+
 class PostJobStatus(Enum):
     """Indicates the workers if the job finished as sucessful or with an error."""
 
@@ -34,6 +45,8 @@ class GFMAPJobManager(MultiBackendJobManager):
         poll_sleep: int = 5,
         n_threads: int = 1,
         post_job_params: dict = {},
+        resume_postproc: bool = True,  # If we need to check for post-job actions that crashed
+        restart_failed: bool = True,  # If we need to restart failed jobs
     ):
         self._output_dir = output_dir
 
@@ -41,6 +54,8 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._n_threads = n_threads
         self._executor = None  # Will be set in run_jobs, is a threadpool executor
         self._futures = []
+        self._to_resume_postproc = resume_postproc  # If we need to check for post-job actions that crashed
+        self._to_restart_failed = restart_failed  # If we need to restart failed jobs
 
         self._output_path_gen = output_path_generator
         self._post_job_action = post_job_action
@@ -58,12 +73,68 @@ class GFMAPJobManager(MultiBackendJobManager):
             extent=None,
         )
 
+    def _clear_queued_actions(self):
+        """Checks if the post-job actions are finished and clears them from the list of futures.
+        If an exception occured, it is raised to the GFMAPJobManage main thread.
+        """
+        # Checking if any post-job action has finished or not
+        futures_to_clear = []
+        for future in self._futures:
+            if future.done():
+                exception = future.exception(timeout=1.0)
+                if exception:
+                    raise exception
+                futures_to_clear.append(future)
+        for future in futures_to_clear:
+            self._futures.remove(future)
+
+    def _wait_queued_actions(self):
+        """Waits for all the queued actions to finish."""
+        for future in self._futures:
+            # Wait for the future to finish and get the potential exception
+            exception = future.exception(timeout=None)
+            if exception:
+                raise exception
+
+    def _resume_postprocessing(self, df: pd.DataFrame):
+        """Resumes the jobs that were in the `postprocessing` or `postprocessing-error` state, as
+        they most likely crashed before finishing their post-job action.
+
+        df: pd.DataFrame
+            The job-tracking dataframe initialized or loaded by the multibackend job manager.
+        """
+        postprocessing_tasks = df[df.status.isin(["postprocessing", "postprocessing-error"])]
+        for idx, row in postprocessing_tasks.iterrows():
+            connection = self._get_connection(row.backend_name)
+            job = connection.job(row.id)
+            if row.status == "postprocessing":
+                _log.info(f"Resuming postprocessing of job {row.id}, queueing on_job_finished...")
+                future = self._executor.submit(self.on_job_done, job, row)
+                future.add_done_callback(
+                    done_callback(future, df, idx)
+                )
+            else:
+                _log.info(f"Resuming postprocessing of job {row.id}, queueing on_job_failed...")
+                future = self._executor.submit(self.on_job_error, job, row)
+                future.add_done_callback(
+                    done_callback(future, df, idx)
+                )
+            self._futures.append(future)
+
     def _update_statuses(self, df: pd.DataFrame):
         """Updates the statues of the jobs in the dataframe from the backend. If a job is finished
         or failed, it will be queued to the `on_job_done` or `on_job_error` methods.
 
         The method is executed every `poll_sleep` seconds.
         """
+        if not self._to_restart_failed:  # Make sure it runs only the first time
+            df[df.status == "error"].status = "not_started"
+            self._to_restart_failed = False
+
+        if not self._to_resume_postproc:  # Make sure it runs only the first time
+            self._resume_postprocessing(df)
+            self._to_resume_postproc = False
+
         active = df[df.status.isin(["created", "queued", "running"])]
         for idx, row in active.iterrows():
             # Parses the backend from the csv
@@ -81,26 +152,31 @@ class GFMAPJobManager(MultiBackendJobManager):
                 job_metadata["status"] == "finished"
             ):
                 _log.info(f"Job {job.job_id} finished successfully, queueing on_job_done...")
-                self._futures.append(self._executor.submit(self.on_job_done, job, row))
+                job_status = "postprocessing"
+                future = self._executor.submit(self.on_job_done, job, row)
+                # Future will setup the status to finished when the job is done
+                future.add_done_callback(lambda future: done_callback(
+                    future, df, idx
+                ))
+                self._futures.append(future)
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
             # Case in which it failed
             if (df.loc[idx, "status"] != "error") and (job_metadata["status"] == "error"):
                 _log.info(f"Job {job.job_id} finished with error, queueing on_job_error...")
-                self._futures.append(self._executor.submit(self.on_job_error, job, row))
+                job_status = "postprocessing-error"
+                future = self._executor.submit(self.on_job_done, job, row)
+                # Future will setup the status to error when the job is done
+                future.add_done_callback(lambda future: done_callback(
+                    future, df, idx
+                ))
+                self._futures.append(future)
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
             df.loc[idx, "status"] = job_status
 
-        futures_to_clear = []
-        for future in self._futures:
-            if future.done():
-                exception = future.exception(timeout=1.0)
-                if exception:
-                    raise exception
-                futures_to_clear.append(future)
-        for future in futures_to_clear:
-            self._futures.remove(future)
+        # Clear the futures that are done and raise their potential exceptions if they occurred.
+        self._clear_queued_actions()
 
     def on_job_error(self, job: BatchJob, row: pd.Series):
         """Method called when a job finishes with an error.
@@ -248,6 +324,9 @@ class GFMAPJobManager(MultiBackendJobManager):
             _log.info("Creating and running jobs.")
             self._executor = executor
             super().run_jobs(df, start_job, output_file)
+            _log.info("Quitting job tracking & waiting for last post-job actions to finish.")
+            self._wait_queued_actions()
+            _log.info("Exiting ThreadPoolExecutor.")
             self._executor = None
 
     def create_stac(
