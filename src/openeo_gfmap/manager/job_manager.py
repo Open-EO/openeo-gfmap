@@ -39,8 +39,9 @@ class GFMAPJobManager(MultiBackendJobManager):
         self,
         output_dir: Path,
         output_path_generator: Callable,
-        collection_id: str,
-        collection_description: str = "",
+        collection_id: Optional[str] = None,
+        collection_description: Optional[str] = "",
+        stac: Optional[Union[str, Path]] = None,
         post_job_action: Optional[Callable] = None,
         poll_sleep: int = 5,
         n_threads: int = 1,
@@ -49,6 +50,10 @@ class GFMAPJobManager(MultiBackendJobManager):
         restart_failed: bool = True,  # If we need to restart failed jobs
     ):
         self._output_dir = output_dir
+
+        self.stac = stac
+        self.collection_id = collection_id
+        self.collection_description = collection_description
 
         # Setup the threads to work on the on_job_done and on_job_error methods
         self._n_threads = n_threads
@@ -66,12 +71,34 @@ class GFMAPJobManager(MultiBackendJobManager):
         MultiBackendJobManager._normalize_df = self._normalize_df
         super().__init__(poll_sleep)
 
-        # Generate the root STAC collection
-        self._root_collection = pystac.Collection(
-            id=collection_id,
-            description=collection_description,
-            extent=None,
-        )
+        self._root_collection = self._normalize_stac()
+
+    def _normalize_stac(self):
+        default_collection_path = self._output_dir / "stac/collection.json"
+        if self.stac is not None:
+            _log.info(f"Reloading the STAC collection from the provided path: {self.stac}.")
+            root_collection = pystac.read_file(str(self.stac))
+        elif default_collection_path.exists():
+            _log.info(
+                f"Reload the STAC collection from the default path: {default_collection_path}."
+            )
+            self.stac = default_collection_path
+            root_collection = pystac.read_file(str(self.stac))
+        else:
+            _log.info("Starting a fresh STAC collection.")
+            assert (
+                self.collection_id is not None
+            ), "A collection ID is required to generate a STAC collection."
+            root_collection = pystac.Collection(
+                id=self.collection_id,
+                description=self.collection_description,
+                extent=None,
+            )
+            root_collection.license = constants.LICENSE
+            root_collection.add_link(constants.LICENSE_LINK)
+            root_collection.stac_extensions = constants.STAC_EXTENSIONS
+
+        return root_collection
 
     def _clear_queued_actions(self):
         """Checks if the post-job actions are finished and clears them from the list of futures.
@@ -233,14 +260,15 @@ class GFMAPJobManager(MultiBackendJobManager):
         for item_metadata in job_metadata.get_all_items():
             try:
                 item = pystac.read_file(item_metadata.get_self_href())
-                asset_path = job_products[f"{job.job_id}_{item.id}"][0]
+                asset_name = list(item.assets.values())[0].title
+                asset_path = job_products[f"{job.job_id}_{asset_name}"][0]
 
                 assert len(item.assets.values()) == 1, "Each item should only contain one asset"
                 for asset in item.assets.values():
                     asset.href = str(
                         asset_path
                     )  # Update the asset href to the output location set by the output_path_generator
-                item.id = f"{job.job_id}_{item.id}"
+                # item.id = f"{job.job_id}_{item.id}"
                 # Add the item to the the current job items.
                 job_items.append(item)
                 _log.info(f"Parsed item {item.id} from job {job.job_id}")
@@ -356,14 +384,12 @@ class GFMAPJobManager(MultiBackendJobManager):
         if output_path is None:
             output_path = self._output_dir / "stac"
 
-        self._root_collection.license = constants.LICENSE
-        self._root_collection.add_link(constants.LICENSE_LINK)
-        self._root_collection.stac_extensions = constants.STAC_EXTENSIONS
-        self._root_collection.extra_fields["summaries"] = constants.SUMMARIES.get(
-            constellation, pystac.summaries.Summaries({})
-        ).to_dict()
+        if "summaries" not in self._root_collection.extra_fields:
+            self._root_collection.extra_fields["summaries"] = constants.SUMMARIES.get(
+                constellation, pystac.summaries.Summaries({})
+            ).to_dict()
 
-        if item_assets:
+        if item_assets and "item_assets" not in self._root_collection.extra_fields:
             item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(
                 self._root_collection, add_if_missing=True
             )
