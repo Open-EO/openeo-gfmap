@@ -23,7 +23,10 @@ def done_callback(future, df, idx):
         elif current_status == "postprocessing-error":
             df.loc[idx, "status"] = "error"
         else:
-            raise ValueError(f"Invalid status {current_status} for job {df.loc[idx, 'id']} for done_callback!")
+            raise ValueError(
+                f"Invalid status {current_status} for job {df.loc[idx, 'id']} for done_callback!"
+            )
+
 
 class PostJobStatus(Enum):
     """Indicates the workers if the job finished as sucessful or with an error."""
@@ -47,7 +50,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         n_threads: int = 1,
         post_job_params: dict = {},
         resume_postproc: bool = True,  # If we need to check for post-job actions that crashed
-        restart_failed: bool = True,  # If we need to restart failed jobs
+        restart_failed: bool = False,  # If we need to restart failed jobs
     ):
         self._output_dir = output_dir
 
@@ -59,7 +62,9 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._n_threads = n_threads
         self._executor = None  # Will be set in run_jobs, is a threadpool executor
         self._futures = []
-        self._to_resume_postproc = resume_postproc  # If we need to check for post-job actions that crashed
+        self._to_resume_postjob = (
+            resume_postproc  # If we need to check for post-job actions that crashed
+        )
         self._to_restart_failed = restart_failed  # If we need to restart failed jobs
 
         self._output_path_gen = output_path_generator
@@ -123,7 +128,7 @@ class GFMAPJobManager(MultiBackendJobManager):
             if exception:
                 raise exception
 
-    def _resume_postprocessing(self, df: pd.DataFrame):
+    def _resume_postjob_actions(self, df: pd.DataFrame):
         """Resumes the jobs that were in the `postprocessing` or `postprocessing-error` state, as
         they most likely crashed before finishing their post-job action.
 
@@ -137,15 +142,11 @@ class GFMAPJobManager(MultiBackendJobManager):
             if row.status == "postprocessing":
                 _log.info(f"Resuming postprocessing of job {row.id}, queueing on_job_finished...")
                 future = self._executor.submit(self.on_job_done, job, row)
-                future.add_done_callback(
-                    done_callback(future, df, idx)
-                )
+                future.add_done_callback(done_callback(future, df, idx))
             else:
                 _log.info(f"Resuming postprocessing of job {row.id}, queueing on_job_failed...")
                 future = self._executor.submit(self.on_job_error, job, row)
-                future.add_done_callback(
-                    done_callback(future, df, idx)
-                )
+                future.add_done_callback(done_callback(future, df, idx))
             self._futures.append(future)
 
     def _update_statuses(self, df: pd.DataFrame):
@@ -158,9 +159,9 @@ class GFMAPJobManager(MultiBackendJobManager):
             df[df.status == "error"].status = "not_started"
             self._to_restart_failed = False
 
-        if not self._to_resume_postproc:  # Make sure it runs only the first time
-            self._resume_postprocessing(df)
-            self._to_resume_postproc = False
+        if not self._to_resume_postjob:  # Make sure it runs only the first time
+            self._resume_postjob_actions(df)
+            self._to_resume_postjob = False
 
         active = df[df.status.isin(["created", "queued", "running"])]
         for idx, row in active.iterrows():
@@ -182,9 +183,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                 job_status = "postprocessing"
                 future = self._executor.submit(self.on_job_done, job, row)
                 # Future will setup the status to finished when the job is done
-                future.add_done_callback(lambda future: done_callback(
-                    future, df, idx
-                ))
+                future.add_done_callback(lambda future: done_callback(future, df, idx))
                 self._futures.append(future)
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
@@ -194,9 +193,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                 job_status = "postprocessing-error"
                 future = self._executor.submit(self.on_job_done, job, row)
                 # Future will setup the status to error when the job is done
-                future.add_done_callback(lambda future: done_callback(
-                    future, df, idx
-                ))
+                future.add_done_callback(lambda future: done_callback(future, df, idx))
                 self._futures.append(future)
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
