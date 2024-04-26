@@ -191,7 +191,7 @@ class GFMAPJobManager(MultiBackendJobManager):
             if (df.loc[idx, "status"] != "error") and (job_metadata["status"] == "error"):
                 _log.info(f"Job {job.job_id} finished with error, queueing on_job_error...")
                 job_status = "postprocessing-error"
-                future = self._executor.submit(self.on_job_done, job, row)
+                future = self._executor.submit(self.on_job_error, job, row)
                 # Future will setup the status to error when the job is done
                 future.add_done_callback(lambda future: done_callback(future, df, idx))
                 self._futures.append(future)
