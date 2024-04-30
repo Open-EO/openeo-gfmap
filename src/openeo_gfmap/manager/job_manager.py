@@ -297,6 +297,10 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._root_collection.add_items(job_items)
         _log.info(f"Added {len(job_items)} items to the STAC collection.")
 
+        _log.info(f"Writing STAC collection for {job.job_id} to file...")
+        self._write_stac()
+        _log.info(f"Wrote STAC collection for {job.job_id} to file.")
+
         _log.info(f"Job {job.job_id} and post job action finished successfully.")
 
     def _normalize_df(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -364,14 +368,23 @@ class GFMAPJobManager(MultiBackendJobManager):
             _log.info("Exiting ThreadPoolExecutor.")
             self._executor = None
 
-    def create_stac(
+    def _write_stac(self):
+        """Writes the STAC collection to the output directory."""
+        if not self._root_collection.get_self_href():
+            self._root_collection.set_self_href(str(self._output_dir / "stac"))
+
+        self._root_collection.update_extent_from_items()
+        self._root_collection.normalize_hrefs(str(self._root_collection.self_href))
+        self._root_collection.save(catalog_type=CatalogType.SELF_CONTAINED)
+
+    def setup_stac(
         self,
         constellation: Optional[str] = None,
         output_path: Optional[Union[str, Path]] = None,
         item_assets: Optional[dict] = None,
     ):
-        """Method to be called after run_jobs to create a STAC collection
-        and write it to self._output_dir
+        """Method to be called after run_jobs to setup details of the STAC collection
+        such as the constellation, root directory and item assets extensions.
 
         Parameters
         ----------
@@ -388,10 +401,10 @@ class GFMAPJobManager(MultiBackendJobManager):
             A dictionary containing pystac.extensions.item_assets.AssetDefinition objects to be added to the STAC collection
             https://github.com/stac-extensions/item-assets
         """
-        if output_path is None:
-            output_path = self._output_dir / "stac"
+        if output_path:
+            self._root_collection.set_self_href(str(output_path))
 
-        if "summaries" not in self._root_collection.extra_fields:
+        if constellation and "summaries" not in self._root_collection.extra_fields:
             self._root_collection.extra_fields["summaries"] = constants.SUMMARIES.get(
                 constellation, pystac.summaries.Summaries({})
             ).to_dict()
@@ -401,7 +414,3 @@ class GFMAPJobManager(MultiBackendJobManager):
                 self._root_collection, add_if_missing=True
             )
             item_asset_extension.item_assets = item_assets
-
-        self._root_collection.update_extent_from_items()
-        self._root_collection.normalize_hrefs(str(output_path))
-        self._root_collection.save(catalog_type=CatalogType.SELF_CONTAINED)
