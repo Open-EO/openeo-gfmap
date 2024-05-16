@@ -47,7 +47,7 @@ def get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callable
     ) -> openeo.DataCube:
         bands = convert_band_names(bands, BASE_MAPPING)
 
-        if collection_name == "COPERNICUS_30":
+        if (collection_name == "COPERNICUS_30") and (temporal_extent is not None):
             _log.warning("User set-up non None temporal extent for DEM collection. Ignoring it.")
             temporal_extent = None
 
@@ -86,7 +86,7 @@ def get_generic_processor(collection_name: str, fetch_type: FetchType) -> Callab
         This method renames bands and removes the time dimension in case the
         requested dataset is DEM
         """
-        if params.get("target_resolution", True) is not None:
+        if params.get("target_resolution", None) is not None:
             cube = resample_reproject(
                 cube,
                 params.get("target_resolution", 10.0),

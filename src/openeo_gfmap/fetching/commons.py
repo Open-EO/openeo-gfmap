@@ -130,7 +130,7 @@ def load_collection(
             raise ValueError("Please provide a valid URL to a GeoParquet or GeoJSON file.")
         cube = connection.load_collection(
             collection_id=collection_name,
-            temporal_extent=[temporal_extent.start_date, temporal_extent.end_date],
+            temporal_extent=temporal_extent,
             bands=bands,
             properties=load_collection_parameters,
         )
