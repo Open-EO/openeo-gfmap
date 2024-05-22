@@ -1,7 +1,7 @@
 import json
-from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
+from functools import partial
 from pathlib import Path
 from typing import Callable, Optional, Union
 
