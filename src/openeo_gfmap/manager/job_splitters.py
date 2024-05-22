@@ -11,7 +11,7 @@ import requests
 from openeo_gfmap.manager import _log
 
 
-def _load_s2_grid() -> gpd.GeoDataFrame:
+def load_s2_grid() -> gpd.GeoDataFrame:
     """Returns a geo data frame from the S2 grid."""
     # Builds the path where the geodataframe should be
     gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_bounds.geojson"
@@ -60,7 +60,7 @@ def split_job_s2grid(polygons: gpd.GeoDataFrame, max_points: int = 500) -> List[
         polygons["geometry"] = polygons.geometry.centroid
 
     # Dataset containing all the S2 tiles, find the nearest S2 tile for each point
-    s2_grid = _load_s2_grid()
+    s2_grid = load_s2_grid()
     s2_grid["geometry"] = s2_grid.geometry.centroid
 
     polygons = gpd.sjoin_nearest(polygons, s2_grid[["tile", "geometry"]]).drop(
@@ -77,7 +77,7 @@ def split_job_s2grid(polygons: gpd.GeoDataFrame, max_points: int = 500) -> List[
     return split_datasets
 
 
-def _append_h3_index(polygons: gpd.GeoDataFrame, grid_resolution: int = 3) -> gpd.GeoDataFrame:
+def append_h3_index(polygons: gpd.GeoDataFrame, grid_resolution: int = 3) -> gpd.GeoDataFrame:
     """Append the H3 index to the polygons."""
     if polygons.geometry.geom_type[0] != "Point":
         geom_col = polygons.geometry.centroid
@@ -122,7 +122,7 @@ def split_job_hex(
     polygons = polygons.to_crs(epsg=4326)
 
     # Split the polygons into multiple jobs
-    polygons = _append_h3_index(polygons, grid_resolution)
+    polygons = append_h3_index(polygons, grid_resolution)
 
     split_datasets = []
     for _, sub_gdf in polygons.groupby("h3index"):
