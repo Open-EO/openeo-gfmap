@@ -1,4 +1,5 @@
 import json
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from functools import partial
@@ -13,6 +14,9 @@ from pystac import CatalogType
 
 from openeo_gfmap.manager import _log
 from openeo_gfmap.stac import constants
+
+# Lock to use when writing to the STAC collection
+_stac_lock = threading.Lock()
 
 
 def done_callback(future, df, idx):
@@ -295,12 +299,22 @@ class GFMAPJobManager(MultiBackendJobManager):
             job_items = self._post_job_action(job_items, row, self._post_job_params)
 
         _log.info(f"Adding {len(job_items)} items to the STAC collection...")
-        self._root_collection.add_items(job_items)
-        _log.info(f"Added {len(job_items)} items to the STAC collection.")
 
-        _log.info(f"Writing STAC collection for {job.job_id} to file...")
-        self._write_stac()
-        _log.info(f"Wrote STAC collection for {job.job_id} to file.")
+        with _stac_lock:  # Take the STAC lock to avoid concurrence issues
+            # Filters the job items to only keep the ones that are not already in the collection
+            existing_ids = [item.id for item in self._root_collection.get_all_items()]
+            job_items = [item for item in job_items if item.id not in existing_ids]
+
+            self._root_collection.add_items(job_items)
+            _log.info(f"Added {len(job_items)} items to the STAC collection.")
+
+            _log.info(f"Writing STAC collection for {job.job_id} to file...")
+            try:
+                self._write_stac()
+            except Exception as e:
+                _log.exception(f"Error writing STAC collection for job {job.job_id} to file.", e)
+                raise e
+            _log.info(f"Wrote STAC collection for {job.job_id} to file.")
 
         _log.info(f"Job {job.job_id} and post job action finished successfully.")
 
@@ -375,7 +389,13 @@ class GFMAPJobManager(MultiBackendJobManager):
             self._root_collection.set_self_href(str(self._output_dir / "stac"))
 
         self._root_collection.update_extent_from_items()
-        self._root_collection.normalize_hrefs(str(self._root_collection.self_href))
+
+        # Setups the root path for the normalization
+        root_path = Path(self._root_collection.self_href)
+        if root_path.is_file():
+            root_path = root_path.parent
+
+        self._root_collection.normalize_hrefs(str(root_path))
         self._root_collection.save(catalog_type=CatalogType.SELF_CONTAINED)
 
     def setup_stac(
