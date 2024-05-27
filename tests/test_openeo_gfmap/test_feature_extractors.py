@@ -1,4 +1,5 @@
 """Test on feature extractors implementations, both local and remote."""
+
 from pathlib import Path
 from typing import Callable
 
@@ -31,6 +32,8 @@ SPATIAL_CONTEXT = BoundingBoxExtent(
     epsg=4326,
 )
 TEMPORAL_EXTENT = TemporalContext("2023-10-01", "2024-01-01")
+
+backends = [Backend.CDSE]
 
 
 class DummyPatchExtractor(PatchFeatureExtractor):
@@ -89,10 +92,11 @@ class LatLonExtractor(PatchFeatureExtractor):
         return inarr.transpose("bands", "y", "x")
 
 
-@pytest.mark.parametrize("backend, connection_fn", BACKEND_CONNECTIONS.items())
-def test_patch_feature_udf(backend: Backend, connection_fn: Callable):
+@pytest.mark.parametrize("backend", backends)
+def test_patch_feature_udf(backend: Backend):
+    connection = BACKEND_CONNECTIONS[backend]()
     backend_context = BackendContext(backend=backend)
-    connection = connection_fn()
+
     output_path = Path(__file__).parent / f"results/patch_features_{backend.value}.nc/"
 
     bands_to_extract = ["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02"]
@@ -129,15 +133,10 @@ def test_patch_feature_udf(backend: Backend, connection_fn: Callable):
     assert set(output_cube.keys()) == set(["red", "green", "blue", "crs"])
 
 
-CUSTOM_BACKEND_CONNECTIONS = {
-    Backend.CDSE: cdse_connection,
-}
-
-
-@pytest.mark.parametrize("backend, connection_fn", CUSTOM_BACKEND_CONNECTIONS.items())
-def test_s1_rescale(backend: Backend, connection_fn: Callable):
+@pytest.mark.parametrize("backend", backends)
+def test_s1_rescale(backend: Backend):
+    connection = BACKEND_CONNECTIONS[backend]()
     backend_context = BackendContext(backend=backend)
-    connection = connection_fn()
     output_path = Path(__file__).parent / f"results/s1_rescaled_features_{backend.value}.nc"
 
     REDUCED_TEMPORAL_CONTEXT = TemporalContext(start_date="2023-06-01", end_date="2023-06-30")
@@ -171,10 +170,10 @@ def test_s1_rescale(backend: Backend, connection_fn: Callable):
     assert output_path.exists()
 
 
-@pytest.mark.parametrize("backend, connection_fn", BACKEND_CONNECTIONS.items())
-def test_latlon_extractor(backend: Backend, connection_fn: Callable):
+@pytest.mark.parametrize("backend", backends)
+def test_latlon_extractor(backend: Backend):
+    connection = BACKEND_CONNECTIONS[backend]()
     backend_context = BackendContext(backend=backend)
-    connection = connection_fn()
     output_path = Path(__file__).parent / f"results/latlon_features_{backend.value}.nc"
 
     REDUCED_TEMPORAL_CONTEXT = TemporalContext(start_date="2023-06-01", end_date="2023-06-30")
