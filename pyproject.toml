@@ -30,6 +30,7 @@ classifiers = [
 ]
 dependencies = [
     "geojson>=3.0.0",
+    "geopandas",
     "h5netcdf>=1.2.0",
     "openeo",
     "onnxruntime>=1.16.3",
