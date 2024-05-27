@@ -31,7 +31,7 @@ classifiers = [
 dependencies = [
     "geojson>=3.0.0",
     "h5netcdf>=1.2.0",
-    "openeo[localprocessing]",
+    "openeo",
     "onnxruntime>=1.16.3",
     "cftime",
     "pyarrow",
