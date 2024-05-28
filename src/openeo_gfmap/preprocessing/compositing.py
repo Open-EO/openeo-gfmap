@@ -23,6 +23,14 @@ def mean_compositing(cube: openeo.DataCube, period: Union[str, list]) -> openeo.
         return cube.aggregate_temporal(intervals=period, reducer="mean", dimension="t")
 
 
+def sum_compositing(cube: openeo.DataCube, period: Union[str, list]) -> openeo.DataCube:
+    """Perform sum compositing on the given datacube."""
+    if isinstance(period, str):
+        return cube.aggregate_temporal_period(period=period, reducer="sum", dimension="t")
+    elif isinstance(period, list):
+        return cube.aggregate_temporal(intervals=period, reducer="sum", dimension="t")
+
+
 def max_ndvi_compositing(cube: openeo.DataCube, period: str) -> openeo.DataCube:
     """Perform compositing by selecting the observation with the highest NDVI value over the
     given compositing window."""

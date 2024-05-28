@@ -27,6 +27,7 @@ class BoundingBoxExtent:
             "east": self.east,
             "north": self.north,
             "crs": f"EPSG:{self.epsg}",
+            "srs": f"EPSG:{self.epsg}",
         }
 
     def __iter__(self):
@@ -37,6 +38,7 @@ class BoundingBoxExtent:
                 ("east", self.east),
                 ("north", self.north),
                 ("crs", f"EPSG:{self.epsg}"),
+                ("srs", f"EPSG:{self.epsg}"),
             ]
         )
 

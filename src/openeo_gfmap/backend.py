@@ -21,6 +21,7 @@ class Backend(Enum):
     CDSE = "cdse"  # Terrascope implementation (pyspark) #URL: openeo.dataspace.copernicus.eu (need to register)
     CDSE_STAGING = "cdse-staging"
     LOCAL = "local"  # Based on the same components of EODc
+    FED = "fed"  # Federation backend
 
 
 @dataclass
@@ -99,8 +100,18 @@ def eodc_connection() -> openeo.Connection:
     )
 
 
+def fed_connection() -> openeo.Connection:
+    """Performs a connection to the OpenEO federated backend using the oidc
+    authentication."""
+    return _create_connection(
+        url="http://openeofed.dataspace.copernicus.eu/",
+        env_var_suffix="FED",
+    )
+
+
 BACKEND_CONNECTIONS: Dict[Backend, Callable] = {
     Backend.TERRASCOPE: vito_connection,
     Backend.CDSE: cdse_connection,
     Backend.CDSE_STAGING: cdse_staging_connection,
+    Backend.FED: fed_connection,
 }
