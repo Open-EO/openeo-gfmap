@@ -14,7 +14,7 @@ from openeo_gfmap.spatial import BoundingBoxExtent
 from openeo_gfmap.temporal import TemporalContext
 from openeo_gfmap.utils import quintad_intervals
 
-backends = [Backend.TERRASCOPE, Backend.CDSE]
+backends = [Backend.CDSE]
 
 # Few fields around Mol, Belgium
 spatial_extent = BoundingBoxExtent(
