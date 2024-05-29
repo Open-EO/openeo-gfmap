@@ -1,4 +1,5 @@
 """ Tests for data extractors for Sentinel2 data. """
+
 from pathlib import Path
 
 import geojson
@@ -23,31 +24,17 @@ from openeo_gfmap.utils import (
     select_optical_bands,
 )
 
-# Fields close to TAP, Belgium
-SPATIAL_EXTENT_1 = {
-    "west": 5.0516,
-    "south": 51.18682,
-    "east": 5.08832,
-    "north": 51.20527,
-    "crs": "EPSG:4326",
-    "country": "Belgium",  # Metadata useful for test suite
-}
+# Few fields around Mol, Belgium
+SPATIAL_EXTENT = BoundingBoxExtent(
+    west=5.0515130512706845,
+    south=51.215806593713,
+    east=5.060320484557499,
+    north=51.22149744530769,
+    epsg=4326,
+)
 
 # Recent dates for first extent
-TEMPORAL_EXTENT_1 = ["2023-04-01", "2023-05-01"]
-
-# Scene in Ilha Grande, Brazil
-SPATIAL_EXTENT_2 = {
-    "west": -44.13569753706443,
-    "south": -23.174673799522953,
-    "east": -44.12093529131243,
-    "north": -23.16291590441855,
-    "crs": "EPSG:4326",
-    "country": "Brazil",  # Metadata useful for test suite
-}
-
-# Recent dates for second extent
-TEMPORAL_EXTENT_2 = ["2023-01-01", "2023-02-01"]
+TEMPORAL_CONTEXT = ["2023-04-01", "2023-05-01"]
 
 # Dataset of polygons for POINT based extraction
 POINT_EXTRACTION_DF = Path(__file__).parent / "resources/malawi_extraction_polygons.gpkg"
@@ -58,14 +45,13 @@ POLYGON_EXTRACTION_DF = Path(__file__).parent / "resources/puglia_extraction_pol
 # test_backends = [Backend.TERRASCOPE, Backend.CDSE]
 test_backends = [Backend.CDSE]
 
-test_spatio_temporal_extends = [
-    (SPATIAL_EXTENT_1, TEMPORAL_EXTENT_1),
-    (SPATIAL_EXTENT_2, TEMPORAL_EXTENT_2),
+test_spatio_temporal_extents = [
+    (SPATIAL_EXTENT, TEMPORAL_CONTEXT),
 ]
 
 test_configurations = [
     (*spatio_temp, backend)
-    for spatio_temp in test_spatio_temporal_extends
+    for spatio_temp in test_spatio_temporal_extents
     for backend in test_backends
 ]
 
@@ -83,7 +69,6 @@ class TestS2Extractors:
     ):
         """For a given backend"""
         context = BackendContext(backend)
-        country = spatial_extent["country"]
         # Fetch a variety of spatial resolution and metadata from different
         # providers.
         bands = [
@@ -102,22 +87,8 @@ class TestS2Extractors:
             "S2-L2A-SCL",
             "S2-L2A-AOT",
         ]
-        fetching_parameters = (
-            {"target_resolution": 10.0, "target_crs": 3035} if country == "Belgium" else {}
-        )
         extractor: CollectionFetcher = build_sentinel2_l2a_extractor(
-            context=context,
-            bands=bands,
-            fetch_type=FetchType.TILE,
-            **fetching_parameters,
-        )
-
-        spatial_extent = BoundingBoxExtent(
-            west=spatial_extent["west"],
-            south=spatial_extent["south"],
-            east=spatial_extent["east"],
-            north=spatial_extent["north"],
-            epsg=spatial_extent["crs"],
+            backend_context=context, bands=bands, fetch_type=FetchType.TILE
         )
 
         temporal_extent = TemporalContext(
@@ -126,7 +97,7 @@ class TestS2Extractors:
 
         cube = extractor.get_cube(connection, spatial_extent, temporal_extent)
 
-        output_file = Path(__file__).parent / f"results/{country}_{backend.value}_sentinel2_l2a.nc"
+        output_file = Path(__file__).parent / f"results/{backend.value}_sentinel2_l2a.nc"
 
         cube.download(output_file, format="NetCDF")
 
@@ -144,48 +115,45 @@ class TestS2Extractors:
         they should be similar.
         """
         backend_types = set([conf[2] for conf in test_configurations])
-        countries = set([conf[0]["country"] for conf in test_configurations])
-        for country in countries:
-            loaded_tiles = []
-            for backend in backend_types:
-                if backend == Backend.EODC:  # TODO fix EDOC backend first
-                    continue
-                tile_path = (
-                    Path(__file__).parent / f"results/{country}_{backend.value}_sentinel2_l2a.nc"
-                )
-                loaded_tiles.append(xr.open_dataset(tile_path, engine="h5netcdf"))
 
-            # Compare the tile variable types all togheter
-            dtype = None
-            for tile in loaded_tiles:
-                for key in tile.keys():
-                    if key == "crs":
-                        continue  # Skip CRS array
-                    array = tile[key]
-                    if dtype is None:
-                        dtype = array.dtype
-                    else:
-                        assert dtype == array.dtype
+        loaded_tiles = []
+        for backend in backend_types:
+            if backend == Backend.EODC:  # TODO fix EDOC backend first
+                continue
+            tile_path = Path(__file__).parent / f"results/{backend.value}_sentinel2_l2a.nc"
+            loaded_tiles.append(xr.open_dataset(tile_path, engine="h5netcdf"))
 
-            # Compare the coordiantes of all the tiles and check if it matches
-            bounds = None
-            for tile in loaded_tiles:
-                tile_bounds = array_bounds(tile)
-                if bounds is None:
-                    bounds = tile_bounds
+        # Compare the tile variable types all togheter
+        dtype = None
+        for tile in loaded_tiles:
+            for key in tile.keys():
+                if key == "crs":
+                    continue  # Skip CRS array
+                array = tile[key]
+                if dtype is None:
+                    dtype = array.dtype
                 else:
-                    assert tile_bounds == bounds
+                    assert dtype == array.dtype
 
-            # Compare the arrays on the optical values
-            normalized_tiles = [
-                normalize_array(select_optical_bands(inarr.to_array(dim="bands")))
-                for inarr in loaded_tiles
-            ]
-            first_tile = normalized_tiles[0]
-            for tile_idx in range(1, len(normalized_tiles)):
-                tile_to_compare = normalized_tiles[tile_idx]
-                similarity_score = arrays_cosine_similarity(first_tile, tile_to_compare)
-                assert similarity_score >= 0.95
+        # Compare the coordiantes of all the tiles and check if it matches
+        bounds = None
+        for tile in loaded_tiles:
+            tile_bounds = array_bounds(tile)
+            if bounds is None:
+                bounds = tile_bounds
+            else:
+                assert tile_bounds == bounds
+
+        # Compare the arrays on the optical values
+        normalized_tiles = [
+            normalize_array(select_optical_bands(inarr.to_array(dim="bands")))
+            for inarr in loaded_tiles
+        ]
+        first_tile = normalized_tiles[0]
+        for tile_idx in range(1, len(normalized_tiles)):
+            tile_to_compare = normalized_tiles[tile_idx]
+            similarity_score = arrays_cosine_similarity(first_tile, tile_to_compare)
+            assert similarity_score >= 0.95
 
     def sentinel2_l2a_point_based(
         spatial_context: SpatialContext,
