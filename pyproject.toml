@@ -38,7 +38,8 @@ dependencies = [
     "pyarrow",
     "fastparquet",
     "h3",
-    "netCDF4"
+    "netCDF4",
+    "scipy"
 ]
 
 [project.urls]
