@@ -9,7 +9,9 @@ from openeo_gfmap.utils import update_nc_attributes
 from openeo_gfmap.utils.catalogue import s1_area_per_orbitstate, select_S1_orbitstate
 
 # Region of Paris, France
-SPATIAL_CONTEXT = BoundingBoxExtent(west=1.979, south=48.705, east=2.926, north=49.151, epsg=4326)
+SPATIAL_CONTEXT = BoundingBoxExtent(
+    west=1.979, south=48.705, east=2.926, north=49.151, epsg=4326
+)
 
 # Summer 2023
 TEMPORAL_CONTEXT = TemporalContext(start_date="2023-06-21", end_date="2023-09-21")
@@ -56,7 +58,11 @@ def temp_nc_file():
 
 
 def test_update_nc_attributes(temp_nc_file):
-    test_attributes = {"one": "two", "three": "four", "changing_attribute": "changed_value"}
+    test_attributes = {
+        "one": "two",
+        "three": "four",
+        "changing_attribute": "changed_value",
+    }
 
     with Dataset(temp_nc_file, "w") as nc:
         nc.setncattr("existing_attribute", "existing_value")

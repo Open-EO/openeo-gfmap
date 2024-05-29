@@ -55,7 +55,9 @@ class DummyPatchExtractor(PatchFeatureExtractor):
                 )
 
         # Compute the median on the time band
-        rgb_bands = rgb_bands.median(dim="t").assign_coords({"bands": ["red", "green", "blue"]})
+        rgb_bands = rgb_bands.median(dim="t").assign_coords(
+            {"bands": ["red", "green", "blue"]}
+        )
 
         # Returns the rgb bands only in the feature, y, x order
         return rgb_bands.transpose("bands", "y", "x")
@@ -102,7 +104,9 @@ def test_patch_feature_udf(backend: Backend):
     bands_to_extract = ["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02"]
 
     # Setup the RGB cube extraction
-    extractor = build_sentinel2_l2a_extractor(backend_context, bands_to_extract, FetchType.TILE)
+    extractor = build_sentinel2_l2a_extractor(
+        backend_context, bands_to_extract, FetchType.TILE
+    )
 
     rgb_cube = extractor.get_cube(connection, SPATIAL_CONTEXT, TEMPORAL_EXTENT)
 
@@ -137,13 +141,19 @@ def test_patch_feature_udf(backend: Backend):
 def test_s1_rescale(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
     backend_context = BackendContext(backend=backend)
-    output_path = Path(__file__).parent / f"results/s1_rescaled_features_{backend.value}.nc"
+    output_path = (
+        Path(__file__).parent / f"results/s1_rescaled_features_{backend.value}.nc"
+    )
 
-    REDUCED_TEMPORAL_CONTEXT = TemporalContext(start_date="2023-06-01", end_date="2023-06-30")
+    REDUCED_TEMPORAL_CONTEXT = TemporalContext(
+        start_date="2023-06-01", end_date="2023-06-30"
+    )
 
     bands_to_extract = ["S1-SIGMA0-VH", "S1-SIGMA0-VV"]
 
-    extractor = build_sentinel1_grd_extractor(backend_context, bands_to_extract, FetchType.TILE)
+    extractor = build_sentinel1_grd_extractor(
+        backend_context, bands_to_extract, FetchType.TILE
+    )
 
     cube = extractor.get_cube(connection, SPATIAL_CONTEXT, REDUCED_TEMPORAL_CONTEXT)
 
@@ -176,11 +186,15 @@ def test_latlon_extractor(backend: Backend):
     backend_context = BackendContext(backend=backend)
     output_path = Path(__file__).parent / f"results/latlon_features_{backend.value}.nc"
 
-    REDUCED_TEMPORAL_CONTEXT = TemporalContext(start_date="2023-06-01", end_date="2023-06-30")
+    REDUCED_TEMPORAL_CONTEXT = TemporalContext(
+        start_date="2023-06-01", end_date="2023-06-30"
+    )
 
     bands_to_extract = ["S2-L2A-B04"]
 
-    extractor = build_sentinel2_l2a_extractor(backend_context, bands_to_extract, FetchType.TILE)
+    extractor = build_sentinel2_l2a_extractor(
+        backend_context, bands_to_extract, FetchType.TILE
+    )
 
     cube = extractor.get_cube(connection, SPATIAL_CONTEXT, REDUCED_TEMPORAL_CONTEXT)
 
@@ -215,9 +229,9 @@ def test_patch_feature_local():
 
     inds = xr.open_dataset(input_path).to_array(dim="bands")
 
-    inds = inds.sel(bands=[band for band in inds.bands.to_numpy() if band != "crs"]).transpose(
-        "bands", "t", "y", "x"
-    )
+    inds = inds.sel(
+        bands=[band for band in inds.bands.to_numpy() if band != "crs"]
+    ).transpose("bands", "t", "y", "x")
 
     features = apply_feature_extractor_local(DummyPatchExtractor, inds, parameters={})
 
