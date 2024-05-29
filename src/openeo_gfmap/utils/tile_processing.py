@@ -28,7 +28,7 @@ def select_sar_bands(inarr: xr.DataArray) -> xr.DataArray:
     """Filters and keep only the SAR bands for a given array."""
     return inarr.sel(
         bands=[
-            band for band in inarr.coords["bands"].to_numpy() if band in ["VV", "VH", "HH", "HV"]
+            band for band in inarr.coords["bands"].to_numpy() if band in ["S1-SIGMA0-VV", "S1-SIGMA0-VH", "S1-SIGMA0-HH", "S1-SIGMA0-HV"]
         ]
     )
 
