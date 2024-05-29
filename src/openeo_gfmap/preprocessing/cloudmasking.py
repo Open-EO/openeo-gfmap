@@ -33,7 +33,9 @@ def mask_scl_dilation(cube: openeo.DataCube, **params: dict) -> openeo.DataCube:
     )
 
     nonoptical_cube = cube.filter_bands(
-        bands=list(filter(lambda band: not band.startswith("S2"), cube.metadata.band_names))
+        bands=list(
+            filter(lambda band: not band.startswith("S2"), cube.metadata.band_names)
+        )
     )
 
     optical_cube = optical_cube.process(
@@ -222,7 +224,9 @@ def bap_masking(cube: openeo.DataCube, period: Union[str, list], **params: dict)
     )
 
     nonoptical_cube = cube.filter_bands(
-        bands=list(filter(lambda band: not band.startswith("S2"), cube.metadata.band_names))
+        bands=list(
+            filter(lambda band: not band.startswith("S2"), cube.metadata.band_names)
+        )
     )
 
     rank_mask = get_bap_mask(optical_cube, period, **params)
@@ -236,7 +240,9 @@ def bap_masking(cube: openeo.DataCube, period: Union[str, list], **params: dict)
     return optical_cube.merge_cubes(nonoptical_cube)
 
 
-def cldmask_percentage(cube: openeo.DataCube, percentage: float = 0.95) -> openeo.DataCube:
+def cldmask_percentage(
+    cube: openeo.DataCube, percentage: float = 0.95
+) -> openeo.DataCube:
     """Compute a cloud mask array, that either fully covers an observation or is empty.
     It computes the percentage of HIGH_CLOUD_PROBABILITY pixels in the SCL mask. If the percentage
     is higher than the given threshold, the mask will be covering the observation, otherwise False.

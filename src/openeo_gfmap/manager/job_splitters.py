@@ -1,6 +1,7 @@
 """Job splitter functionalities, except input points/polygons to extract in the
 form of a GeoDataFrames.
 """
+
 from pathlib import Path
 from typing import List
 
@@ -28,13 +29,17 @@ def load_s2_grid() -> gpd.GeoDataFrame:
     return gpd.read_file(gdf_path)
 
 
-def _resplit_group(polygons: gpd.GeoDataFrame, max_points: int) -> List[gpd.GeoDataFrame]:
+def _resplit_group(
+    polygons: gpd.GeoDataFrame, max_points: int
+) -> List[gpd.GeoDataFrame]:
     """Performs re-splitting of a dataset of polygons in a list of datasets"""
     for i in range(0, len(polygons), max_points):
         yield polygons.iloc[i : i + max_points].reset_index(drop=True)
 
 
-def split_job_s2grid(polygons: gpd.GeoDataFrame, max_points: int = 500) -> List[gpd.GeoDataFrame]:
+def split_job_s2grid(
+    polygons: gpd.GeoDataFrame, max_points: int = 500
+) -> List[gpd.GeoDataFrame]:
     """Split a job into multiple jobs from the position of the polygons/points. The centroid of
     the geometries to extract are used to select tile in the Sentinel-2 tile grid.
 
@@ -77,13 +82,17 @@ def split_job_s2grid(polygons: gpd.GeoDataFrame, max_points: int = 500) -> List[
     return split_datasets
 
 
-def append_h3_index(polygons: gpd.GeoDataFrame, grid_resolution: int = 3) -> gpd.GeoDataFrame:
+def append_h3_index(
+    polygons: gpd.GeoDataFrame, grid_resolution: int = 3
+) -> gpd.GeoDataFrame:
     """Append the H3 index to the polygons."""
     if polygons.geometry.geom_type[0] != "Point":
         geom_col = polygons.geometry.centroid
     else:
         geom_col = polygons.geometry
-    polygons["h3index"] = geom_col.apply(lambda pt: h3.geo_to_h3(pt.y, pt.x, grid_resolution))
+    polygons["h3index"] = geom_col.apply(
+        lambda pt: h3.geo_to_h3(pt.y, pt.x, grid_resolution)
+    )
     return polygons
 
 
