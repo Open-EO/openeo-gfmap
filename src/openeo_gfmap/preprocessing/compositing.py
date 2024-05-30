@@ -37,7 +37,9 @@ def mean_compositing(
 def sum_compositing(cube: openeo.DataCube, period: Union[str, list]) -> openeo.DataCube:
     """Perform sum compositing on the given datacube."""
     if isinstance(period, str):
-        return cube.aggregate_temporal_period(period=period, reducer="sum", dimension="t")
+        return cube.aggregate_temporal_period(
+            period=period, reducer="sum", dimension="t"
+        )
     elif isinstance(period, list):
         return cube.aggregate_temporal(intervals=period, reducer="sum", dimension="t")
 

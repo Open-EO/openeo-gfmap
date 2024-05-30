@@ -137,7 +137,9 @@ OTHER_BACKEND_MAP = {
         },
         Backend.FED: {
             "fetch": partial(get_generic_fetcher, collection_name="COPERNICUS_30"),
-            "preprocessor": partial(get_generic_processor, collection_name="COPERNICUS_30"),
+            "preprocessor": partial(
+                get_generic_processor, collection_name="COPERNICUS_30"
+            ),
         },
     },
 }
