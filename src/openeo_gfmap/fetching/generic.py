@@ -117,6 +117,10 @@ OTHER_BACKEND_MAP = {
             "fetch": partial(get_generic_fetcher, collection_name="AGERA5"),
             "preprocessor": partial(get_generic_processor, collection_name="AGERA5"),
         },
+        Backend.FED: {
+            "fetch": partial(get_generic_fetcher, collection_name="AGERA5"),
+            "preprocessor": partial(get_generic_processor, collection_name="AGERA5"),
+        },
     },
     "COPERNICUS_30": {
         Backend.TERRASCOPE: {
@@ -130,6 +134,10 @@ OTHER_BACKEND_MAP = {
             "preprocessor": partial(
                 get_generic_processor, collection_name="COPERNICUS_30"
             ),
+        },
+        Backend.FED: {
+            "fetch": partial(get_generic_fetcher, collection_name="COPERNICUS_30"),
+            "preprocessor": partial(get_generic_processor, collection_name="COPERNICUS_30"),
         },
     },
 }

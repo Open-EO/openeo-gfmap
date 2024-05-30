@@ -211,6 +211,10 @@ SENTINEL2_L2A_BACKEND_MAP = {
             get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
         ),
     },
+    Backend.FED: {
+        "fetch": partial(get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
+        "preprocessor": partial(get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"),
+    },
 }
 
 
