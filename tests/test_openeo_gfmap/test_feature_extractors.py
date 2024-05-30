@@ -1,18 +1,12 @@
 """Test on feature extractors implementations, both local and remote."""
 
 from pathlib import Path
-from typing import Callable
 
 import pytest
 import xarray as xr
 
 from openeo_gfmap import BoundingBoxExtent, FetchType, TemporalContext
-from openeo_gfmap.backend import (
-    BACKEND_CONNECTIONS,
-    Backend,
-    BackendContext,
-    cdse_connection,
-)
+from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
 from openeo_gfmap.features import (
     PatchFeatureExtractor,
     apply_feature_extractor,
