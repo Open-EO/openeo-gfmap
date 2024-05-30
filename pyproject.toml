@@ -30,14 +30,16 @@ classifiers = [
 ]
 dependencies = [
     "geojson>=3.0.0",
+    "geopandas",
     "h5netcdf>=1.2.0",
-    "openeo[localprocessing]",
+    "openeo",
     "onnxruntime>=1.16.3",
     "cftime",
     "pyarrow",
     "fastparquet",
     "h3",
-    "netCDF4"
+    "netCDF4",
+    "scipy"
 ]
 
 [project.urls]
@@ -72,11 +74,11 @@ profile = "black"
 
 
 [tool.black]
-line-length = 99
+line-length = 88
 
 
 [tool.ruff]
-# line-length = 100
+# line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F"]

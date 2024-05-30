@@ -86,7 +86,9 @@ class GFMAPJobManager(MultiBackendJobManager):
     def _normalize_stac(self):
         default_collection_path = self._output_dir / "stac/collection.json"
         if self.stac is not None:
-            _log.info(f"Reloading the STAC collection from the provided path: {self.stac}.")
+            _log.info(
+                f"Reloading the STAC collection from the provided path: {self.stac}."
+            )
             root_collection = pystac.read_file(str(self.stac))
         elif default_collection_path.exists():
             _log.info(
@@ -140,16 +142,22 @@ class GFMAPJobManager(MultiBackendJobManager):
         df: pd.DataFrame
             The job-tracking dataframe initialized or loaded by the multibackend job manager.
         """
-        postprocessing_tasks = df[df.status.isin(["postprocessing", "postprocessing-error"])]
+        postprocessing_tasks = df[
+            df.status.isin(["postprocessing", "postprocessing-error"])
+        ]
         for idx, row in postprocessing_tasks.iterrows():
             connection = self._get_connection(row.backend_name)
             job = connection.job(row.id)
             if row.status == "postprocessing":
-                _log.info(f"Resuming postprocessing of job {row.id}, queueing on_job_finished...")
+                _log.info(
+                    f"Resuming postprocessing of job {row.id}, queueing on_job_finished..."
+                )
                 future = self._executor.submit(self.on_job_done, job, row)
                 future.add_done_callback(partial(done_callback, df=df, idx=idx))
             else:
-                _log.info(f"Resuming postprocessing of job {row.id}, queueing on_job_error...")
+                _log.info(
+                    f"Resuming postprocessing of job {row.id}, queueing on_job_error..."
+                )
                 future = self._executor.submit(self.on_job_error, job, row)
                 future.add_done_callback(partial(done_callback, df=df, idx=idx))
             self._futures.append(future)
@@ -194,7 +202,9 @@ class GFMAPJobManager(MultiBackendJobManager):
             if (df.loc[idx, "status"] in ["created", "queued", "running"]) and (
                 job_metadata["status"] == "finished"
             ):
-                _log.info(f"Job {job.job_id} finished successfully, queueing on_job_done...")
+                _log.info(
+                    f"Job {job.job_id} finished successfully, queueing on_job_done..."
+                )
                 job_status = "postprocessing"
                 future = self._executor.submit(self.on_job_done, job, row)
                 # Future will setup the status to finished when the job is done
@@ -203,8 +213,12 @@ class GFMAPJobManager(MultiBackendJobManager):
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
             # Case in which it failed
-            if (df.loc[idx, "status"] != "error") and (job_metadata["status"] == "error"):
-                _log.info(f"Job {job.job_id} finished with error, queueing on_job_error...")
+            if (df.loc[idx, "status"] != "error") and (
+                job_metadata["status"] == "error"
+            ):
+                _log.info(
+                    f"Job {job.job_id} finished with error, queueing on_job_error..."
+                )
                 job_status = "postprocessing-error"
                 future = self._executor.submit(self.on_job_error, job, row)
                 # Future will setup the status to error when the job is done
@@ -234,7 +248,9 @@ class GFMAPJobManager(MultiBackendJobManager):
         title = job_metadata["title"]
         job_id = job_metadata["id"]
 
-        output_log_path = Path(self._output_dir) / "failed_jobs" / f"{title}_{job_id}.log"
+        output_log_path = (
+            Path(self._output_dir) / "failed_jobs" / f"{title}_{job_id}.log"
+        )
         output_log_path.parent.mkdir(parents=True, exist_ok=True)
 
         if len(error_logs) > 0:
@@ -260,9 +276,13 @@ class GFMAPJobManager(MultiBackendJobManager):
                 asset.download(output_path)
                 # Add to the list of downloaded products
                 job_products[f"{job.job_id}_{asset.name}"] = [output_path]
-                _log.debug(f"Downloaded {asset.name} from job {job.job_id} -> {output_path}")
+                _log.debug(
+                    f"Downloaded {asset.name} from job {job.job_id} -> {output_path}"
+                )
             except Exception as e:
-                _log.exception(f"Error downloading asset {asset.name} from job {job.job_id}", e)
+                _log.exception(
+                    f"Error downloading asset {asset.name} from job {job.job_id}", e
+                )
                 raise e
 
         # First update the STAC collection with the assets directly resulting from the OpenEO batch job
@@ -275,7 +295,9 @@ class GFMAPJobManager(MultiBackendJobManager):
                 asset_name = list(item.assets.values())[0].title
                 asset_path = job_products[f"{job.job_id}_{asset_name}"][0]
 
-                assert len(item.assets.values()) == 1, "Each item should only contain one asset"
+                assert (
+                    len(item.assets.values()) == 1
+                ), "Each item should only contain one asset"
                 for asset in item.assets.values():
                     asset.href = str(
                         asset_path
@@ -312,7 +334,9 @@ class GFMAPJobManager(MultiBackendJobManager):
             try:
                 self._write_stac()
             except Exception as e:
-                _log.exception(f"Error writing STAC collection for job {job.job_id} to file.", e)
+                _log.exception(
+                    f"Error writing STAC collection for job {job.job_id} to file.", e
+                )
                 raise e
             _log.info(f"Wrote STAC collection for {job.job_id} to file.")
 
@@ -337,14 +361,18 @@ class GFMAPJobManager(MultiBackendJobManager):
             ("description", None),
             ("costs", None),
         ]
-        new_columns = {col: val for (col, val) in required_with_default if col not in df.columns}
+        new_columns = {
+            col: val for (col, val) in required_with_default if col not in df.columns
+        }
         df = df.assign(**new_columns)
 
         _log.debug(f"Normalizing dataframe. Columns: {df.columns}")
 
         return df
 
-    def run_jobs(self, df: pd.DataFrame, start_job: Callable, output_file: Union[str, Path]):
+    def run_jobs(
+        self, df: pd.DataFrame, start_job: Callable, output_file: Union[str, Path]
+    ):
         """Starts the jobs defined in the dataframe and runs the `start_job` function on each job.
 
         Parameters
@@ -378,7 +406,9 @@ class GFMAPJobManager(MultiBackendJobManager):
             _log.info("Creating and running jobs.")
             self._executor = executor
             super().run_jobs(df, start_job, output_file)
-            _log.info("Quitting job tracking & waiting for last post-job actions to finish.")
+            _log.info(
+                "Quitting job tracking & waiting for last post-job actions to finish."
+            )
             self._wait_queued_actions()
             _log.info("Exiting ThreadPoolExecutor.")
             self._executor = None
@@ -431,7 +461,9 @@ class GFMAPJobManager(MultiBackendJobManager):
             ).to_dict()
 
         if item_assets and "item_assets" not in self._root_collection.extra_fields:
-            item_asset_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(
-                self._root_collection, add_if_missing=True
+            item_asset_extension = (
+                pystac.extensions.item_assets.ItemAssetsExtension.ext(
+                    self._root_collection, add_if_missing=True
+                )
             )
             item_asset_extension.item_assets = item_assets

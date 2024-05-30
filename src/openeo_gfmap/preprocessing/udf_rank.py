@@ -16,7 +16,7 @@ def apply_datacube(cube: XarrayDataCube, context: dict) -> XarrayDataCube:
     intervals = context.get("intervals", None)
     array = cube.get_array().transpose("t", "bands", "y", "x")
 
-    bap_score = array.sel(bands="S2-L2A-BAPSCORE")
+    bap_score = array.sel(bands=["S2-L2A-BAPSCORE"])
 
     def select_maximum(score: xr.DataArray):
         max_score = score.max(dim="t")

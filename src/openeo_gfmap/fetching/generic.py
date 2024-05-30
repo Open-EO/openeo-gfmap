@@ -1,5 +1,6 @@
 """ Generic extraction of features, supporting VITO backend.
 """
+
 from functools import partial
 from typing import Callable
 
@@ -48,7 +49,9 @@ def get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callable
         bands = convert_band_names(bands, BASE_MAPPING)
 
         if (collection_name == "COPERNICUS_30") and (temporal_extent is not None):
-            _log.warning("User set-up non None temporal extent for DEM collection. Ignoring it.")
+            _log.warning(
+                "User set-up non None temporal extent for DEM collection. Ignoring it."
+            )
             temporal_extent = None
 
         cube = load_collection(
@@ -122,15 +125,21 @@ OTHER_BACKEND_MAP = {
     "COPERNICUS_30": {
         Backend.TERRASCOPE: {
             "fetch": partial(get_generic_fetcher, collection_name="COPERNICUS_30"),
-            "preprocessor": partial(get_generic_processor, collection_name="COPERNICUS_30"),
+            "preprocessor": partial(
+                get_generic_processor, collection_name="COPERNICUS_30"
+            ),
         },
         Backend.CDSE: {
             "fetch": partial(get_generic_fetcher, collection_name="COPERNICUS_30"),
-            "preprocessor": partial(get_generic_processor, collection_name="COPERNICUS_30"),
+            "preprocessor": partial(
+                get_generic_processor, collection_name="COPERNICUS_30"
+            ),
         },
         Backend.FED: {
             "fetch": partial(get_generic_fetcher, collection_name="COPERNICUS_30"),
-            "preprocessor": partial(get_generic_processor, collection_name="COPERNICUS_30"),
+            "preprocessor": partial(
+                get_generic_processor, collection_name="COPERNICUS_30"
+            ),
         },
     },
 }
@@ -144,7 +153,9 @@ def build_generic_extractor(
     **params,
 ) -> CollectionFetcher:
     """Creates a generic extractor adapted to the given backend. Currently only tested with VITO backend"""
-    backend_functions = OTHER_BACKEND_MAP.get(collection_name).get(backend_context.backend)
+    backend_functions = OTHER_BACKEND_MAP.get(collection_name).get(
+        backend_context.backend
+    )
 
     fetcher, preprocessor = (
         backend_functions["fetch"](fetch_type=fetch_type),

@@ -1,4 +1,5 @@
 """ Test the data extractors for Sentinel1 data. """
+
 from pathlib import Path
 
 import geojson
@@ -8,13 +9,7 @@ import pytest
 import rioxarray
 import xarray as xr
 
-from openeo_gfmap import (
-    Backend,
-    BackendContext,
-    BoundingBoxExtent,
-    SpatialContext,
-    TemporalContext,
-)
+from openeo_gfmap import Backend, BackendContext, SpatialContext, TemporalContext
 from openeo_gfmap.backend import BACKEND_CONNECTIONS
 from openeo_gfmap.fetching import (
     CollectionFetcher,
@@ -46,7 +41,6 @@ class TestS1Extractors:
         connection=openeo.Connection,
     ):
         context = BackendContext(backend)
-        country = spatial_extent["country"]
         bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
         expected_harmonized_bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
 
@@ -63,14 +57,6 @@ class TestS1Extractors:
             context, bands, FetchType.TILE, **fetching_parameters
         )
 
-        spatial_extent = BoundingBoxExtent(
-            west=spatial_extent["west"],
-            east=spatial_extent["east"],
-            north=spatial_extent["north"],
-            south=spatial_extent["south"],
-            epsg=spatial_extent["crs"],
-        )
-
         temporal_extent = TemporalContext(
             start_date=temporal_extent[0], end_date=temporal_extent[1]
         )
@@ -78,9 +64,13 @@ class TestS1Extractors:
         cube = extractor.get_cube(connection, spatial_extent, temporal_extent)
         cube = compress_backscatter_uint16(context, cube)
 
-        output_file = Path(__file__).parent / f"results/{country}_{backend.value}_sentinel1_grd.nc"
+        output_file = (
+            Path(__file__).parent / f"results/{backend.value}_sentinel1_grd.nc"
+        )
 
-        job = cube.create_job(title="Sentinel1 GRD tile extraction", out_format="NetCDF")
+        job = cube.create_job(
+            title="Sentinel1 GRD tile extraction", out_format="NetCDF"
+        )
 
         job.start_and_wait()
 
@@ -105,44 +95,42 @@ class TestS1Extractors:
         backscatter algorithm."""
 
         backend_types = set([conf[2] for conf in test_configurations])
-        countries = set([conf[0]["country"] for conf in test_configurations])
-        for country in countries:
-            loaded_tiles = []
-            for backend in backend_types:
-                tile_path = (
-                    Path(__file__).parent / f"results/{country}_{backend.value}_sentinel1_grd.nc"
-                )
-                loaded_tiles.append(xr.open_dataset(tile_path, engine="h5netcdf"))
+        loaded_tiles = []
+        for backend in backend_types:
+            tile_path = (
+                Path(__file__).parent / f"results/{backend.value}_sentinel1_grd.nc"
+            )
+            loaded_tiles.append(xr.open_dataset(tile_path, engine="h5netcdf"))
 
-            # Compare the variable data type
-            dtype = None
-            for tile in loaded_tiles:
-                for key in tile.keys():
-                    if key == "crs":
-                        continue
-                array = tile[key]
-                if dtype is None:
-                    dtype = array.dtype
-                else:
-                    assert dtype == array.dtype
+        # Compare the variable data type
+        dtype = None
+        for tile in loaded_tiles:
+            for key in tile.keys():
+                if key == "crs":
+                    continue
+            array = tile[key]
+            if dtype is None:
+                dtype = array.dtype
+            else:
+                assert dtype == array.dtype
 
-            bounds = None
-            for tile in loaded_tiles:
-                tile_bounds = array_bounds(tile)
-                if bounds is None:
-                    bounds = tile_bounds
-                else:
-                    assert tile_bounds == bounds
+        bounds = None
+        for tile in loaded_tiles:
+            tile_bounds = array_bounds(tile)
+            if bounds is None:
+                bounds = tile_bounds
+            else:
+                assert tile_bounds == bounds
 
-            normalized_tiles = [
-                normalize_array(select_sar_bands(inarr.to_array(dim="bands")))
-                for inarr in loaded_tiles
-            ]
-            first_tile = normalized_tiles[0]
-            for tile_idx in range(1, len(normalized_tiles)):
-                tile_to_compare = normalized_tiles[tile_idx]
-                similarity_score = arrays_cosine_similarity(first_tile, tile_to_compare)
-                assert similarity_score >= 0.95
+        normalized_tiles = [
+            normalize_array(select_sar_bands(inarr.to_array(dim="bands")))
+            for inarr in loaded_tiles
+        ]
+        first_tile = normalized_tiles[0]
+        for tile_idx in range(1, len(normalized_tiles)):
+            tile_to_compare = normalized_tiles[tile_idx]
+            similarity_score = arrays_cosine_similarity(first_tile, tile_to_compare)
+            assert similarity_score >= 0.95
 
     def sentinel1_grd_point_based(
         spatial_context: SpatialContext,
@@ -179,11 +167,13 @@ class TestS1Extractors:
 
         cube = cube.aggregate_spatial(spatial_context, reducer="mean")
 
-        output_file = Path(__file__).parent / f"results/points_{backend.value}_sentinel1_grd.nc"
+        output_file = (
+            Path(__file__).parent / f"results/points_{backend.value}_sentinel1_grd.nc"
+        )
 
         cube.download(output_file, format="JSON")
 
-        df = load_json(output_file)
+        df = load_json(output_file, bands)
 
         for band in bands:
             exists = False
@@ -243,17 +233,23 @@ class TestS1Extractors:
         results.download_files(output_folder)
 
         # List all the files available in the folder
-        extracted_files = list(filter(lambda file: file.suffix == ".nc", output_folder.iterdir()))
+        extracted_files = list(
+            filter(lambda file: file.suffix == ".nc", output_folder.iterdir())
+        )
         # Check if there is one file for each polygon
         assert len(extracted_files) == len(spatial_context["features"])
 
 
-@pytest.mark.parametrize("spatial_context, temporal_context, backend", test_configurations)
+@pytest.mark.parametrize(
+    "spatial_context, temporal_context, backend", test_configurations
+)
 def test_sentinel1_grd(
     spatial_context: SpatialContext, temporal_context: TemporalContext, backend: Backend
 ):
     connection = BACKEND_CONNECTIONS[backend]()
-    TestS1Extractors.sentinel1_grd(spatial_context, temporal_context, backend, connection)
+    TestS1Extractors.sentinel1_grd(
+        spatial_context, temporal_context, backend, connection
+    )
 
 
 @pytest.mark.depends(on=["test_sentinel1_grd"])

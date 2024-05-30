@@ -1,5 +1,6 @@
 """ Collection fetching of S1 features, supporting different backends.
 """
+
 from functools import partial
 from typing import Callable
 
@@ -146,7 +147,9 @@ SENTINEL1_GRD_BACKEND_MAP = {
     Backend.CDSE: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
         "preprocessor": partial(
-            get_s1_grd_default_processor, collection_name="SENTINEL1_GRD", backend=Backend.CDSE
+            get_s1_grd_default_processor,
+            collection_name="SENTINEL1_GRD",
+            backend=Backend.CDSE,
         ),
     },
     Backend.CDSE_STAGING: {
@@ -160,7 +163,9 @@ SENTINEL1_GRD_BACKEND_MAP = {
     Backend.FED: {
         "default": partial(get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
         "preprocessor": partial(
-            get_s1_grd_default_processor, collection_name="SENTINEL1_GRD", backend=Backend.FED
+            get_s1_grd_default_processor,
+            collection_name="SENTINEL1_GRD",
+            backend=Backend.FED,
         ),
     },
 }

@@ -20,7 +20,11 @@ def normalize_array(inarr: xr.DataArray, percentile: float = 0.99) -> xr.DataArr
 def select_optical_bands(inarr: xr.DataArray) -> xr.DataArray:
     """Filters and keep only the optical bands for a given array."""
     return inarr.sel(
-        bands=[band for band in inarr.coords["bands"].to_numpy() if band.startswith("S2-L2A-B")]
+        bands=[
+            band
+            for band in inarr.coords["bands"].to_numpy()
+            if band.startswith("S2-L2A-B")
+        ]
     )
 
 
@@ -28,7 +32,9 @@ def select_sar_bands(inarr: xr.DataArray) -> xr.DataArray:
     """Filters and keep only the SAR bands for a given array."""
     return inarr.sel(
         bands=[
-            band for band in inarr.coords["bands"].to_numpy() if band in ["VV", "VH", "HH", "HV"]
+            band
+            for band in inarr.coords["bands"].to_numpy()
+            if band in ["S1-SIGMA0-VV", "S1-SIGMA0-VH", "S1-SIGMA0-HH", "S1-SIGMA0-HV"]
         ]
     )
 
@@ -43,7 +49,9 @@ def array_bounds(inarr: xr.DataArray) -> tuple:
     )
 
 
-def arrays_cosine_similarity(first_array: xr.DataArray, second_array: xr.DataArray) -> float:
+def arrays_cosine_similarity(
+    first_array: xr.DataArray, second_array: xr.DataArray
+) -> float:
     """Returns a similarity score based on normalized cosine distance. The
     input arrays must have similar ranges to obtain a valid score.
     1.0 represents the best score (same tiles), while 0.0 is the worst score.

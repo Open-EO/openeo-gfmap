@@ -1,6 +1,7 @@
 """
 Constants in the STAC collection generated after a series of batch jobs
 """
+
 import pystac
 
 LICENSE = "CC-BY-4.0"

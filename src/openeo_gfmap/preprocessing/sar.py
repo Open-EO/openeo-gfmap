@@ -1,4 +1,5 @@
 """Routines to pre-process sar signals."""
+
 import openeo
 from openeo.processes import array_create, if_, is_nodata, power
 

@@ -59,7 +59,9 @@ class ModelInference(ABC):
         """
         return session.run(None, {input_name: tensor})[0]
 
-    def _common_preparations(self, inarr: xr.DataArray, parameters: dict) -> xr.DataArray:
+    def _common_preparations(
+        self, inarr: xr.DataArray, parameters: dict
+    ) -> xr.DataArray:
         """Common preparations for all inference models. This method will be
         executed at the very beginning of the process.
         """
@@ -90,7 +92,8 @@ class ModelInference(ABC):
     def execute(self, inarr: xr.DataArray) -> xr.DataArray:
         """Executes the model inference."""
         raise NotImplementedError(
-            "ModelInference is a base abstract class, please implement the " "execute method."
+            "ModelInference is a base abstract class, please implement the "
+            "execute method."
         )
 
 
@@ -176,7 +179,9 @@ def _get_imports() -> str:
     static_globals = []
 
     for line in lines:
-        if line.strip().startswith(("import ", "from ", "sys.path.insert(", "sys.path.append(")):
+        if line.strip().startswith(
+            ("import ", "from ", "sys.path.insert(", "sys.path.append(")
+        ):
             imports.append(line)
         elif re.match("^[A-Z_0-9]+\s*=.*$", line):
             static_globals.append(line)
