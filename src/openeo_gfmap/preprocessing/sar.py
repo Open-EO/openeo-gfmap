@@ -30,7 +30,7 @@ def compress_backscatter_uint16(
 
     # Additional check related to problematic values present in creodias collections.
     # https://github.com/Open-EO/openeo-geopyspark-driver/issues/293
-    if backend in [Backend.CDSE, Backend.CDSE_STAGING]:
+    if backend in [Backend.CDSE, Backend.CDSE_STAGING, Backend.FED]:
         cube = cube.apply_dimension(
             dimension="bands",
             process=lambda x: array_create(

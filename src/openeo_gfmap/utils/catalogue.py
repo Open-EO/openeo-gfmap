@@ -1,8 +1,10 @@
 """Functionalities to interract with product catalogues."""
 import requests
 from geojson import GeoJSON
+from rasterio import CRS
+from rasterio.warp import transform_bounds
 from shapely import unary_union
-from shapely.geometry import shape
+from shapely.geometry import box, shape
 
 from openeo_gfmap import (
     Backend,
@@ -32,25 +34,10 @@ def _parse_cdse_products(response: dict):
 
 def _query_cdse_catalogue(
     collection: str,
-    spatial_extent: SpatialContext,
+    bounds: list,
     temporal_extent: TemporalContext,
     **additional_parameters: dict,
 ) -> dict:
-    if isinstance(spatial_extent, GeoJSON):
-        # Transform geojson into shapely geometry and compute bounds
-        bounds = shape(spatial_extent).bounds
-    elif isinstance(spatial_extent, BoundingBoxExtent):
-        bounds = [
-            spatial_extent.west,
-            spatial_extent.south,
-            spatial_extent.east,
-            spatial_extent.north,
-        ]
-    else:
-        raise ValueError(
-            "Provided spatial extent is not a valid GeoJSON or SpatialContext object."
-        )
-
     minx, miny, maxx, maxy = bounds
 
     # The date format should be YYYY-MM-DD
@@ -79,7 +66,7 @@ def _query_cdse_catalogue(
 
 def _check_cdse_catalogue(
     collection: str,
-    spatial_extent: SpatialContext,
+    bounds: list,
     temporal_extent: TemporalContext,
     **additional_parameters: dict,
 ) -> bool:
@@ -105,9 +92,7 @@ def _check_cdse_catalogue(
     -------
     True if there is at least one product, False otherwise.
     """
-    body = _query_cdse_catalogue(
-        collection, spatial_extent, temporal_extent, **additional_parameters
-    )
+    body = _query_cdse_catalogue(collection, bounds, temporal_extent, **additional_parameters)
 
     grd_tiles = list(
         filter(
@@ -143,18 +128,35 @@ def s1_area_per_orbitstate(
         Keys containing the orbit state and values containing the total area of intersection in
         km^2
     """
+    if isinstance(spatial_extent, GeoJSON):
+        # Transform geojson into shapely geometry and compute bounds
+        bounds = shape(spatial_extent).bounds
+        epsg = 4362
+    elif isinstance(spatial_extent, BoundingBoxExtent):
+        bounds = [
+            spatial_extent.west,
+            spatial_extent.south,
+            spatial_extent.east,
+            spatial_extent.north,
+        ]
+        epsg = spatial_extent.epsg
+    else:
+        raise ValueError(
+            "Provided spatial extent is not a valid GeoJSON or SpatialContext object."
+        )
+    # Warp the bounds if  the epsg is different from 4326
+    if epsg != 4326:
+        bounds = transform_bounds(CRS.from_epsg(epsg), CRS.from_epsg(4326), *bounds)
 
     # Queries the products in the catalogues
-    if backend.backend == Backend.CDSE:
+    if backend.backend in [Backend.CDSE, Backend.CDSE_STAGING, Backend.FED]:
         ascending_products = _parse_cdse_products(
-            _query_cdse_catalogue(
-                "Sentinel1", spatial_extent, temporal_extent, orbitDirection="ASCENDING"
-            )
+            _query_cdse_catalogue("Sentinel1", bounds, temporal_extent, orbitDirection="ASCENDING")
         )
         descending_products = _parse_cdse_products(
             _query_cdse_catalogue(
                 "Sentinel1",
-                spatial_extent,
+                bounds,
                 temporal_extent,
                 orbitDirection="DESCENDING",
             )
@@ -163,7 +165,7 @@ def s1_area_per_orbitstate(
         raise NotImplementedError(f"This feature is not supported for backend: {backend.backend}.")
 
     # Builds the shape of the spatial extent and computes the area
-    spatial_extent = spatial_extent.to_geometry()
+    spatial_extent = box(*bounds)
 
     # Computes if there is the full overlap for each of those states
     union_ascending = unary_union(ascending_products)

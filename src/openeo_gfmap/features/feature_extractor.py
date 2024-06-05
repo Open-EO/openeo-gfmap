@@ -1,10 +1,14 @@
 """Feature extractor functionalities. Such as a base class to assist the
 implementation of feature extractors of a UDF.
 """
-
+import functools
 import inspect
+import logging
 import re
+import shutil
+import urllib.request
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 import numpy as np
 import openeo
@@ -28,11 +32,57 @@ class FeatureExtractor(ABC):
     point based extraction or dense Cubes for tile/polygon based extraction.
     """
 
+    def __init__(self) -> None:
+        self.logger = None
+
+    def _initialize_logger(self) -> None:
+        """
+        Initializes the PrestoFeatureExtractor object, starting a logger.
+        """
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    @classmethod
+    @functools.lru_cache(maxsize=6)
+    def extract_dependencies(cls, base_url: str, dependency_name: str) -> str:
+        """Extract the dependencies from the given URL. Unpacking a zip
+        file in the current working directory and return the path to the
+        unpacked directory.
+
+        Parameters:
+        - base_url: The base public URL where the dependencies are stored.
+        - dependency_name: The name of the dependency file to download. This
+            parameter is added to `base_url` as a download path to the .zip
+            archive
+        Returns:
+        - The absolute path to the extracted dependencies directory, to be added
+            to the python path with the `sys.path.append` method.
+        """
+
+        # Generate absolute path for the dependencies folder
+        dependencies_dir = Path.cwd() / "dependencies"
+
+        # Create the directory if it doesn't exist
+        dependencies_dir.mkdir(exist_ok=True, parents=True)
+
+        # Download and extract the model file
+        modelfile_url = f"{base_url}/{dependency_name}"
+        modelfile, _ = urllib.request.urlretrieve(
+            modelfile_url, filename=dependencies_dir / Path(modelfile_url).name
+        )
+        shutil.unpack_archive(modelfile, extract_dir=dependencies_dir)
+
+        # Add the model directory to system path if it's not already there
+        abs_path = str(dependencies_dir / Path(modelfile_url).name.split(".zip")[0])  # NOQA
+
+        return abs_path
+
     def _common_preparations(self, inarr: xr.DataArray, parameters: dict) -> xr.DataArray:
         """Common preparations to be executed before the feature extractor is
         executed. This method should be called by the `_execute` method of the
         feature extractor.
         """
+        self._initialize_logger()
         self._epsg = parameters.pop(EPSG_HARMONIZED_NAME)
         self._parameters = parameters
         return inarr
@@ -41,6 +91,19 @@ class FeatureExtractor(ABC):
     def epsg(self) -> int:
         """Returns the EPSG code of the datacube."""
         return self._epsg
+
+    def dependencies(self) -> list:
+        """Returns the additional dependencies such as wheels or zip files.
+        Dependencies should be returned as a list of string, which will set-up at the top of the
+        generated UDF. More information can be found at:
+        https://open-eo.github.io/openeo-python-client/udf.html#standard-for-declaring-python-udf-dependencies
+        """
+        self.logger.warning(
+            "No additional dependencies are defined. If you wish to add "
+            "dependencies to your feature extractor, override the "
+            "`dependencies` method in your class."
+        )
+        return []
 
     @abstractmethod
     def output_labels(self) -> list:
@@ -51,6 +114,7 @@ class FeatureExtractor(ABC):
             "output_labels property."
         )
 
+    @abstractmethod
     def _execute(self, cube: XarrayDataCube, parameters: dict) -> XarrayDataCube:
         raise NotImplementedError(
             "FeatureExtractor is a base abstract class, please implement the " "_execute method."
@@ -216,6 +280,8 @@ def _get_imports() -> str:
     for line in lines:
         if line.strip().startswith(("import ", "from ")):
             imports.append(line)
+        # All the global variables with the style
+        # UPPER_CASE_GLOBAL_VARIABLE = "constant"
         elif re.match("^[A-Z_0-9]+\s*=.*$", line):
             static_globals.append(line)
 
@@ -229,7 +295,9 @@ def _get_apply_udf_data(feature_extractor: FeatureExtractor) -> str:
     return source.replace('"<feature_extractor_class>"', feature_extractor.__name__)
 
 
-def _generate_udf_code(feature_extractor_class: FeatureExtractor) -> openeo.UDF:
+def _generate_udf_code(
+    feature_extractor_class: FeatureExtractor, dependencies: list
+) -> openeo.UDF:
     """Generates the udf code by packing imports of this file, the necessary
     superclass and subclasses as well as the user defined feature extractor
     class and the apply_datacube function.
@@ -242,6 +310,12 @@ def _generate_udf_code(feature_extractor_class: FeatureExtractor) -> openeo.UDF:
         feature_extractor_class, FeatureExtractor
     ), "The feature extractor class must be a subclass of FeatureExtractor."
 
+    dependencies_code = ""
+    dependencies_code += "# /// script\n"
+    dependencies_code += "# dependencies = {}\n".format(str(dependencies).replace("'", '"'))
+    dependencies_code += "# ///\n"
+
+    udf_code += dependencies_code + "\n"
     udf_code += _get_imports() + "\n\n"
     udf_code += f"{inspect.getsource(FeatureExtractor)}\n\n"
     udf_code += f"{inspect.getsource(PatchFeatureExtractor)}\n\n"
@@ -270,8 +344,9 @@ def apply_feature_extractor(
     feature_extractor = feature_extractor_class()
     feature_extractor._parameters = parameters
     output_labels = feature_extractor.output_labels()
+    dependencies = feature_extractor.dependencies()
 
-    udf_code = _generate_udf_code(feature_extractor_class)
+    udf_code = _generate_udf_code(feature_extractor_class, dependencies)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 
@@ -290,8 +365,9 @@ def apply_feature_extractor_local(
     feature_extractor = feature_extractor_class()
     feature_extractor._parameters = parameters
     output_labels = feature_extractor.output_labels()
+    dependencies = feature_extractor.dependencies()
 
-    udf_code = _generate_udf_code(feature_extractor_class)
+    udf_code = _generate_udf_code(feature_extractor_class, dependencies)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 
