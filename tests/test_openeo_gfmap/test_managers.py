@@ -6,7 +6,8 @@ import geopandas as gpd
 
 from openeo_gfmap.manager.job_splitters import split_job_hex
 
-
+#TODO can we instead assert on exact numbers ?
+#would remove the print statement
 def test_split_jobs():
     dataset_path = Path(__file__).parent / "resources/wc_extraction_dataset.gpkg"
 
