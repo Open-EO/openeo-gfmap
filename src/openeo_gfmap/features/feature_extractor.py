@@ -318,9 +318,10 @@ def _generate_udf_code(
 
     dependencies_code = ""
     dependencies_code += "# /// script\n"
-    dependencies_code += "# dependencies = {}\n".format(
-        str(dependencies).replace("'", '"')
-    )
+    dependencies_code += "# dependencies = [\n"
+    for dep in dependencies:
+        dependencies_code += f'#  "{dep}",\n'
+    dependencies_code += "# ]\n"
     dependencies_code += "# ///\n"
 
     udf_code += dependencies_code + "\n"

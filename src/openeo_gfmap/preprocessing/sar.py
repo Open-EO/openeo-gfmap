@@ -62,10 +62,3 @@ def compress_backscatter_uint16(
 
     # Change the data type to uint16 for optimization purposes
     return cube.linear_scale_range(1, 65534, 1, 65534)
-
-
-def multitemporal_speckle(cube: openeo.DataCube) -> openeo.DataCube:
-    _ = cube.filter_bands(
-        bands=filter(lambda band: band.startswith("S1"), cube.metadata.band_names)
-    )
-    pass
