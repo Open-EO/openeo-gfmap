@@ -4,6 +4,7 @@ indices from preprocessed data and extracts quantiles from those indices.
 Implementing a function in a source file, and then calling the
 `apply_feature_extractor` in OpenEO should be enoug to run the inference.
 """
+
 import openeo
 import xarray as xr
 

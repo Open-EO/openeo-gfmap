@@ -1,4 +1,5 @@
 """Functionalities to interract with product catalogues."""
+
 import requests
 from geojson import GeoJSON
 from rasterio import CRS
@@ -92,7 +93,9 @@ def _check_cdse_catalogue(
     -------
     True if there is at least one product, False otherwise.
     """
-    body = _query_cdse_catalogue(collection, bounds, temporal_extent, **additional_parameters)
+    body = _query_cdse_catalogue(
+        collection, bounds, temporal_extent, **additional_parameters
+    )
 
     grd_tiles = list(
         filter(
@@ -151,7 +154,9 @@ def s1_area_per_orbitstate(
     # Queries the products in the catalogues
     if backend.backend in [Backend.CDSE, Backend.CDSE_STAGING, Backend.FED]:
         ascending_products = _parse_cdse_products(
-            _query_cdse_catalogue("Sentinel1", bounds, temporal_extent, orbitDirection="ASCENDING")
+            _query_cdse_catalogue(
+                "Sentinel1", bounds, temporal_extent, orbitDirection="ASCENDING"
+            )
         )
         descending_products = _parse_cdse_products(
             _query_cdse_catalogue(
@@ -162,7 +167,9 @@ def s1_area_per_orbitstate(
             )
         )
     else:
-        raise NotImplementedError(f"This feature is not supported for backend: {backend.backend}.")
+        raise NotImplementedError(
+            f"This feature is not supported for backend: {backend.backend}."
+        )
 
     # Builds the shape of the spatial extent and computes the area
     spatial_extent = box(*bounds)
@@ -179,13 +186,15 @@ def s1_area_per_orbitstate(
         "ASCENDING": {
             "full_overlap": ascending_covers,
             "area": sum(
-                product.intersection(spatial_extent).area for product in ascending_products
+                product.intersection(spatial_extent).area
+                for product in ascending_products
             ),
         },
         "DESCENDING": {
             "full_overlap": descending_covers,
             "area": sum(
-                product.intersection(spatial_extent).area for product in descending_products
+                product.intersection(spatial_extent).area
+                for product in descending_products
             ),
         },
     }

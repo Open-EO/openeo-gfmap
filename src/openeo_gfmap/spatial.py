@@ -1,4 +1,5 @@
 """ Definitions of spatial context, either point-based or spatial"""
+
 from dataclasses import dataclass
 from typing import Union
 

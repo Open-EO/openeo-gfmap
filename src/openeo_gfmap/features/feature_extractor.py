@@ -73,11 +73,15 @@ class FeatureExtractor(ABC):
         shutil.unpack_archive(modelfile, extract_dir=dependencies_dir)
 
         # Add the model directory to system path if it's not already there
-        abs_path = str(dependencies_dir / Path(modelfile_url).name.split(".zip")[0])  # NOQA
+        abs_path = str(
+            dependencies_dir / Path(modelfile_url).name.split(".zip")[0]
+        )  # NOQA
 
         return abs_path
 
-    def _common_preparations(self, inarr: xr.DataArray, parameters: dict) -> xr.DataArray:
+    def _common_preparations(
+        self, inarr: xr.DataArray, parameters: dict
+    ) -> xr.DataArray:
         """Common preparations to be executed before the feature extractor is
         executed. This method should be called by the `_execute` method of the
         feature extractor.
@@ -117,7 +121,8 @@ class FeatureExtractor(ABC):
     @abstractmethod
     def _execute(self, cube: XarrayDataCube, parameters: dict) -> XarrayDataCube:
         raise NotImplementedError(
-            "FeatureExtractor is a base abstract class, please implement the " "_execute method."
+            "FeatureExtractor is a base abstract class, please implement the "
+            "_execute method."
         )
 
 
@@ -144,7 +149,8 @@ class PatchFeatureExtractor(FeatureExtractor):
 
         if self.epsg is None:
             raise Exception(
-                "EPSG code was not defined, cannot extract lat/lon array " "as the CRS is unknown."
+                "EPSG code was not defined, cannot extract lat/lon array "
+                "as the CRS is unknown."
             )
 
         # If the coordiantes are not in EPSG:4326, we need to reproject them
@@ -312,7 +318,9 @@ def _generate_udf_code(
 
     dependencies_code = ""
     dependencies_code += "# /// script\n"
-    dependencies_code += "# dependencies = {}\n".format(str(dependencies).replace("'", '"'))
+    dependencies_code += "# dependencies = {}\n".format(
+        str(dependencies).replace("'", '"')
+    )
     dependencies_code += "# ///\n"
 
     udf_code += dependencies_code + "\n"

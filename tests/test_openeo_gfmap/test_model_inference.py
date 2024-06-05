@@ -1,4 +1,5 @@
 """Test on model inference implementations, both local and remote."""
+
 from pathlib import Path
 
 import numpy as np
@@ -23,17 +24,15 @@ from openeo_gfmap.preprocessing.compositing import median_compositing
 
 from .utils import load_dataarray_url
 
-spatial_context = BoundingBoxExtent(west=5.0, south=51.2, east=5.025, north=51.225, epsg=4326)
+spatial_context = BoundingBoxExtent(
+    west=5.0, south=51.2, east=5.025, north=51.225, epsg=4326
+)
 
 temporal_extent = TemporalContext(start_date="2018-05-01", end_date="2018-10-31")
 
-resources_file = (
-    "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/test_inference_feats.nc"
-)
+resources_file = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/test_inference_feats.nc"
 
-onnx_model_url = (
-    "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/knn_model_rgbnir.onnx"
-)
+onnx_model_url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/knn_model_rgbnir.onnx"
 dependency_url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/openeo/onnx_dependencies_1.16.3.zip"
 
 
@@ -90,7 +89,9 @@ def test_onnx_inference():
     cube = median_compositing(cube, period="year")
 
     # We remove the SCL mask
-    cube = cube.filter_bands(bands=["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02", "S2-L2A-B08"])
+    cube = cube.filter_bands(
+        bands=["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02", "S2-L2A-B08"]
+    )
 
     cube = cube.ndvi(nir="S2-L2A-B08", red="S2-L2A-B04", target_band="S2-L2A-NDVI")
 

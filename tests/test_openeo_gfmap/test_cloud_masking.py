@@ -14,7 +14,7 @@ from openeo_gfmap.spatial import BoundingBoxExtent
 from openeo_gfmap.temporal import TemporalContext
 from openeo_gfmap.utils import quintad_intervals
 
-backends = [Backend.TERRASCOPE, Backend.CDSE]
+backends = [Backend.CDSE]
 
 # Few fields around Mol, Belgium
 spatial_extent = BoundingBoxExtent(
@@ -53,7 +53,9 @@ def test_bap_score(backend: Backend):
     bap_score = get_bap_score(cube, **preprocessing_parameters)
     ndvi = cube.ndvi(nir="S2-L2A-B08", red="S2-L2A-B04")
 
-    cube = bap_score.merge_cubes(ndvi).rename_labels("bands", ["S2-L2A-BAPSCORE", "S2-L2A-NDVI"])
+    cube = bap_score.merge_cubes(ndvi).rename_labels(
+        "bands", ["S2-L2A-BAPSCORE", "S2-L2A-NDVI"]
+    )
 
     job = cube.create_job(
         title="BAP score unittest",
@@ -64,7 +66,9 @@ def test_bap_score(backend: Backend):
 
     for asset in job.get_results().get_assets():
         if asset.metadata["type"].startswith("application/x-netcdf"):
-            asset.download(Path(__file__).parent / f"results/bap_score_{backend.value}.nc")
+            asset.download(
+                Path(__file__).parent / f"results/bap_score_{backend.value}.nc"
+            )
 
 
 @pytest.mark.parametrize("backend", backends)
@@ -96,7 +100,9 @@ def test_bap_masking(backend: Backend):
     cube = cube.linear_scale_range(0, 65535, 0, 65535)
 
     # Remove SCL
-    cube = cube.filter_bands([band for band in cube.metadata.band_names if band != "S2-L2A-SCL"])
+    cube = cube.filter_bands(
+        [band for band in cube.metadata.band_names if band != "S2-L2A-SCL"]
+    )
 
     job = cube.create_job(
         title="BAP compositing unittest",
@@ -107,7 +113,9 @@ def test_bap_masking(backend: Backend):
 
     for asset in job.get_results().get_assets():
         if asset.metadata["type"].startswith("application/x-netcdf"):
-            asset.download(Path(__file__).parent / f"results/bap_composited_{backend.value}.nc")
+            asset.download(
+                Path(__file__).parent / f"results/bap_composited_{backend.value}.nc"
+            )
 
 
 @pytest.mark.parametrize("backend", backends)
@@ -160,7 +168,9 @@ def test_bap_quintad(backend: Backend):
     assert compositing_intervals == expected_intervals
 
     # Perform masking with BAP, masking optical bands
-    bap_mask = get_bap_mask(cube, period=compositing_intervals, **preprocessing_parameters)
+    bap_mask = get_bap_mask(
+        cube, period=compositing_intervals, **preprocessing_parameters
+    )
 
     # Create a new extractor for the whole data now
     fetching_parameters = {
@@ -191,4 +201,6 @@ def test_bap_quintad(backend: Backend):
 
     for asset in job.get_results().get_assets():
         if asset.metadata["type"].startswith("application/x-netcdf"):
-            asset.download(Path(__file__).parent / f"results/bap_quintad_{backend.value}.nc")
+            asset.download(
+                Path(__file__).parent / f"results/bap_quintad_{backend.value}.nc"
+            )

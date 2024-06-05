@@ -1,4 +1,5 @@
 """Test the job splitters and managers of OpenEO GFMAP."""
+
 from pathlib import Path
 
 import geopandas as gpd

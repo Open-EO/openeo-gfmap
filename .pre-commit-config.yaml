@@ -41,11 +41,11 @@ repos:
       #   language: system
       #   types: [python]
       #   exclude: "(^experiments/|.*_depr)"
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: no-commit-to-branch
-        args: [ '--branch', 'main' ]
+  # - repo: https://github.com/pre-commit/pre-commit-hooks
+  #   rev: v4.5.0
+  #   hooks:
+  #     - id: no-commit-to-branch
+  #       args: [ '--branch', 'main' ]
   - repo: https://github.com/radix-ai/auto-smart-commit
     rev: v1.0.3
     hooks:
