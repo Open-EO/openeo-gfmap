@@ -62,9 +62,10 @@ def test_rescale_s1_backscatter_valid(mock_feature_extractor, mock_data_array):
 def test_execute(mock_common_preparations, mock_rescale_s1, mock_feature_extractor):
     mock_feature_extractor._parameters = {"rescale_s1": True}
     mock_cube = MagicMock()
+    mock_data_array = xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"])
     mock_cube.get_array.return_value = mock_data_array
 
     result = mock_feature_extractor._execute(mock_cube, {})
-    assert result.get_array().dims == mock_data_array.dims
+    assert result.get_array().dims == ("bands", "y", "x")
     mock_common_preparations.assert_called()
     mock_rescale_s1.assert_called()
