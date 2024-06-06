@@ -38,20 +38,16 @@ def test_get_latlons_epsg_4326(mock_feature_extractor, mock_data_array):
 def test_get_latlons_reproject(mock_from_crs, mock_feature_extractor, mock_data_array):
     mock_feature_extractor._epsg = 3857
 
-    # Configure the transformer mock
-    mock_transform = MagicMock()
-    mock_from_crs.return_value = mock_transform
-
     # Create mock coordinates matching the 'x' and 'y' dimensions
     x_coords = mock_data_array.coords['x'].values
     y_coords = mock_data_array.coords['y'].values
 
-    # Create mock transformation results with the same shape as x and y coords
-    lon_data = np.zeros_like(x_coords)
-    lat_data = np.zeros_like(y_coords)
-
-    # Mock the transform method to return these arrays
-    mock_transform.transform.side_effect = lambda x, y: (lon_data, lat_data)
+    xx, yy = np.meshgrid(x_coords, y_coords)
+    
+    # Configure the transformer mock
+    mock_transform = MagicMock()
+    mock_from_crs.return_value = mock_transform
+    mock_transform.transform.return_value = (xx, yy)
 
     result = mock_feature_extractor.get_latlons(mock_data_array)
 
@@ -75,6 +71,8 @@ def test_execute(mock_common_preparations, mock_rescale_s1, mock_feature_extract
     mock_cube = MagicMock()
     mock_data_array = xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"])
     mock_cube.get_array.return_value = mock_data_array
+
+    print(mock_data_array)
 
     result = mock_feature_extractor._execute(mock_cube, {})
     
