@@ -4,11 +4,9 @@ import numpy as np
 import xarray as xr
 from unittest.mock import MagicMock, patch
 
-# Constants for test
 LAT_HARMONIZED_NAME = "GEO-LAT"
 LON_HARMONIZED_NAME = "GEO-LON"
 EPSG_HARMONIZED_NAME = "GEO-EPSG"
-
 
 class DummyPatchFeatureExtractor(PatchFeatureExtractor):
     def output_labels(self):
@@ -26,24 +24,27 @@ def mock_data_array():
     return xr.DataArray(np.random.rand(10, 10), dims=["y", "x"])
 
 def test_get_latlons_epsg_none(mock_feature_extractor, mock_data_array):
-    mock_feature_extractor.epsg = None
+    mock_feature_extractor._epsg = None
     with pytest.raises(Exception):
         mock_feature_extractor.get_latlons(mock_data_array)
 
 def test_get_latlons_epsg_4326(mock_feature_extractor, mock_data_array):
-    mock_feature_extractor.epsg = 4326
+    mock_feature_extractor._epsg = 4326
     result = mock_feature_extractor.get_latlons(mock_data_array)
     assert LAT_HARMONIZED_NAME in result.coords['bands'].values
     assert LON_HARMONIZED_NAME in result.coords['bands'].values
 
-@patch('pyproj.Transformer')
-def test_get_latlons_reproject(mock_transformer, mock_feature_extractor, mock_data_array):
-    mock_feature_extractor.epsg = 3857
+@patch('pyproj.Transformer.from_crs')
+def test_get_latlons_reproject(mock_from_crs, mock_feature_extractor, mock_data_array):
+    mock_feature_extractor._epsg = 3857
+
+    # Configure the transformer mock
     mock_transform = MagicMock()
-    mock_transformer.from_crs.return_value = mock_transform
+    mock_from_crs.return_value = mock_transform
     mock_transform.transform.return_value = (np.zeros_like(mock_data_array.coords['x']), np.zeros_like(mock_data_array.coords['y']))
 
     result = mock_feature_extractor.get_latlons(mock_data_array)
+
     assert result.dims == ('bands', 'y', 'x')
     assert LAT_HARMONIZED_NAME in result.coords['bands'].values
     assert LON_HARMONIZED_NAME in result.coords['bands'].values
@@ -55,10 +56,10 @@ def test_rescale_s1_backscatter_valid(mock_feature_extractor, mock_data_array):
     mock_data_array = xr.DataArray(data, dims=["bands", "y", "x"], coords={"bands": s1_bands})
 
     result = mock_feature_extractor._rescale_s1_backscatter(mock_data_array)
-    assert result.dtype == np.uint16
+    assert result.dtype == np.float32
 
-@patch.object(PatchFeatureExtractor, '_common_preparations', return_value=mock_data_array)
-@patch.object(PatchFeatureExtractor, '_rescale_s1_backscatter', return_value=mock_data_array)
+@patch.object(PatchFeatureExtractor, '_common_preparations', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
+@patch.object(PatchFeatureExtractor, '_rescale_s1_backscatter', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
 def test_execute(mock_common_preparations, mock_rescale_s1, mock_feature_extractor):
     mock_feature_extractor._parameters = {"rescale_s1": True}
     mock_cube = MagicMock()
