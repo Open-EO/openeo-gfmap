@@ -5,8 +5,8 @@ import xarray as xr
 from unittest.mock import MagicMock, patch
 
 # Constants for test
-LAT_HARMONIZED_NAME = "lat"
-LON_HARMONIZED_NAME = "lon"
+LAT_HARMONIZED_NAME = "GEO-LAT"
+LON_HARMONIZED_NAME = "GEO-LON"
 EPSG_HARMONIZED_NAME = "GEO-EPSG"
 
 
