@@ -9,6 +9,9 @@ LAT_HARMONIZED_NAME = "lat"
 LON_HARMONIZED_NAME = "lon"
 
 class DummyPatchFeatureExtractor(PatchFeatureExtractor):
+    def output_labels(self) -> list:
+        return ["label1", "label2"]
+    
     def execute(self, inarr: xr.DataArray) -> xr.DataArray:
         return inarr
 
