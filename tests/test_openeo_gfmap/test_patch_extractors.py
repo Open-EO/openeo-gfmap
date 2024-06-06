@@ -64,8 +64,8 @@ def test_rescale_s1_backscatter_valid(mock_feature_extractor, mock_data_array):
     result = mock_feature_extractor._rescale_s1_backscatter(mock_data_array)
     assert result.dtype == np.uint16
 
-@patch.object(DummyPatchFeatureExtractor, '_common_preparations', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
-@patch.object(DummyPatchFeatureExtractor, '_rescale_s1_backscatter', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
+@patch.object(DummyPatchFeatureExtractor, '_common_preparations', return_value=xr.DataArray(np.random.rand(2, 10, 10), dims=["bands", "y", "x"]))
+@patch.object(DummyPatchFeatureExtractor, '_rescale_s1_backscatter', return_value=xr.DataArray(np.random.rand(2, 10, 10), dims=["bands", "y", "x"]))
 def test_execute(mock_common_preparations, mock_rescale_s1, mock_feature_extractor):
     mock_feature_extractor._parameters = {"rescale_s1": True}
     mock_cube = MagicMock()
@@ -77,7 +77,7 @@ def test_execute(mock_common_preparations, mock_rescale_s1, mock_feature_extract
     result = mock_feature_extractor._execute(mock_cube, {})
     
     # Ensure the result is correctly transposed to have dimensions ["bands", "y", "x"]
-    expected_dims = ("bands", "t", "y", "x")
+    expected_dims = ("bands", "y", "x")
     assert result.dims == expected_dims
     mock_common_preparations.assert_called()
     mock_rescale_s1.assert_called()
