@@ -66,12 +66,10 @@ def test_rescale_s1_backscatter_valid(mock_feature_extractor, mock_data_array):
     result = mock_feature_extractor._rescale_s1_backscatter(mock_data_array)
     assert result.dtype == np.uint16
 
-# Mock data setup
-mock_data_array = xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"])
-mock_data_cube = XarrayDataCube(mock_data_array)
 
-@patch.object(DummyPatchFeatureExtractor, '_common_preparations', return_value=mock_data_cube)
-@patch.object(DummyPatchFeatureExtractor, '_rescale_s1_backscatter', return_value=mock_data_cube)
+
+@patch.object(DummyPatchFeatureExtractor, '_common_preparations', return_value=XarrayDataCube(xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"])))
+@patch.object(DummyPatchFeatureExtractor, '_rescale_s1_backscatter', return_value=XarrayDataCube(xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"])))
 def test_execute(mock_common_preparations, mock_rescale_s1):
     # Create an instance of the extractor
     extractor = DummyPatchFeatureExtractor()
@@ -79,7 +77,7 @@ def test_execute(mock_common_preparations, mock_rescale_s1):
     
     # Mock the cube
     mock_cube = MagicMock()
-    mock_cube.get_array.return_value = mock_data_array  # Return the DataArray directly
+    mock_cube.get_array.return_value = xr.DataArray(np.random.rand(2, 10, 10), dims=["bands", "y", "x"])
     
     # Execute the method
     result = extractor._execute(mock_cube, {})
