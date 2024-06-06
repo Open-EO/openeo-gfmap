@@ -1,4 +1,6 @@
 from openeo_gfmap.features import PatchFeatureExtractor
+from openeo.udf import XarrayDataCube
+
 import pytest
 import numpy as np
 import xarray as xr
