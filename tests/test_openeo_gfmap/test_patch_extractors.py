@@ -21,7 +21,8 @@ def mock_feature_extractor():
 
 @pytest.fixture
 def mock_data_array():
-    return xr.DataArray(np.random.rand(10, 10), dims=["y", "x"])
+    data = np.random.rand(10, 10)
+    return xr.DataArray(data, dims=["y", "x"], coords={"x": range(10), "y": range(10)})
 
 def test_get_latlons_epsg_none(mock_feature_extractor, mock_data_array):
     mock_feature_extractor._epsg = None
@@ -56,7 +57,7 @@ def test_rescale_s1_backscatter_valid(mock_feature_extractor, mock_data_array):
     mock_data_array = xr.DataArray(data, dims=["bands", "y", "x"], coords={"bands": s1_bands})
 
     result = mock_feature_extractor._rescale_s1_backscatter(mock_data_array)
-    assert result.dtype == np.float32
+    assert result.dtype == np.uint16
 
 @patch.object(PatchFeatureExtractor, '_common_preparations', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
 @patch.object(PatchFeatureExtractor, '_rescale_s1_backscatter', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
