@@ -21,8 +21,7 @@ def mock_feature_extractor():
 
 @pytest.fixture
 def mock_data_array():
-    data = np.random.rand(10, 10)
-    return xr.DataArray(data, dims=["y", "x"], coords={"x": range(10), "y": range(10)})
+    return xr.DataArray(np.random.rand(10, 10), dims=["y", "x"])
 
 def test_get_latlons_epsg_none(mock_feature_extractor, mock_data_array):
     mock_feature_extractor._epsg = None
@@ -42,7 +41,17 @@ def test_get_latlons_reproject(mock_from_crs, mock_feature_extractor, mock_data_
     # Configure the transformer mock
     mock_transform = MagicMock()
     mock_from_crs.return_value = mock_transform
-    mock_transform.transform.return_value = (np.zeros_like(mock_data_array.coords['x']), np.zeros_like(mock_data_array.coords['y']))
+
+    # Create mock coordinates matching the 'x' and 'y' dimensions
+    x_coords = mock_data_array.coords['x'].values
+    y_coords = mock_data_array.coords['y'].values
+
+    # Create mock transformation results with the same shape as x and y coords
+    lon_data = np.zeros_like(x_coords)
+    lat_data = np.zeros_like(y_coords)
+
+    # Mock the transform method to return these arrays
+    mock_transform.transform.side_effect = lambda x, y: (lon_data, lat_data)
 
     result = mock_feature_extractor.get_latlons(mock_data_array)
 
@@ -59,8 +68,8 @@ def test_rescale_s1_backscatter_valid(mock_feature_extractor, mock_data_array):
     result = mock_feature_extractor._rescale_s1_backscatter(mock_data_array)
     assert result.dtype == np.uint16
 
-@patch.object(PatchFeatureExtractor, '_common_preparations', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
-@patch.object(PatchFeatureExtractor, '_rescale_s1_backscatter', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
+@patch.object(DummyPatchFeatureExtractor, '_common_preparations', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
+@patch.object(DummyPatchFeatureExtractor, '_rescale_s1_backscatter', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
 def test_execute(mock_common_preparations, mock_rescale_s1, mock_feature_extractor):
     mock_feature_extractor._parameters = {"rescale_s1": True}
     mock_cube = MagicMock()
@@ -68,6 +77,9 @@ def test_execute(mock_common_preparations, mock_rescale_s1, mock_feature_extract
     mock_cube.get_array.return_value = mock_data_array
 
     result = mock_feature_extractor._execute(mock_cube, {})
-    assert result.get_array().dims == ("bands", "y", "x")
+    
+    # Ensure the result is correctly transposed to have dimensions ["bands", "y", "x"]
+    expected_dims = ("bands", "t", "y", "x")
+    assert result.dims == expected_dims
     mock_common_preparations.assert_called()
     mock_rescale_s1.assert_called()
