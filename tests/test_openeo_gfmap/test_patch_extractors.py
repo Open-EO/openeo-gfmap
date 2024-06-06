@@ -1,13 +1,9 @@
-#%%
-
 from openeo_gfmap.features import PatchFeatureExtractor
 import pytest
 import numpy as np
 import xarray as xr
 from unittest.mock import MagicMock, patch
-from pyproj import CRS, Transformer
 
-#%%
 # Constants for test
 LAT_HARMONIZED_NAME = "lat"
 LON_HARMONIZED_NAME = "lon"
