@@ -64,20 +64,18 @@ def test_rescale_s1_backscatter_valid(mock_feature_extractor, mock_data_array):
     result = mock_feature_extractor._rescale_s1_backscatter(mock_data_array)
     assert result.dtype == np.uint16
 
-@patch.object(DummyPatchFeatureExtractor, '_common_preparations', return_value=xr.DataArray(np.random.rand(2, 10, 10), dims=["bands", "y", "x"]))
-@patch.object(DummyPatchFeatureExtractor, '_rescale_s1_backscatter', return_value=xr.DataArray(np.random.rand(2, 10, 10), dims=["bands", "y", "x"]))
+@patch.object(DummyPatchFeatureExtractor, '_common_preparations', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
+@patch.object(DummyPatchFeatureExtractor, '_rescale_s1_backscatter', return_value=xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"]))
 def test_execute(mock_common_preparations, mock_rescale_s1, mock_feature_extractor):
     mock_feature_extractor._parameters = {"rescale_s1": True}
     mock_cube = MagicMock()
     mock_data_array = xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"])
-    mock_cube.get_array.return_value = mock_data_array
-
-    print(mock_data_array)
+    mock_cube.get_array.return_value = XarrayDataCube(mock_data_array)  # Wrap the DataArray in XarrayDataCube
 
     result = mock_feature_extractor._execute(mock_cube, {})
     
     # Ensure the result is correctly transposed to have dimensions ["bands", "y", "x"]
-    expected_dims = ("bands", "y", "x")
-    assert result.dims == expected_dims
+    expected_dims = ("bands", "t", "y", "x")  # Update expected dimensions
+    assert result.get_array().dims == expected_dims  # Access dims through the wrapped DataArray
     mock_common_preparations.assert_called()
     mock_rescale_s1.assert_called()
