@@ -68,8 +68,8 @@ def test_rescale_s1_backscatter_valid(mock_feature_extractor, mock_data_array):
 
 
 
-@patch.object(DummyPatchFeatureExtractor, '_common_preparations', return_value=XarrayDataCube(xr.DataArray(np.random.rand(2, 10, 10), dims=["bands", "y", "x"])))
-@patch.object(DummyPatchFeatureExtractor, '_rescale_s1_backscatter', return_value=XarrayDataCube(xr.DataArray(np.random.rand(2, 10, 10), dims=["bands", "y", "x"])))
+@patch.object(DummyPatchFeatureExtractor, '_common_preparations', return_value=XarrayDataCube(xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"])))
+@patch.object(DummyPatchFeatureExtractor, '_rescale_s1_backscatter', return_value=XarrayDataCube(xr.DataArray(np.random.rand(2, 10, 10, 10), dims=["bands", "t", "y", "x"])))
 def test_execute(mock_common_preparations, mock_rescale_s1):
     # Create an instance of the extractor
     extractor = DummyPatchFeatureExtractor()
