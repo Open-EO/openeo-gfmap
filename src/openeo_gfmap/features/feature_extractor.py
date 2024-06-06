@@ -33,12 +33,6 @@ class FeatureExtractor(ABC):
     """
 
     def __init__(self) -> None:
-        self.logger = None
-
-    def _initialize_logger(self) -> None:
-        """
-        Initializes the PrestoFeatureExtractor object, starting a logger.
-        """
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -86,7 +80,6 @@ class FeatureExtractor(ABC):
         executed. This method should be called by the `_execute` method of the
         feature extractor.
         """
-        self._initialize_logger()
         self._epsg = parameters.pop(EPSG_HARMONIZED_NAME)
         self._parameters = parameters
         return inarr

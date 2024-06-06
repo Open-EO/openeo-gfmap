@@ -32,12 +32,6 @@ class ModelInference(ABC):
     """
 
     def __init__(self) -> None:
-        self.logger = None
-
-    def _initialize_logger(self) -> None:
-        """
-        Initializes the PrestoFeatureExtractor object, starting a logger.
-        """
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -115,7 +109,6 @@ class ModelInference(ABC):
         """Common preparations for all inference models. This method will be
         executed at the very beginning of the process.
         """
-        self._initialize_logger()
         self._epsg = parameters.pop(EPSG_HARMONIZED_NAME)
         self._parameters = parameters
         return inarr
@@ -277,9 +270,10 @@ def _generate_udf_code(
 
     dependencies_code = ""
     dependencies_code += "# /// script\n"
-    dependencies_code += "# dependencies = {}\n".format(
-        str(dependencies).replace("'", '"')
-    )
+    dependencies_code += "# dependencies = [\n"
+    for dep in dependencies:
+        dependencies_code += f'#  "{dep}",\n'
+    dependencies_code += "# ]\n"
     dependencies_code += "# ///\n"
 
     udf_code += dependencies_code + "\n"
