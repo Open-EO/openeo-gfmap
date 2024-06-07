@@ -23,6 +23,7 @@ class Backend(Enum):
     CDSE_STAGING = "cdse-staging"
     LOCAL = "local"  # Based on the same components of EODc
     FED = "fed"  # Federation backend
+    OTC = "otc" 
 
 
 @dataclass
@@ -113,10 +114,19 @@ def fed_connection() -> openeo.Connection:
         env_var_suffix="FED",
     )
 
+def otc_connection() -> openeo.Connection:
+    """Performs a connection to the OTC backend using the oidc
+    authentication."""
+    return _create_connection(
+        url="https://openeo.prod.amsterdam.openeo.dataspace.copernicus.eu/",
+        env_var_suffix="OTC",
+    )
+
 
 BACKEND_CONNECTIONS: Dict[Backend, Callable] = {
     Backend.TERRASCOPE: vito_connection,
     Backend.CDSE: cdse_connection,
     Backend.CDSE_STAGING: cdse_staging_connection,
     Backend.FED: fed_connection,
+    Backend.OTC: otc_connection,
 }

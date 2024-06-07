@@ -322,23 +322,23 @@ class GFMAPJobManager(MultiBackendJobManager):
 
         _log.info(f"Adding {len(job_items)} items to the STAC collection...")
 
-        with _stac_lock:  # Take the STAC lock to avoid concurrence issues
-            # Filters the job items to only keep the ones that are not already in the collection
-            existing_ids = [item.id for item in self._root_collection.get_all_items()]
-            job_items = [item for item in job_items if item.id not in existing_ids]
+        # with _stac_lock:  # Take the STAC lock to avoid concurrence issues
+        #     # Filters the job items to only keep the ones that are not already in the collection
+        #     existing_ids = [item.id for item in self._root_collection.get_all_items()]
+        #     job_items = [item for item in job_items if item.id not in existing_ids]
 
-            self._root_collection.add_items(job_items)
-            _log.info(f"Added {len(job_items)} items to the STAC collection.")
+        #     self._root_collection.add_items(job_items)
+        #     _log.info(f"Added {len(job_items)} items to the STAC collection.")
 
-            _log.info(f"Writing STAC collection for {job.job_id} to file...")
-            try:
-                self._write_stac()
-            except Exception as e:
-                _log.exception(
-                    f"Error writing STAC collection for job {job.job_id} to file.", e
-                )
-                raise e
-            _log.info(f"Wrote STAC collection for {job.job_id} to file.")
+        #     _log.info(f"Writing STAC collection for {job.job_id} to file...")
+        #     try:
+        #         self._write_stac()
+        #     except Exception as e:
+        #         _log.exception(
+        #             f"Error writing STAC collection for job {job.job_id} to file.", e
+        #         )
+        #         raise e
+        #     _log.info(f"Wrote STAC collection for {job.job_id} to file.")
 
         _log.info(f"Job {job.job_id} and post job action finished successfully.")
 
