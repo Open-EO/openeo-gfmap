@@ -77,7 +77,7 @@ def test_execute(mock_common_preparations, mock_rescale_s1):
     
     # Mock the cube
     mock_cube = MagicMock()
-    mock_cube.get_array.return_value = XarrayDataCube(xr.DataArray(np.random.rand(2, 10, 10), dims=["bands", "y", "x"]))
+    mock_cube.get_array.return_value = xr.DataArray(np.random.rand(2, 10, 10), dims=["bands", "y", "x"])
     
     # Execute the method
     result = extractor._execute(mock_cube, {})
