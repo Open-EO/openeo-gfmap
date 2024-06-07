@@ -23,7 +23,7 @@ class Backend(Enum):
     CDSE_STAGING = "cdse-staging"
     LOCAL = "local"  # Based on the same components of EODc
     FED = "fed"  # Federation backend
-    OTC = "otc" 
+    OTC = "otc"
 
 
 @dataclass
@@ -113,6 +113,7 @@ def fed_connection() -> openeo.Connection:
         url="http://openeofed.dataspace.copernicus.eu/",
         env_var_suffix="FED",
     )
+
 
 def otc_connection() -> openeo.Connection:
     """Performs a connection to the OTC backend using the oidc
