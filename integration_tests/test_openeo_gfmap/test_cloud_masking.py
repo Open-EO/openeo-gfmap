@@ -28,6 +28,7 @@ spatial_extent = BoundingBoxExtent(
 # November 2022 to February 2023
 temporal_extent = TemporalContext(start_date="2022-11-01", end_date="2023-02-28")
 
+
 # TODO; integration test; to consider if we want to move this to the python client itself.
 # where do we want the official BAP implementation to end up?
 # we should include an assert functionality to measure regression.
@@ -72,6 +73,7 @@ def test_bap_score(backend: Backend):
             asset.download(
                 Path(__file__).parent / f"results/bap_score_{backend.value}.nc"
             )
+
 
 # TODO; integration test; to consider if we want to move this to the python client itself.
 # where do we want the official BAP implementation to end up?
@@ -123,8 +125,9 @@ def test_bap_masking(backend: Backend):
                 Path(__file__).parent / f"results/bap_composited_{backend.value}.nc"
             )
 
+
 # TODO; A convoluted test which contains a unit test for the intervals,
-# followed with a integration test on BAP masking. 
+# followed with a integration test on BAP masking.
 # unclear why the post-processing is included?
 @pytest.mark.parametrize("backend", backends)
 def test_bap_quintad(backend: Backend):

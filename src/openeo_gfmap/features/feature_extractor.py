@@ -27,6 +27,7 @@ class FeatureExtractor(ABC):
     The inherited classes are supposed to take care of VectorDataCubes for
     point based extraction or dense Cubes for tile/polygon based extraction.
     """
+
     def __init__(self):
         self._epsg = None
 
@@ -45,7 +46,7 @@ class FeatureExtractor(ABC):
     def epsg(self) -> int:
         """Returns the EPSG code of the datacube."""
         return self._epsg
-    
+
     @epsg.setter
     def epsg(self, value: int):
         self._epsg = value
