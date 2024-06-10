@@ -13,8 +13,8 @@ from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
 from openeo_gfmap.temporal import TemporalContext
 
 from .commons import (
-    convert_band_names,
     _load_collection,
+    convert_band_names,
     rename_bands,
     resample_reproject,
 )
@@ -57,7 +57,9 @@ ELEMENT84_SENTINEL2_L2A_MAPPING = {
 }
 
 
-def _get_s2_l2a_default_fetcher(collection_name: str, fetch_type: FetchType) -> Callable:
+def _get_s2_l2a_default_fetcher(
+    collection_name: str, fetch_type: FetchType
+) -> Callable:
     """Builds the fetch function from the collection name as it stored in the
     target backend.
 

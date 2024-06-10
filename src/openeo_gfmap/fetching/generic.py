@@ -10,8 +10,8 @@ from geojson import GeoJSON
 from openeo_gfmap.backend import Backend, BackendContext
 from openeo_gfmap.fetching import CollectionFetcher, FetchType, _log
 from openeo_gfmap.fetching.commons import (
-    convert_band_names,
     _load_collection,
+    convert_band_names,
     rename_bands,
     resample_reproject,
 )

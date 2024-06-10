@@ -12,8 +12,8 @@ from openeo_gfmap.spatial import SpatialContext
 from openeo_gfmap.temporal import TemporalContext
 
 from .commons import (
-    convert_band_names,
     _load_collection,
+    convert_band_names,
     rename_bands,
     resample_reproject,
 )
@@ -27,7 +27,9 @@ BASE_SENTINEL1_GRD_MAPPING = {
 }
 
 
-def _get_s1_grd_default_fetcher(collection_name: str, fetch_type: FetchType) -> Callable:
+def _get_s1_grd_default_fetcher(
+    collection_name: str, fetch_type: FetchType
+) -> Callable:
     """Return a default fetcher for Sentinel-1 GRD data.
 
     Parameters
@@ -137,7 +139,9 @@ def _get_s1_grd_default_processor(
 
 SENTINEL1_GRD_BACKEND_MAP = {
     Backend.TERRASCOPE: {
-        "default": partial(_get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
+        "default": partial(
+            _get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
+        ),
         "preprocessor": partial(
             _get_s1_grd_default_processor,
             collection_name="SENTINEL1_GRD",
@@ -145,7 +149,9 @@ SENTINEL1_GRD_BACKEND_MAP = {
         ),
     },
     Backend.CDSE: {
-        "default": partial(_get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
+        "default": partial(
+            _get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
+        ),
         "preprocessor": partial(
             _get_s1_grd_default_processor,
             collection_name="SENTINEL1_GRD",
@@ -153,7 +159,9 @@ SENTINEL1_GRD_BACKEND_MAP = {
         ),
     },
     Backend.CDSE_STAGING: {
-        "default": partial(_get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
+        "default": partial(
+            _get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
+        ),
         "preprocessor": partial(
             _get_s1_grd_default_processor,
             collection_name="SENTINEL1_GRD",
@@ -161,7 +169,9 @@ SENTINEL1_GRD_BACKEND_MAP = {
         ),
     },
     Backend.FED: {
-        "default": partial(_get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"),
+        "default": partial(
+            _get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
+        ),
         "preprocessor": partial(
             _get_s1_grd_default_processor,
             collection_name="SENTINEL1_GRD",
