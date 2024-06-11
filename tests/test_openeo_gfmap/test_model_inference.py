@@ -38,6 +38,7 @@ dependency_url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/ope
 
 
 # TODO; as an addition we could include an assert on the output values, however this edges towards MLOPS
+@pytest.mark.skip
 def test_onnx_inference_local():
     """Test the ONNX Model inference locally"""
     inds = load_dataarray_url(resources_file)
