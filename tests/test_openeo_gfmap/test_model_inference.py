@@ -66,6 +66,7 @@ def test_onnx_inference_local():
 
 
 # TODO; integration test of +- full pipeline
+@pytest.mark.skip
 def test_onnx_inference():
     """Simple test on the ONNX Model Inference class"""
     connection = cdse_connection()

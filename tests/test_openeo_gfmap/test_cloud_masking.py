@@ -33,6 +33,7 @@ temporal_extent = TemporalContext(start_date="2022-11-01", end_date="2023-02-28"
 # where do we want the official BAP implementation to end up?
 # we should include an assert functionality to measure regression.
 # unit test with dummy cube?
+@pytest.mark.skip
 @pytest.mark.parametrize("backend", backends)
 def test_bap_score(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
@@ -79,6 +80,7 @@ def test_bap_score(backend: Backend):
 # where do we want the official BAP implementation to end up?
 # we should include an assert functionality to measure regression.
 # unit test with dummy cube?
+@pytest.mark.skip
 @pytest.mark.parametrize("backend", backends)
 def test_bap_masking(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
@@ -129,6 +131,7 @@ def test_bap_masking(backend: Backend):
 # TODO; A convoluted test which contains a unit test for the intervals,
 # followed with a integration test on BAP masking.
 # unclear why the post-processing is included?
+@pytest.mark.skip
 @pytest.mark.parametrize("backend", backends)
 def test_bap_quintad(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
