@@ -1,12 +1,15 @@
 """Inference functionalities. Such as a base class to assist the implementation
 of inference models on an UDF.
 """
-
 import functools
 import inspect
+import logging
 import re
+import shutil
 import sys
+import urllib.request
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 import numpy as np
 import openeo
@@ -27,6 +30,53 @@ class ModelInference(ABC):
     """Base class for all model inference UDFs. It provides some common
     methods and attributes to be used by other model inference classes.
     """
+
+    def __init__(self) -> None:
+        self.logger = None
+
+    def _initialize_logger(self) -> None:
+        """
+        Initializes the PrestoFeatureExtractor object, starting a logger.
+        """
+        logging.basicConfig(level=logging.INFO)
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    @classmethod
+    @functools.lru_cache(maxsize=6)
+    def extract_dependencies(cls, base_url: str, dependency_name: str) -> str:
+        """Extract the dependencies from the given URL. Unpacking a zip
+        file in the current working directory and return the path to the
+        unpacked directory.
+
+        Parameters:
+        - base_url: The base public URL where the dependencies are stored.
+        - dependency_name: The name of the dependency file to download. This
+            parameter is added to `base_url` as a download path to the .zip
+            archive
+        Returns:
+        - The absolute path to the extracted dependencies directory, to be added
+            to the python path with the `sys.path.append` method.
+        """
+
+        # Generate absolute path for the dependencies folder
+        dependencies_dir = Path.cwd() / "dependencies"
+
+        # Create the directory if it doesn't exist
+        dependencies_dir.mkdir(exist_ok=True, parents=True)
+
+        # Download and extract the model file
+        modelfile_url = f"{base_url}/{dependency_name}"
+        modelfile, _ = urllib.request.urlretrieve(
+            modelfile_url, filename=dependencies_dir / Path(modelfile_url).name
+        )
+        shutil.unpack_archive(modelfile, extract_dir=dependencies_dir)
+
+        # Add the model directory to system path if it's not already there
+        abs_path = str(
+            dependencies_dir / Path(modelfile_url).name.split(".zip")[0]
+        )  # NOQA
+
+        return abs_path
 
     @functools.lru_cache(maxsize=6)
     def load_ort_session(self, model_url: str):
@@ -65,6 +115,7 @@ class ModelInference(ABC):
         """Common preparations for all inference models. This method will be
         executed at the very beginning of the process.
         """
+        self._initialize_logger()
         self._epsg = parameters.pop(EPSG_HARMONIZED_NAME)
         self._parameters = parameters
         return inarr
@@ -79,6 +130,19 @@ class ModelInference(ABC):
     def epsg(self) -> int:
         """EPSG code of the input data."""
         return self._epsg
+
+    def dependencies(self) -> list:
+        """Returns the additional dependencies such as wheels or zip files.
+        Dependencies should be returned as a list of string, which will set-up at the top of the
+        generated UDF. More information can be found at:
+        https://open-eo.github.io/openeo-python-client/udf.html#standard-for-declaring-python-udf-dependencies
+        """
+        self.logger.warning(
+            "Only onnx is defined as dependency. If you wish to add "
+            "dependencies to your model inference, override the "
+            "`dependencies` method in your class."
+        )
+        return ["onnxruntime"]
 
     @abstractmethod
     def output_labels(self) -> list:
@@ -196,7 +260,9 @@ def _get_apply_udf_data(model_inference: ModelInference) -> str:
     return source.replace('"<model_inference_class>"', model_inference.__name__)
 
 
-def _generate_udf_code(model_inference_class: ModelInference) -> openeo.UDF:
+def _generate_udf_code(
+    model_inference_class: ModelInference, dependencies: list
+) -> openeo.UDF:
     """Generates the udf code by packing imports of this file, the necessary
     superclass and subclasses as well as the user defined model inference
     class and the apply_datacube function.
@@ -209,6 +275,14 @@ def _generate_udf_code(model_inference_class: ModelInference) -> openeo.UDF:
         model_inference_class, ModelInference
     ), "The model inference class must be a subclass of ModelInference."
 
+    dependencies_code = ""
+    dependencies_code += "# /// script\n"
+    dependencies_code += "# dependencies = {}\n".format(
+        str(dependencies).replace("'", '"')
+    )
+    dependencies_code += "# ///\n"
+
+    udf_code += dependencies_code + "\n"
     udf_code += _get_imports() + "\n\n"
     udf_code += f"{inspect.getsource(ModelInference)}\n\n"
     udf_code += f"{inspect.getsource(model_inference_class)}\n\n"
@@ -231,8 +305,9 @@ def apply_model_inference(
     model_inference = model_inference_class()
     model_inference._parameters = parameters
     output_labels = model_inference.output_labels()
+    dependencies = model_inference.dependencies()
 
-    udf_code = _generate_udf_code(model_inference_class)
+    udf_code = _generate_udf_code(model_inference_class, dependencies)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 
@@ -251,8 +326,9 @@ def apply_model_inference_local(
     model_inference = model_inference_class()
     model_inference._parameters = parameters
     output_labels = model_inference.output_labels()
+    dependencies = model_inference.dependencies()
 
-    udf_code = _generate_udf_code(model_inference_class)
+    udf_code = _generate_udf_code(model_inference_class, dependencies)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 

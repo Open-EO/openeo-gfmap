@@ -20,14 +20,14 @@ from openeo_gfmap.temporal import TemporalContext
 
 BASE_DEM_MAPPING = {"DEM": "COP-DEM"}
 BASE_WEATHER_MAPPING = {
-    "dewpoint-temperature": "A5-dewtemp",
-    "precipitation-flux": "A5-precip",
-    "solar-radiation-flux": "A5-solrad",
-    "temperature-max": "A5-tmax",
-    "temperature-mean": "A5-tmean",
-    "temperature-min": "A5-tmin",
-    "vapour-pressure": "A5-vapour",
-    "wind-speed": "A5-wind",
+    "dewpoint-temperature": "AGERA5-DEWTEMP",
+    "precipitation-flux": "AGERA5-PRECIP",
+    "solar-radiation-flux": "AGERA5-SOLRAD",
+    "temperature-max": "AGERA5-TMAX",
+    "temperature-mean": "AGERA5-TMEAN",
+    "temperature-min": "AGERA5-TMIN",
+    "vapour-pressure": "AGERA5-VAPOUR",
+    "wind-speed": "AGERA5-WIND",
 }
 
 
