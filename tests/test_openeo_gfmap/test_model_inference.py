@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 import rasterio
 from openeo.udf import XarrayDataCube
 

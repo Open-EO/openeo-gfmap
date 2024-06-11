@@ -1,6 +1,7 @@
 """Feature extractor functionalities. Such as a base class to assist the
 implementation of feature extractors of a UDF.
 """
+
 import functools
 import inspect
 import logging
@@ -80,7 +81,6 @@ class FeatureExtractor(ABC):
 
         return abs_path
 
-
     def _common_preparations(
         self, inarr: xr.DataArray, parameters: dict
     ) -> xr.DataArray:
@@ -97,7 +97,7 @@ class FeatureExtractor(ABC):
     def epsg(self) -> int:
         """Returns the EPSG code of the datacube."""
         return self._epsg
-      
+
     @epsg.setter
     def epsg(self, value: int):
         self._epsg = value
@@ -114,7 +114,6 @@ class FeatureExtractor(ABC):
             "`dependencies` method in your class."
         )
         return []
-
 
     @abstractmethod
     def output_labels(self) -> list:

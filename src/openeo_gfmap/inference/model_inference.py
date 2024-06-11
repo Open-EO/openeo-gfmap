@@ -1,6 +1,7 @@
 """Inference functionalities. Such as a base class to assist the implementation
 of inference models on an UDF.
 """
+
 import functools
 import inspect
 import logging
