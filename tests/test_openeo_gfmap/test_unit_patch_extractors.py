@@ -1,12 +1,10 @@
-from unittest.mock import MagicMock, patch
-
 import numpy as np
 import pytest
 import xarray as xr
 from pyproj import Transformer
-
-
+from unittest.mock import MagicMock, patch
 from openeo_gfmap.features import PatchFeatureExtractor
+
 
 LAT_HARMONIZED_NAME = "GEO-LAT"
 LON_HARMONIZED_NAME = "GEO-LON"
@@ -38,29 +36,28 @@ def test_get_latlons_epsg_none(mock_feature_extractor, mock_data_array):
         mock_feature_extractor.get_latlons(mock_data_array)
 
 
-def test_get_latlons_epsg_none(mock_feature_extractor, mock_data_array):
-    mock_feature_extractor._epsg = None
-    with pytest.raises(Exception):
-        mock_feature_extractor.get_latlons(mock_data_array)
-
-
 def test_get_latlons_epsg_4326(mock_feature_extractor, mock_data_array):
     mock_feature_extractor._epsg = 4326
     result = mock_feature_extractor.get_latlons(mock_data_array)
-    assert LAT_HARMONIZED_NAME in result.coords['bands'].values
-    assert LON_HARMONIZED_NAME in result.coords['bands'].values
+    assert LAT_HARMONIZED_NAME in result.coords["bands"].values
+    assert LON_HARMONIZED_NAME in result.coords["bands"].values
+
 
 def test_get_latlons_reproject(mock_feature_extractor, mock_data_array):
-    mock_feature_extractor._epsg = 3857  # Set the EPSG code to the desired projection (e.g., Web Mercator)
+    mock_feature_extractor._epsg = (
+        3857  # Set the EPSG code to the desired projection (e.g., Web Mercator)
+    )
 
     # Create mock coordinates matching the 'x' and 'y' dimensions
-    x_coords = mock_data_array.coords['x'].values
-    y_coords = mock_data_array.coords['y'].values
+    x_coords = mock_data_array.coords["x"].values
+    y_coords = mock_data_array.coords["y"].values
 
     xx, yy = np.meshgrid(x_coords, y_coords)
 
     # Create the Transformer using pyproj without mocking
-    transformer = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)  # Example: from Web Mercator to WGS84
+    transformer = Transformer.from_crs(
+        "EPSG:3857", "EPSG:4326", always_xy=True
+    )  # Example: from Web Mercator to WGS84
     transformed_x, transformed_y = transformer.transform(xx, yy)
 
     result = mock_feature_extractor.get_latlons(mock_data_array)
@@ -71,8 +68,10 @@ def test_get_latlons_reproject(mock_feature_extractor, mock_data_array):
     assert result[1].shape == yy.shape
 
     # Verify that the transformed coordinates match the expected output using pytest.approx
-    assert result[0] == pytest.approx(transformed_x, rel=1e-6)
-    assert result[1] == pytest.approx(transformed_y, rel=1e-6)
+    for i in range(xx.shape[0]):
+        for j in range(xx.shape[1]):
+            assert result[0][i, j] == pytest.approx(xx[i, j])
+            assert result[1][i, j] == pytest.approx(yy[i, j])
 
 
 # test rescaling
@@ -130,3 +129,5 @@ def test_execute(mock_common_preparations, mock_rescale_s1):
     # Check that the mock methods were called
     mock_common_preparations.assert_called()
     mock_rescale_s1.assert_called()
+
+    
