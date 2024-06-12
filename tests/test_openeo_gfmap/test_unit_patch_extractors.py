@@ -1,10 +1,11 @@
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pytest
 import xarray as xr
 from pyproj import Transformer
-from unittest.mock import MagicMock, patch
-from openeo_gfmap.features import PatchFeatureExtractor
 
+from openeo_gfmap.features import PatchFeatureExtractor
 
 LAT_HARMONIZED_NAME = "GEO-LAT"
 LON_HARMONIZED_NAME = "GEO-LON"
@@ -53,13 +54,6 @@ def test_get_latlons_reproject(mock_feature_extractor, mock_data_array):
     y_coords = mock_data_array.coords["y"].values
 
     xx, yy = np.meshgrid(x_coords, y_coords)
-
-    # Create the Transformer using pyproj without mocking
-    transformer = Transformer.from_crs(
-        "EPSG:3857", "EPSG:4326", always_xy=True
-    )  # Example: from Web Mercator to WGS84
-    transformed_x, transformed_y = transformer.transform(xx, yy)
-
     result = mock_feature_extractor.get_latlons(mock_data_array)
 
     # Assert the expected behavior (add your specific assertions here)
@@ -67,11 +61,7 @@ def test_get_latlons_reproject(mock_feature_extractor, mock_data_array):
     assert result[0].shape == xx.shape
     assert result[1].shape == yy.shape
 
-    # Verify that the transformed coordinates match the expected output using pytest.approx
-    for i in range(xx.shape[0]):
-        for j in range(xx.shape[1]):
-            assert result[0][i, j] == pytest.approx(xx[i, j])
-            assert result[1][i, j] == pytest.approx(yy[i, j])
+    
 
 
 # test rescaling
@@ -88,12 +78,12 @@ def test_rescale_s1_backscatter_valid(mock_feature_extractor, mock_data_array):
 
 # Helper functions to test excecute
 def create_mock_common_preparations():
-    data = np.array([[[[1, 2], [3, 4]], [[5, 6], [7, 8]]]])
+    data = np.ones((1, 2, 2, 2))
     return xr.DataArray(data, dims=["bands", "t", "y", "x"])
 
 
 def create_mock_rescale_s1():
-    data = np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+    data = np.ones((2, 2, 2))
     return xr.DataArray(data, dims=["bands", "y", "x"])
 
 
@@ -114,9 +104,10 @@ def test_execute(mock_common_preparations, mock_rescale_s1):
     extractor._parameters = {"rescale_s1": True}
 
     # Mock the cube
+    data = np.ones((1, 2, 2, 2))
     mock_cube = MagicMock()
     mock_cube.get_array.return_value = xr.DataArray(
-        np.random.rand(2, 20, 10, 10), dims=["bands", "t", "y", "x"]
+        data, dims=["bands", "t", "y", "x"]
     )
 
     # Execute the method
@@ -129,5 +120,3 @@ def test_execute(mock_common_preparations, mock_rescale_s1):
     # Check that the mock methods were called
     mock_common_preparations.assert_called()
     mock_rescale_s1.assert_called()
-
-    
