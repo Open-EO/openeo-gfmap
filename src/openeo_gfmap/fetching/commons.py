@@ -8,8 +8,8 @@ import openeo
 from geojson import GeoJSON
 from openeo.api.process import Parameter
 from openeo.rest.connection import InputDate
-from rasterio import CRS
-from rasterio.errors import CRSError
+from pyproj.crs import CRS
+from pyproj.exceptions import CRSError
 
 from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
 from openeo_gfmap.temporal import TemporalContext
