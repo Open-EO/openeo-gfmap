@@ -10,8 +10,8 @@ from geojson import GeoJSON
 from openeo_gfmap.backend import Backend, BackendContext
 from openeo_gfmap.fetching import CollectionFetcher, FetchType, _log
 from openeo_gfmap.fetching.commons import (
+    _load_collection,
     convert_band_names,
-    load_collection,
     rename_bands,
     resample_reproject,
 )
@@ -31,7 +31,7 @@ BASE_WEATHER_MAPPING = {
 }
 
 
-def get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callable:
+def _get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callable:
     if collection_name == "COPERNICUS_30":
         BASE_MAPPING = BASE_DEM_MAPPING
     elif collection_name == "AGERA5":
@@ -54,7 +54,7 @@ def get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callable
             )
             temporal_extent = None
 
-        cube = load_collection(
+        cube = _load_collection(
             connection,
             bands,
             collection_name,
@@ -73,7 +73,7 @@ def get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callable
     return generic_default_fetcher
 
 
-def get_generic_processor(collection_name: str, fetch_type: FetchType) -> Callable:
+def _get_generic_processor(collection_name: str, fetch_type: FetchType) -> Callable:
     """Builds the preprocessing function from the collection name as it stored
     in the target backend.
     """
@@ -110,35 +110,35 @@ def get_generic_processor(collection_name: str, fetch_type: FetchType) -> Callab
 OTHER_BACKEND_MAP = {
     "AGERA5": {
         Backend.TERRASCOPE: {
-            "fetch": partial(get_generic_fetcher, collection_name="AGERA5"),
-            "preprocessor": partial(get_generic_processor, collection_name="AGERA5"),
+            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
+            "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
         },
         Backend.CDSE: {
-            "fetch": partial(get_generic_fetcher, collection_name="AGERA5"),
-            "preprocessor": partial(get_generic_processor, collection_name="AGERA5"),
+            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
+            "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
         },
         Backend.FED: {
-            "fetch": partial(get_generic_fetcher, collection_name="AGERA5"),
-            "preprocessor": partial(get_generic_processor, collection_name="AGERA5"),
+            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
+            "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
         },
     },
     "COPERNICUS_30": {
         Backend.TERRASCOPE: {
-            "fetch": partial(get_generic_fetcher, collection_name="COPERNICUS_30"),
+            "fetch": partial(_get_generic_fetcher, collection_name="COPERNICUS_30"),
             "preprocessor": partial(
-                get_generic_processor, collection_name="COPERNICUS_30"
+                _get_generic_processor, collection_name="COPERNICUS_30"
             ),
         },
         Backend.CDSE: {
-            "fetch": partial(get_generic_fetcher, collection_name="COPERNICUS_30"),
+            "fetch": partial(_get_generic_fetcher, collection_name="COPERNICUS_30"),
             "preprocessor": partial(
-                get_generic_processor, collection_name="COPERNICUS_30"
+                _get_generic_processor, collection_name="COPERNICUS_30"
             ),
         },
         Backend.FED: {
-            "fetch": partial(get_generic_fetcher, collection_name="COPERNICUS_30"),
+            "fetch": partial(_get_generic_fetcher, collection_name="COPERNICUS_30"),
             "preprocessor": partial(
-                get_generic_processor, collection_name="COPERNICUS_30"
+                _get_generic_processor, collection_name="COPERNICUS_30"
             ),
         },
     },

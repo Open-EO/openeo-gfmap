@@ -13,8 +13,8 @@ from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
 from openeo_gfmap.temporal import TemporalContext
 
 from .commons import (
+    _load_collection,
     convert_band_names,
-    load_collection,
     rename_bands,
     resample_reproject,
 )
@@ -57,7 +57,9 @@ ELEMENT84_SENTINEL2_L2A_MAPPING = {
 }
 
 
-def get_s2_l2a_default_fetcher(collection_name: str, fetch_type: FetchType) -> Callable:
+def _get_s2_l2a_default_fetcher(
+    collection_name: str, fetch_type: FetchType
+) -> Callable:
     """Builds the fetch function from the collection name as it stored in the
     target backend.
 
@@ -96,7 +98,7 @@ def get_s2_l2a_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
         # Rename the bands to the backend collection names
         bands = convert_band_names(bands, BASE_SENTINEL2_L2A_MAPPING)
 
-        cube = load_collection(
+        cube = _load_collection(
             connection,
             bands,
             collection_name,
@@ -111,7 +113,7 @@ def get_s2_l2a_default_fetcher(collection_name: str, fetch_type: FetchType) -> C
     return s2_l2a_fetch_default
 
 
-def get_s2_l2a_element84_fetcher(
+def _get_s2_l2a_element84_fetcher(
     collection_name: str, fetch_type: FetchType
 ) -> Callable:
     """Fetches the collections from the Sentinel-2 Cloud-Optimized GeoTIFFs
@@ -154,7 +156,7 @@ def get_s2_l2a_element84_fetcher(
     return s2_l2a_element84_fetcher
 
 
-def get_s2_l2a_default_processor(
+def _get_s2_l2a_default_processor(
     collection_name: str, fetch_type: FetchType
 ) -> Callable:
     """Builds the preprocessing function from the collection name as it stored
@@ -194,27 +196,27 @@ def get_s2_l2a_default_processor(
 
 SENTINEL2_L2A_BACKEND_MAP = {
     Backend.TERRASCOPE: {
-        "fetch": partial(get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
+        "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
         "preprocessor": partial(
-            get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
+            _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
         ),
     },
     Backend.CDSE: {
-        "fetch": partial(get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
+        "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
         "preprocessor": partial(
-            get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
+            _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
         ),
     },
     Backend.CDSE_STAGING: {
-        "fetch": partial(get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
+        "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
         "preprocessor": partial(
-            get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
+            _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
         ),
     },
     Backend.FED: {
-        "fetch": partial(get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
+        "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
         "preprocessor": partial(
-            get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
+            _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
         ),
     },
 }
