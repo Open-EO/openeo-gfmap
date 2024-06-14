@@ -39,7 +39,8 @@ dependencies = [
     "fastparquet",
     "h3",
     "netCDF4",
-    "scipy"
+    "scipy",
+    "rasterio",
 ]
 
 [project.urls]
@@ -54,6 +55,7 @@ dev = [
   "rioxarray>=0.13.0",
   "pytest-depends",
   "pytest-timeout>=2.2.0",
+  "pre-commit",
 ]
 
 [tool.pytest.ini_options]
