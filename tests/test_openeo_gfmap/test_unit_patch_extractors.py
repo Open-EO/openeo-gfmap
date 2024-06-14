@@ -50,18 +50,23 @@ def test_get_latlons_reproject(mock_feature_extractor, mock_data_array):
     )
 
     # Create mock coordinates matching the 'x' and 'y' dimensions
-    x_coords = mock_data_array.coords["x"].values
-    y_coords = mock_data_array.coords["y"].values
+    x_coords = np.array([0, 1])
+    y_coords = np.array([0, 1])
+    mock_data_array.coords["x"] = x_coords
+    mock_data_array.coords["y"] = y_coords
 
     xx, yy = np.meshgrid(x_coords, y_coords)
+    transformer = Transformer.from_crs(3857, 4326, always_xy=True)
+    lat, lon = transformer.transform(xx.ravel(), yy.ravel())
+    lat = lat.reshape(xx.shape)
+    lon = lon.reshape(xx.shape)
+
     result = mock_feature_extractor.get_latlons(mock_data_array)
 
-    # Assert the expected behavior (add your specific assertions here)
+    # Assert the expected behavior using pytest's approx
     assert result is not None
-    assert result[0].shape == xx.shape
-    assert result[1].shape == yy.shape
-
-    
+    assert np.all(result[0].T.values == pytest.approx(lat))
+    assert np.all(result[1].T.values == pytest.approx(lon))
 
 
 # test rescaling
@@ -106,9 +111,7 @@ def test_execute(mock_common_preparations, mock_rescale_s1):
     # Mock the cube
     data = np.ones((1, 2, 2, 2))
     mock_cube = MagicMock()
-    mock_cube.get_array.return_value = xr.DataArray(
-        data, dims=["bands", "t", "y", "x"]
-    )
+    mock_cube.get_array.return_value = xr.DataArray(data, dims=["bands", "t", "y", "x"])
 
     # Execute the method
     result = extractor._execute(mock_cube, {})
