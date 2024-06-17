@@ -1,25 +1,20 @@
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import numpy as np
 import onnxruntime as ort
 import pytest
 import requests
-from pathlib import Path
 import xarray as xr
 
-
-from openeo_gfmap.inference.model_inference import(
-    ONNXModelInference,
-    ModelInference,
-    apply_udf_data,
-    apply_model_inference_local,
-    UdfData)
+from openeo_gfmap.inference.model_inference import ONNXModelInference
 
 MODEL_URL = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/knn_model_rgbnir.onnx"
 BASE_URL = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/openeo"
 TARGET_PATH = Path.cwd() / "dependencies"
 DEPENDENCY_NAME = "onnx_dependencies_1.16.3.zip"
 OUTPUT_LABELS = ["label1", "label2"]
+
 
 @pytest.fixture
 def mock_load_ort_session(requests_mock):
@@ -54,7 +49,7 @@ def test_load_ort_session():
 def test_extract_dependencies():
     model_inference = ONNXModelInference()
     extracted_path = model_inference.extract_dependencies(BASE_URL, DEPENDENCY_NAME)
-     # Check if the extracted_path is correct
+    # Check if the extracted_path is correct
     assert isinstance(extracted_path, str)
 
     # Check if the TARGET_PATH exists and contains extracted files
@@ -67,6 +62,7 @@ def test_output_labels():
     model_inference = ONNXModelInference()
     model_inference._parameters = parameters
     assert model_inference.output_labels() == OUTPUT_LABELS
+
 
 def test_apply_ml(mock_load_ort_session):
     inference = ONNXModelInference()
@@ -84,24 +80,27 @@ def test_execute():
     model_inference = ONNXModelInference()
 
     model_inference = ONNXModelInference()
-    model_inference._parameters = {"model_url": MODEL_URL, "input_name": "X", "output_labels": ["label"]}
+    model_inference._parameters = {
+        "model_url": MODEL_URL,
+        "input_name": "X",
+        "output_labels": ["label"],
+    }
 
     # Define dummy data matching the specified xarray.Dataset structure
     x_vals = np.linspace(0, 10, 10)
     y_vals = np.linspace(0, 10, 10)
-    bands = ['S2-L2A-B04', 'S2-L2A-B08', 'S2-L2A-B11', 'S2-L2A-B12', 'S2-L2A-NDVI']
+    bands = ["S2-L2A-B04", "S2-L2A-B08", "S2-L2A-B11", "S2-L2A-B12", "S2-L2A-NDVI"]
     data = np.ones([len(bands), len(y_vals), len(x_vals)])
 
     # Create the dummy dataset
-    coords = {'x': x_vals, 'y': y_vals, 'bands': bands}
-    dims = ['bands', 'y', 'x']
+    coords = {"x": x_vals, "y": y_vals, "bands": bands}
+    dims = ["bands", "y", "x"]
 
     # Create xr.DataArray with input_data_np, dims, and coords
     input_data_xr = xr.DataArray(data, dims=dims, coords=coords)
 
     # Call execute method with xr.DataArray input
     output = model_inference.execute(input_data_xr)
-    
+
     # Add assertions to validate output
     assert isinstance(output, xr.DataArray)
-
