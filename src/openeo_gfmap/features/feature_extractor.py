@@ -1,6 +1,7 @@
 """Feature extractor functionalities. Such as a base class to assist the
 implementation of feature extractors of a UDF.
 """
+
 import functools
 import inspect
 import logging
@@ -34,6 +35,7 @@ class FeatureExtractor(ABC):
 
     def __init__(self) -> None:
         self.logger = None
+        self._epsg = None
 
     def _initialize_logger(self) -> None:
         """
@@ -95,6 +97,10 @@ class FeatureExtractor(ABC):
     def epsg(self) -> int:
         """Returns the EPSG code of the datacube."""
         return self._epsg
+
+    @epsg.setter
+    def epsg(self, value: int):
+        self._epsg = value
 
     def dependencies(self) -> list:
         """Returns the additional dependencies such as wheels or zip files.

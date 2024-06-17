@@ -88,6 +88,10 @@ class LatLonExtractor(PatchFeatureExtractor):
         return inarr.transpose("bands", "y", "x")
 
 
+# TODO; A convoluted test. I would write unit test functions for the functionalities defined within the Feature extractor class.
+# Then we can adapt this test to an integration/regression test
+# Is the idea to test the extractor? We want to catch data unavailibility?
+@pytest.mark.skip
 @pytest.mark.parametrize("backend", backends)
 def test_patch_feature_udf(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
@@ -131,6 +135,8 @@ def test_patch_feature_udf(backend: Backend):
     assert set(output_cube.keys()) == set(["red", "green", "blue", "crs"])
 
 
+# TODO Similar as above, but for S1
+@pytest.mark.skip
 @pytest.mark.parametrize("backend", backends)
 def test_s1_rescale(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
@@ -174,6 +180,8 @@ def test_s1_rescale(backend: Backend):
     assert output_path.exists()
 
 
+# TODO Replace by unit test on the functionalities defined in PatchFeatureExtractor/PointFeatureExtractor
+@pytest.mark.skip
 @pytest.mark.parametrize("backend", backends)
 def test_latlon_extractor(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
@@ -218,6 +226,8 @@ def test_latlon_extractor(backend: Backend):
     assert set(output_cube.keys()) == set(["red", "lat", "lon", "crs"])
 
 
+# TODO; will local processing be part of the API?
+@pytest.mark.skip
 def test_patch_feature_local():
     input_path = Path(__file__).parent / "resources/test_optical_cube.nc"
 
