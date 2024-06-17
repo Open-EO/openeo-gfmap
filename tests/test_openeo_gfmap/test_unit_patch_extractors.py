@@ -1,10 +1,7 @@
-from unittest.mock import MagicMock, patch
-
 import numpy as np
 import pytest
 import xarray as xr
-from pyproj import Transformer
-
+from unittest.mock import MagicMock, patch
 from openeo_gfmap.features import PatchFeatureExtractor
 
 LAT_HARMONIZED_NAME = "GEO-LAT"
@@ -61,8 +58,6 @@ def test_get_latlons_reproject(mock_feature_extractor, mock_data_array):
     assert result[0].shape == xx.shape
     assert result[1].shape == yy.shape
 
-    
-
 
 # test rescaling
 def test_rescale_s1_backscatter_valid(mock_feature_extractor, mock_data_array):
@@ -106,9 +101,7 @@ def test_execute(mock_common_preparations, mock_rescale_s1):
     # Mock the cube
     data = np.ones((1, 2, 2, 2))
     mock_cube = MagicMock()
-    mock_cube.get_array.return_value = xr.DataArray(
-        data, dims=["bands", "t", "y", "x"]
-    )
+    mock_cube.get_array.return_value = xr.DataArray(data, dims=["bands", "t", "y", "x"])
 
     # Execute the method
     result = extractor._execute(mock_cube, {})
