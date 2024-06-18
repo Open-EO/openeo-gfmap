@@ -1,4 +1,5 @@
-""" Common operations within collection extraction logic, such as reprojection.
+"""
+Common internal operations within collection extraction logic, such as reprojection.
 """
 
 from functools import partial
@@ -108,7 +109,7 @@ def _load_collection_hybrid(
     return cube
 
 
-def load_collection(
+def _load_collection(
     connection: openeo.Connection,
     bands: list,
     collection_name: str,

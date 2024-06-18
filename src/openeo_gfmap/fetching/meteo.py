@@ -15,9 +15,9 @@ from openeo_gfmap import (
 from openeo_gfmap.fetching import CollectionFetcher
 from openeo_gfmap.fetching.commons import convert_band_names
 from openeo_gfmap.fetching.generic import (
-    get_generic_fetcher,
-    get_generic_processor,
-    load_collection,
+    _get_generic_fetcher,
+    _get_generic_processor,
+    _load_collection,
 )
 
 WEATHER_MAPPING_TERRASCOPE = {
@@ -53,7 +53,7 @@ def stac_fetcher(
 ) -> openeo.DataCube:
     bands = convert_band_names(bands, WEATHER_MAPPING_STAC)
 
-    cube = load_collection(
+    cube = _load_collection(
         connection,
         bands,
         "https://stac.openeo.vito.be/collections/agera5_daily",
@@ -73,12 +73,12 @@ def stac_fetcher(
 METEO_BACKEND_MAP = {
     Backend.TERRASCOPE: {
         "fetch": partial(
-            get_generic_fetcher,
+            _get_generic_fetcher,
             collection_name="AGERA5",
             band_mapping=WEATHER_MAPPING_TERRASCOPE,
         ),
         "preprocessor": partial(
-            get_generic_processor,
+            _get_generic_processor,
             collection_name="AGERA5",
             band_mapping=WEATHER_MAPPING_TERRASCOPE,
         ),
@@ -86,7 +86,7 @@ METEO_BACKEND_MAP = {
     Backend.CDSE: {
         "fetch": stac_fetcher,
         "preprocessor": partial(
-            get_generic_processor,
+            _get_generic_processor,
             collection_name="AGERA5",
             band_mapping=WEATHER_MAPPING_STAC,
         ),
@@ -94,7 +94,7 @@ METEO_BACKEND_MAP = {
     Backend.CDSE_STAGING: {
         "fetch": stac_fetcher,
         "preprocessor": partial(
-            get_generic_processor,
+            _get_generic_processor,
             collection_name="AGERA5",
             band_mapping=WEATHER_MAPPING_STAC,
         ),
@@ -102,7 +102,7 @@ METEO_BACKEND_MAP = {
     Backend.FED: {
         "fetch": stac_fetcher,
         "preprocessor": partial(
-            get_generic_processor,
+            _get_generic_processor,
             collection_name="AGERA5",
             band_mapping=WEATHER_MAPPING_STAC,
         ),

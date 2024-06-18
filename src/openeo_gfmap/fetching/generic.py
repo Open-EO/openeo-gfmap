@@ -10,8 +10,8 @@ from geojson import GeoJSON
 from openeo_gfmap.backend import Backend, BackendContext
 from openeo_gfmap.fetching import CollectionFetcher, FetchType, _log
 from openeo_gfmap.fetching.commons import (
+    _load_collection,
     convert_band_names,
-    load_collection,
     rename_bands,
     resample_reproject,
 )
@@ -19,13 +19,26 @@ from openeo_gfmap.spatial import SpatialContext
 from openeo_gfmap.temporal import TemporalContext
 
 BASE_DEM_MAPPING = {"DEM": "COP-DEM"}
+BASE_WEATHER_MAPPING = {
+    "dewpoint-temperature": "AGERA5-DEWTEMP",
+    "precipitation-flux": "AGERA5-PRECIP",
+    "solar-radiation-flux": "AGERA5-SOLRAD",
+    "temperature-max": "AGERA5-TMAX",
+    "temperature-mean": "AGERA5-TMEAN",
+    "temperature-min": "AGERA5-TMIN",
+    "vapour-pressure": "AGERA5-VAPOUR",
+    "wind-speed": "AGERA5-WIND",
+}
 
 
-def get_generic_fetcher(
-    collection_name: str,
-    fetch_type: FetchType,
-    band_mapping: dict,
-) -> Callable:
+def _get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callable:
+    if collection_name == "COPERNICUS_30":
+        BASE_MAPPING = BASE_DEM_MAPPING
+    elif collection_name == "AGERA5":
+        BASE_MAPPING = BASE_WEATHER_MAPPING
+    else:
+        raise Exception("Please choose a valid collection.")
+
     def generic_default_fetcher(
         connection: openeo.Connection,
         spatial_extent: SpatialContext,
@@ -33,7 +46,7 @@ def get_generic_fetcher(
         bands: list,
         **params,
     ) -> openeo.DataCube:
-        bands = convert_band_names(bands, band_mapping)
+        bands = convert_band_names(bands, BASE_MAPPING)
 
         if (collection_name == "COPERNICUS_30") and (temporal_extent is not None):
             _log.warning(
@@ -41,7 +54,7 @@ def get_generic_fetcher(
             )
             temporal_extent = None
 
-        cube = load_collection(
+        cube = _load_collection(
             connection,
             bands,
             collection_name,
@@ -57,15 +70,19 @@ def get_generic_fetcher(
 
         return cube
 
-    return partial(generic_default_fetcher, band_mapping=band_mapping)
+    return generic_default_fetcher
 
 
-def get_generic_processor(
-    collection_name: str, fetch_type: FetchType, band_mapping: dict
-) -> Callable:
+def _get_generic_processor(collection_name: str, fetch_type: FetchType) -> Callable:
     """Builds the preprocessing function from the collection name as it stored
     in the target backend.
     """
+    if collection_name == "COPERNICUS_30":
+        BASE_MAPPING = BASE_DEM_MAPPING
+    elif collection_name == "AGERA5":
+        BASE_MAPPING = BASE_WEATHER_MAPPING
+    else:
+        raise Exception("Please choose a valid collection.")
 
     def generic_default_processor(cube: openeo.DataCube, **params):
         """Default collection preprocessing method for generic datasets.
@@ -83,7 +100,7 @@ def get_generic_processor(
         if collection_name == "COPERNICUS_30":
             cube = cube.min_time()
 
-        cube = rename_bands(cube, band_mapping)
+        cube = rename_bands(cube, BASE_MAPPING)
 
         return cube
 
@@ -91,53 +108,37 @@ def get_generic_processor(
 
 
 OTHER_BACKEND_MAP = {
+    "AGERA5": {
+        Backend.TERRASCOPE: {
+            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
+            "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
+        },
+        Backend.CDSE: {
+            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
+            "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
+        },
+        Backend.FED: {
+            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
+            "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
+        },
+    },
     "COPERNICUS_30": {
         Backend.TERRASCOPE: {
-            "fetch": partial(
-                get_generic_fetcher,
-                collection_name="COPERNICUS_30",
-                band_mapping=BASE_DEM_MAPPING,
-            ),
+            "fetch": partial(_get_generic_fetcher, collection_name="COPERNICUS_30"),
             "preprocessor": partial(
-                get_generic_processor,
-                collection_name="COPERNICUS_30",
-                band_mapping=BASE_DEM_MAPPING,
+                _get_generic_processor, collection_name="COPERNICUS_30"
             ),
         },
         Backend.CDSE: {
-            "fetch": partial(
-                get_generic_fetcher,
-                collection_name="COPERNICUS_30",
-                band_mapping=BASE_DEM_MAPPING,
-            ),
+            "fetch": partial(_get_generic_fetcher, collection_name="COPERNICUS_30"),
             "preprocessor": partial(
-                get_generic_processor,
-                collection_name="COPERNICUS_30",
-                band_mapping=BASE_DEM_MAPPING,
-            ),
-        },
-        Backend.CDSE_STAGING: {
-            "fetch": partial(
-                get_generic_fetcher,
-                collection_name="COPERNICUS_30",
-                band_mapping=BASE_DEM_MAPPING,
-            ),
-            "preprocessor": partial(
-                get_generic_processor,
-                collection_name="COPERNICUS_30",
-                band_mapping=BASE_DEM_MAPPING,
+                _get_generic_processor, collection_name="COPERNICUS_30"
             ),
         },
         Backend.FED: {
-            "fetch": partial(
-                get_generic_fetcher,
-                collection_name="COPERNICUS_30",
-                band_mapping=BASE_DEM_MAPPING,
-            ),
+            "fetch": partial(_get_generic_fetcher, collection_name="COPERNICUS_30"),
             "preprocessor": partial(
-                get_generic_processor,
-                collection_name="COPERNICUS_30",
-                band_mapping=BASE_DEM_MAPPING,
+                _get_generic_processor, collection_name="COPERNICUS_30"
             ),
         },
     },

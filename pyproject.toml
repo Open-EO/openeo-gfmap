@@ -55,6 +55,7 @@ dev = [
   "rioxarray>=0.13.0",
   "pytest-depends",
   "pytest-timeout>=2.2.0",
+  "pre-commit",
 ]
 
 [tool.pytest.ini_options]

@@ -240,7 +240,7 @@ def bap_masking(cube: openeo.DataCube, period: Union[str, list], **params: dict)
     return optical_cube.merge_cubes(nonoptical_cube)
 
 
-def cldmask_percentage(
+def cloudmask_percentage(
     cube: openeo.DataCube, percentage: float = 0.95
 ) -> openeo.DataCube:
     """Compute a cloud mask array, that either fully covers an observation or is empty.
@@ -253,7 +253,7 @@ def cldmask_percentage(
 
     scl_cube = cube.filter_bands(["SCL"])
 
-    cld_mask = scl_cube.apply_neighborhood(
+    cloud_mask = scl_cube.apply_neighborhood(
         process=openeo.UDF.from_file("udf_mask.py", context={}),
         size=[
             {"dimension": "x", "unit": "px", "value": 1024},
@@ -263,6 +263,6 @@ def cldmask_percentage(
         overlap=[],
     )
 
-    non_scl_cube = non_scl_cube.mask(cld_mask.resample_cube_spatial(cube))
+    non_scl_cube = non_scl_cube.mask(cloud_mask.resample_cube_spatial(cube))
 
     return non_scl_cube.merge_cubes(scl_cube)
