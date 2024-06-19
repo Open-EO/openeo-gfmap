@@ -1,7 +1,6 @@
 """Functionalities to interract with product catalogues."""
 import geojson
 import requests
-
 from pyproj.crs import CRS
 from rasterio.warp import transform_bounds
 from shapely import unary_union
