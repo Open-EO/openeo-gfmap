@@ -64,7 +64,7 @@ def stac_fetcher(
         **params,
     )
 
-    if isinstance(spatial_extent, GeoJSON):
+    if isinstance(spatial_extent, GeoJSON) and fetch_type == FetchType.POLYGON:
         cube = cube.filter_spatial(spatial_extent)
 
     return cube

@@ -375,8 +375,8 @@ def apply_feature_extractor_local(
     dependencies = feature_extractor.dependencies()
 
     if len(dependencies) > 0:
-        print(
-            "WARNING: Running UDFs locally with pip dependencies is not supported yet, "
+        feature_extractor.logger.warning(
+            "Running UDFs locally with pip dependencies is not supported yet, "
             "dependencies will not be installed."
         )
 

@@ -330,8 +330,8 @@ def apply_model_inference_local(
     dependencies = model_inference.dependencies()
 
     if len(dependencies) > 0:
-        print(
-            "WARNING: Running UDFs locally with pip dependencies is not supported yet, "
+        model_inference.logger.warning(
+            "Running UDFs locally with pip dependencies is not supported yet, "
             "dependencies will not be installed."
         )
 

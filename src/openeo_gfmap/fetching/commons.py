@@ -104,7 +104,6 @@ def _load_collection_hybrid(
         bands=bands,
         properties=properties,
     )
-    print(bands)
     cube = cube.rename_labels(dimension="bands", target=bands)
     return cube
 
