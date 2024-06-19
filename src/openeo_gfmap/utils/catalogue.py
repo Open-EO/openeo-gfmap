@@ -6,6 +6,7 @@ from rasterio import CRS
 from rasterio.warp import transform_bounds
 from shapely import unary_union
 from shapely.geometry import box, shape
+from shapely.ops import unary_union
 
 from openeo_gfmap import (
     Backend,
@@ -131,9 +132,11 @@ def s1_area_per_orbitstate(
         Keys containing the orbit state and values containing the total area of intersection in
         km^2
     """
-    if isinstance(spatial_extent, GeoJSON):
+    if isinstance(spatial_extent, geojson.FeatureCollection):
         # Transform geojson into shapely geometry and compute bounds
-        bounds = shape(spatial_extent).bounds
+        shapely_geometries = [shape(feature['geometry']) for feature in spatial_extent['features']]
+        geometry = unary_union(shapely_geometries)
+        bounds = geometry.bounds
         epsg = 4362
     elif isinstance(spatial_extent, BoundingBoxExtent):
         bounds = [
