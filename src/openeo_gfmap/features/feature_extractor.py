@@ -14,7 +14,6 @@ import numpy as np
 import openeo
 import xarray as xr
 from openeo.udf import XarrayDataCube
-from openeo.udf.run_code import execute_local_udf
 from openeo.udf.udf_data import UdfData
 from pyproj import Transformer
 from pyproj.crs import CRS
@@ -33,12 +32,6 @@ class FeatureExtractor(ABC):
     """
 
     def __init__(self) -> None:
-        self.logger = None
-
-    def _initialize_logger(self) -> None:
-        """
-        Initializes the PrestoFeatureExtractor object, starting a logger.
-        """
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -86,7 +79,6 @@ class FeatureExtractor(ABC):
         executed. This method should be called by the `_execute` method of the
         feature extractor.
         """
-        self._initialize_logger()
         self._epsg = parameters.pop(EPSG_HARMONIZED_NAME)
         self._parameters = parameters
         return inarr
@@ -371,21 +363,27 @@ def apply_feature_extractor_local(
     excepts for the cube parameter which expects a `xarray.DataArray` instead of
     a `openeo.rest.datacube.DataCube` object.
     """
+    # Trying to get the local EPSG code
+    if EPSG_HARMONIZED_NAME not in parameters:
+        raise ValueError(
+            f"Please specify an EPSG code in the parameters with key: {EPSG_HARMONIZED_NAME} when "
+            f"running a Feature Extractor locally."
+        )
+
     feature_extractor = feature_extractor_class()
-    feature_extractor._parameters = parameters
     output_labels = feature_extractor.output_labels()
     dependencies = feature_extractor.dependencies()
 
-    udf_code = _generate_udf_code(feature_extractor_class, dependencies)
-
-    udf = openeo.UDF(code=udf_code, context=parameters)
+    if len(dependencies) > 0:
+        feature_extractor.logger.warning(
+            "Running UDFs locally with pip dependencies is not supported yet, "
+            "dependencies will not be installed."
+        )
 
     cube = XarrayDataCube(cube)
 
-    out_udf_data: UdfData = execute_local_udf(udf, cube, fmt="NetCDF")
-
-    output_cubes = out_udf_data.datacube_list
-
-    assert len(output_cubes) == 1, "UDF should have only a single output cube."
-
-    return output_cubes[0].get_array().assign_coords({"bands": output_labels})
+    return (
+        feature_extractor._execute(cube, parameters)
+        .get_array()
+        .assign_coords({"bands": output_labels})
+    )

@@ -2,7 +2,7 @@
 
 import requests
 from geojson import GeoJSON
-from rasterio import CRS
+from pyproj.crs import CRS
 from rasterio.warp import transform_bounds
 from shapely import unary_union
 from shapely.geometry import box, shape
