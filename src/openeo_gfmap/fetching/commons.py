@@ -1,13 +1,16 @@
-""" 
+"""
 Common internal operations within collection extraction logic, such as reprojection.
 """
 
-from typing import Optional, Union
+from functools import partial
+from typing import Dict, Optional, Sequence, Union
 
 import openeo
 from geojson import GeoJSON
-from rasterio import CRS
-from rasterio.errors import CRSError
+from openeo.api.process import Parameter
+from openeo.rest.connection import InputDate
+from pyproj.crs import CRS
+from pyproj.exceptions import CRSError
 
 from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
 from openeo_gfmap.temporal import TemporalContext
@@ -76,6 +79,35 @@ def rename_bands(datacube: openeo.DataCube, mapping: dict) -> openeo.DataCube:
     )
 
 
+def _load_collection_hybrid(
+    connection: openeo.Connection,
+    is_stac: bool,
+    collection_id_or_url: str,
+    bands: list,
+    spatial_extent: Union[Dict[str, float], Parameter, None] = None,
+    temporal_extent: Union[Sequence[InputDate], Parameter, str, None] = None,
+    properties: Optional[dict] = None,
+):
+    """Wrapper around the load_collection, or load_stac method of the openeo connection."""
+    if not is_stac:
+        return connection.load_collection(
+            collection_id=collection_id_or_url,
+            spatial_extent=spatial_extent,
+            temporal_extent=temporal_extent,
+            bands=bands,
+            properties=properties,
+        )
+    cube = connection.load_stac(
+        url=collection_id_or_url,
+        spatial_extent=spatial_extent,
+        temporal_extent=temporal_extent,
+        bands=bands,
+        properties=properties,
+    )
+    cube = cube.rename_labels(dimension="bands", target=bands)
+    return cube
+
+
 def _load_collection(
     connection: openeo.Connection,
     bands: list,
@@ -83,12 +115,16 @@ def _load_collection(
     spatial_extent: SpatialContext,
     temporal_extent: Optional[TemporalContext],
     fetch_type: FetchType,
+    is_stac: bool = False,
     **params,
 ):
     """Loads a collection from the openeo backend, acting differently depending
     on the fetch type.
     """
     load_collection_parameters = params.get("load_collection", {})
+    load_collection_method = partial(
+        _load_collection_hybrid, is_stac=is_stac, collection_id_or_url=collection_name
+    )
 
     if (
         temporal_extent is not None
@@ -100,11 +136,11 @@ def _load_collection(
             spatial_extent, BoundingBoxExtent
         ), "Please provide only a bounding box for tile based fetching."
         spatial_extent = dict(spatial_extent)
-        cube = connection.load_collection(
-            collection_id=collection_name,
+        cube = load_collection_method(
+            connection=connection,
+            bands=bands,
             spatial_extent=spatial_extent,
             temporal_extent=temporal_extent,
-            bands=bands,
             properties=load_collection_parameters,
         )
     elif fetch_type == FetchType.POINT:
@@ -114,11 +150,11 @@ def _load_collection(
         assert (
             spatial_extent["type"] == "FeatureCollection"
         ), "Please provide a FeatureCollection type of GeoJSON"
-        cube = connection.load_collection(
-            collection_id=collection_name,
+        cube = load_collection_method(
+            connection=connection,
+            bands=bands,
             spatial_extent=spatial_extent,
             temporal_extent=temporal_extent,
-            bands=bands,
             properties=load_collection_parameters,
         )
     elif fetch_type == FetchType.POLYGON:
@@ -134,10 +170,10 @@ def _load_collection(
             raise ValueError(
                 "Please provide a valid URL to a GeoParquet or GeoJSON file."
             )
-        cube = connection.load_collection(
-            collection_id=collection_name,
-            temporal_extent=temporal_extent,
+        cube = load_collection_method(
+            connection=connection,
             bands=bands,
+            temporal_extent=temporal_extent,
             properties=load_collection_parameters,
         )
 

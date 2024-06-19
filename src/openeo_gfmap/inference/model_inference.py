@@ -17,7 +17,6 @@ import requests
 import xarray as xr
 from openeo.udf import XarrayDataCube
 from openeo.udf import inspect as udf_inspect
-from openeo.udf.run_code import execute_local_udf
 from openeo.udf.udf_data import UdfData
 
 sys.path.insert(0, "onnx_deps")
@@ -32,9 +31,6 @@ class ModelInference(ABC):
     """
 
     def __init__(self) -> None:
-        self.logger = None
-
-    def _initialize_logger(self) -> None:
         """
         Initializes the PrestoFeatureExtractor object, starting a logger.
         """
@@ -115,7 +111,6 @@ class ModelInference(ABC):
         """Common preparations for all inference models. This method will be
         executed at the very beginning of the process.
         """
-        self._initialize_logger()
         self._epsg = parameters.pop(EPSG_HARMONIZED_NAME)
         self._parameters = parameters
         return inarr
@@ -323,21 +318,27 @@ def apply_model_inference_local(
     excepts for the cube parameter which expects a `xarray.DataArray` instead of
     a `openeo.rest.datacube.DataCube` object.
     """
+    # Trying to get the local EPSG code
+    if EPSG_HARMONIZED_NAME not in parameters:
+        raise ValueError(
+            f"Please specify an EPSG code in the parameters with key: {EPSG_HARMONIZED_NAME} when "
+            f"running a Model Inference locally."
+        )
+
     model_inference = model_inference_class()
-    model_inference._parameters = parameters
     output_labels = model_inference.output_labels()
     dependencies = model_inference.dependencies()
 
-    udf_code = _generate_udf_code(model_inference_class, dependencies)
-
-    udf = openeo.UDF(code=udf_code, context=parameters)
+    if len(dependencies) > 0:
+        model_inference.logger.warning(
+            "Running UDFs locally with pip dependencies is not supported yet, "
+            "dependencies will not be installed."
+        )
 
     cube = XarrayDataCube(cube)
 
-    out_udf_data: UdfData = execute_local_udf(udf, cube, fmt="NetCDF")
-
-    output_cubes = out_udf_data.datacube_list
-
-    assert len(output_cubes) == 1, "UDF should have only a single output cube."
-
-    return output_cubes[0].get_array().assign_coords({"bands": output_labels})
+    return (
+        model_inference._execute(cube, parameters)
+        .get_array()
+        .assign_coords({"bands": output_labels})
+    )
