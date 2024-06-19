@@ -137,7 +137,7 @@ def s1_area_per_orbitstate(
         ]
         geometry = unary_union(shapely_geometries)
         bounds = geometry.bounds
-        epsg = 4362
+        epsg = 4326
     elif isinstance(spatial_extent, BoundingBoxExtent):
         bounds = [
             spatial_extent.west,
