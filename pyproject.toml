@@ -33,7 +33,7 @@ dependencies = [
     "geopandas",
     "h5netcdf>=1.2.0",
     "openeo",
-    "onnxruntime>=1.16.3",
+    "onnxruntime==1.16.3",
     "cftime",
     "pyarrow",
     "fastparquet",
