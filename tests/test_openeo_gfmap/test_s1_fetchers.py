@@ -100,7 +100,7 @@ class TestS1Extractors:
             tile_path = (
                 Path(__file__).parent / f"results/{backend.value}_sentinel1_grd.nc"
             )
-            loaded_tiles.append(xr.open_dataset(tile_path, engine="h5netcdf"))
+            loaded_tiles.append(xr.open_dataset(tile_path))
 
         # Compare the variable data type
         dtype = None

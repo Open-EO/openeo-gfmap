@@ -169,6 +169,9 @@ class ONNXModelInference(ModelInference):
 
     """
 
+    def dependencies(self) -> list:
+        return []  # Disable dependencies
+
     def output_labels(self) -> list:
         return self._parameters["output_labels"]
 

@@ -227,7 +227,9 @@ def test_patch_feature_local():
         bands=[band for band in inds.bands.to_numpy() if band != "crs"]
     ).transpose("bands", "t", "y", "x")
 
-    features = apply_feature_extractor_local(DummyPatchExtractor, inds, parameters={})
+    features = apply_feature_extractor_local(
+        DummyPatchExtractor, inds, parameters={"GEO-EPSG": 32631}
+    )
 
     features.to_netcdf(Path(__file__).parent / "results/patch_features_local.nc")
 
