@@ -7,8 +7,8 @@ def _compress(
     cube: openeo.DataCube,
     min_val: int,
     max_val: int,
-    alpha: float = 1.0,
-    beta: float = 0.0,
+    alpha: float,
+    beta: float,
 ):
     if (
         alpha != 1.0 or beta != 0.0
