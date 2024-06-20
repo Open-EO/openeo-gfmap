@@ -29,11 +29,12 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "numpy<2.0.0",
     "geojson>=3.0.0",
     "geopandas",
     "h5netcdf>=1.2.0",
     "openeo",
-    "onnxruntime>=1.16.3,<1.18.0",
+    "onnxruntime",
     "cftime",
     "pyarrow",
     "fastparquet",
