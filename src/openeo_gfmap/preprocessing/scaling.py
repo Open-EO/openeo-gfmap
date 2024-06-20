@@ -62,4 +62,4 @@ def compress_uint8(
     cube : openeo.DataCube
         The datacube with the data linearly scaled and compressed to uint8 and rescaled frome.
     """
-    return _compress(cube, 0, 254, alpha, beta)
+    return _compress(cube, 0, 253, alpha, beta)
