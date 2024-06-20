@@ -11,8 +11,8 @@ from shapely.geometry import Polygon, box
 class BoundingBoxExtent:
     """Definition of a bounding box as accepted by OpenEO
 
-    Contains the minx, miny, maxx, maxy coordinates expressed as east, south
-    west, north. The EPSG is also defined.
+    Contains the minx, miny, maxx, maxy coordinates expressed as west, south
+    east, north. The EPSG is also defined.
     """
 
     west: float
