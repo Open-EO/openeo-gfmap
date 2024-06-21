@@ -221,11 +221,13 @@ def test_latlon_extractor(backend: Backend):
 def test_patch_feature_local():
     input_path = Path(__file__).parent / "resources/test_optical_cube.nc"
 
-    inds = xr.open_dataset(input_path).to_array(dim="bands")
-
-    inds = inds.sel(
-        bands=[band for band in inds.bands.to_numpy() if band != "crs"]
-    ).transpose("bands", "t", "y", "x")
+    inds = (
+        xr.open_dataset(input_path)
+        .to_array(dim="bands")
+        .drop_sel(bands="crs")
+        .transpose("bands", "t", "y", "x")
+        .astype("uint16")
+    )
 
     features = apply_feature_extractor_local(
         DummyPatchExtractor, inds, parameters={"GEO-EPSG": 32631}
