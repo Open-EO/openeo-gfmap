@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
+- Added support for `FetchType.POINT` in Sentinel-1 orbit state selection
 ### Changed
 
 ### Removed
