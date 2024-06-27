@@ -64,9 +64,9 @@ def _get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callabl
             **params,
         )
 
-        # Apply if the collection is a GeoJSON Feature collection
-        if isinstance(spatial_extent, GeoJSON):
-            cube = cube.filter_spatial(spatial_extent)
+        # # Apply if the collection is a GeoJSON Feature collection
+        # if isinstance(spatial_extent, GeoJSON):
+        #     cube = cube.filter_spatial(spatial_extent)
 
         return cube
 
