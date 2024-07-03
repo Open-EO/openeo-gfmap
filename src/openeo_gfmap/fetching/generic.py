@@ -117,6 +117,10 @@ OTHER_BACKEND_MAP = {
             "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
             "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
         },
+        Backend.CDSE_STAGING: {
+            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
+            "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
+        },
         Backend.FED: {
             "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
             "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
@@ -130,6 +134,12 @@ OTHER_BACKEND_MAP = {
             ),
         },
         Backend.CDSE: {
+            "fetch": partial(_get_generic_fetcher, collection_name="COPERNICUS_30"),
+            "preprocessor": partial(
+                _get_generic_processor, collection_name="COPERNICUS_30"
+            ),
+        },
+        Backend.CDSE_STAGING: {
             "fetch": partial(_get_generic_fetcher, collection_name="COPERNICUS_30"),
             "preprocessor": partial(
                 _get_generic_processor, collection_name="COPERNICUS_30"
