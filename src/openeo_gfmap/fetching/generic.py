@@ -5,7 +5,6 @@ from functools import partial
 from typing import Callable
 
 import openeo
-from geojson import GeoJSON
 
 from openeo_gfmap.backend import Backend, BackendContext
 from openeo_gfmap.fetching import CollectionFetcher, FetchType, _log
@@ -64,9 +63,9 @@ def _get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callabl
             **params,
         )
 
-        # Apply if the collection is a GeoJSON Feature collection
-        if isinstance(spatial_extent, GeoJSON):
-            cube = cube.filter_spatial(spatial_extent)
+        # # Apply if the collection is a GeoJSON Feature collection
+        # if isinstance(spatial_extent, GeoJSON):
+        #     cube = cube.filter_spatial(spatial_extent)
 
         return cube
 
