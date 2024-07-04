@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -74,7 +74,9 @@ def test_rescale_s1_backscatter_valid(mock_feature_extractor, mock_data_array):
 
 
 # TODO
-@pytest.mark.skip(reason="Skipping test for since underlying excecutor needs to be changed")
+@pytest.mark.skip(
+    reason="Skipping test for since underlying excecutor needs to be changed"
+)
 def test_execute():
     # Create an instance of the extractor
     extractor = DummyPatchFeatureExtractor()
@@ -93,7 +95,7 @@ def test_execute():
     result = extractor._execute(mock_cube, {})
 
     # Ensure the result is correctly transposed to have dimensions ["bands", "y", "x"]
-    expected_dims =["bands", "t", "y", "x"]
+    expected_dims = ["bands", "t", "y", "x"]
     assert result.get_array().dims == expected_dims
 
     # Check that the mock methods were called

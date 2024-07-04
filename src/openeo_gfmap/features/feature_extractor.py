@@ -218,7 +218,7 @@ class PatchFeatureExtractor(FeatureExtractor):
         arr.loc[dict(bands=s1_bands_to_select)] = data_to_rescale
         return arr
 
-    #TODO to remove the fixed transpose as it contributes to unclear code.
+    # TODO to remove the fixed transpose as it contributes to unclear code.
     def _execute(self, cube: XarrayDataCube, parameters: dict) -> XarrayDataCube:
         arr = cube.get_array().transpose("bands", "t", "y", "x")
         arr = self._common_preparations(arr, parameters)
