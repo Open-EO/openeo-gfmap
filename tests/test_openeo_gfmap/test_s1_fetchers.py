@@ -29,7 +29,6 @@ from openeo_gfmap.utils import (
 from .test_s2_fetchers import POINT_EXTRACTION_DF, test_backends, test_configurations
 
 
-# TODO; remove class. Defining tests within classes lowers the readibility
 # integration test checks if the output S1 cube has the correct band names;
 class TestS1Extractors:
     """Build collection extractor for different S1 collections on different
