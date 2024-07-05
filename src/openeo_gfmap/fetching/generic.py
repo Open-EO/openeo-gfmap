@@ -5,7 +5,6 @@ from functools import partial
 from typing import Callable
 
 import openeo
-from geojson import GeoJSON
 
 from openeo_gfmap.backend import Backend, BackendContext
 from openeo_gfmap.fetching import CollectionFetcher, FetchType, _log

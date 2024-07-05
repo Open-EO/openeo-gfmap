@@ -33,7 +33,6 @@ class FeatureExtractor(ABC):
     """
 
     def __init__(self) -> None:
-      
         self._epsg = None
 
         logging.basicConfig(level=logging.INFO)

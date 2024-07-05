@@ -1,4 +1,5 @@
 """Functionalities to interract with product catalogues."""
+
 import geojson
 import requests
 from pyproj.crs import CRS
