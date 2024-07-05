@@ -152,7 +152,7 @@ class TestS1Extractors:
             "elevation_model": "COPERNICUS_30",
             "coefficient": "gamma0-ellipsoid",
             "load_collection": {
-                "polarization": lambda polar: (polar == "VV") or (polar == "VH"),
+                "polarization": lambda polar: polar == "VV&VH",
             },
         }
         extractor = build_sentinel1_grd_extractor(
