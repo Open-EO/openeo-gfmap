@@ -245,7 +245,6 @@ class TestS1Extractors:
         assert len(extracted_files) == len(spatial_context["features"])
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(
     "spatial_context, temporal_context, backend", test_configurations
 )
@@ -258,13 +257,11 @@ def test_sentinel1_grd(
     )
 
 
-@pytest.mark.skip
 @pytest.mark.depends(on=["test_sentinel1_grd"])
 def test_compare_sentinel1_tiles():
     TestS1Extractors.compare_sentinel1_tiles()
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize("backend", test_backends)
 def test_sentinel1_grd_point_based(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
