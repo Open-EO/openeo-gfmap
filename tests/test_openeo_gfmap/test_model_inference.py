@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import numpy as np
-import pytest
 import rasterio
 from openeo.udf import XarrayDataCube
 
@@ -38,7 +37,6 @@ dependency_url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/ope
 
 
 # TODO; as an addition we could include an assert on the output values, however this edges towards MLOPS
-@pytest.mark.skip
 def test_onnx_inference_local():
     """Test the ONNX Model inference locally"""
     inds = load_dataarray_url(resources_file)
@@ -68,7 +66,6 @@ def test_onnx_inference_local():
 
 
 # TODO; integration test of +- full pipeline
-@pytest.mark.skip
 def test_onnx_inference():
     """Simple test on the ONNX Model Inference class"""
     connection = cdse_connection()

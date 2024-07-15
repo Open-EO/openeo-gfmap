@@ -253,7 +253,6 @@ class TestS2Extractors:
         assert len(extracted_files) == len(spatial_context["features"])
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(
     "spatial_context, temporal_context, backend", test_configurations
 )
@@ -266,13 +265,11 @@ def test_sentinel2_l2a(
     )
 
 
-@pytest.mark.skip
 @pytest.mark.depends(on=["test_sentinel2_l2a"])
 def test_compare_sentinel2_tiles():
     TestS2Extractors.compare_sentinel2_tiles()
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize("backend", test_backends)
 def test_sentinel2_l2a_point_based(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
@@ -296,7 +293,6 @@ def test_sentinel2_l2a_point_based(backend: Backend):
     )
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize("backend", test_backends)
 def test_sentinel2_l2a_polygon_based(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
