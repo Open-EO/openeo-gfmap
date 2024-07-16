@@ -29,6 +29,7 @@ from openeo_gfmap.utils import (
 from .test_s2_fetchers import POINT_EXTRACTION_DF, test_backends, test_configurations
 
 
+# integration test checks if the output S1 cube has the correct band names;
 class TestS1Extractors:
     """Build collection extractor for different S1 collections on different
     backends.
@@ -89,6 +90,8 @@ class TestS1Extractors:
         for harmonierd_name in expected_harmonized_bands:
             assert harmonierd_name in results.keys()
 
+    # TODO; convoluted comparisson; we can use a utility function which calculates a
+    # statistic for every band, better to make use of pytest.approx
     def compare_sentinel1_tiles():
         """Compare the different tiles gathered from different backends,
         they should be similar, if they are computed with the same
@@ -132,6 +135,7 @@ class TestS1Extractors:
             similarity_score = arrays_cosine_similarity(first_tile, tile_to_compare)
             assert similarity_score >= 0.95
 
+    # TODO integration test
     def sentinel1_grd_point_based(
         spatial_context: SpatialContext,
         temporal_context: TemporalContext,
@@ -189,6 +193,7 @@ class TestS1Extractors:
 
         df.to_parquet(str(output_file).replace(".json", ".parquet"))
 
+    # TODO integration test
     def sentinel1_grd_polygon_based(
         spatial_context: SpatialContext,
         temporal_context: TemporalContext,

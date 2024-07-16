@@ -174,7 +174,7 @@ class GFMAPJobManager(MultiBackendJobManager):
 
     def _restart_failed_jobs(self, df: pd.DataFrame):
         """Sets-up failed jobs as "not_started" as they will be restarted by the manager."""
-        failed_tasks = df[df.status == "error"]
+        failed_tasks = df[df.status.isin(["error", "start_failed"])]
         not_started_tasks = df[df.status == "not_started"]
         _log.info(
             f"Resetting {len(failed_tasks)} failed jobs to 'not_started'. {len(not_started_tasks)} jobs are already 'not_started'."

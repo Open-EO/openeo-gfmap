@@ -1,6 +1,7 @@
 """Feature extractor functionalities. Such as a base class to assist the
 implementation of feature extractors of a UDF.
 """
+
 import functools
 import inspect
 import logging
@@ -32,6 +33,8 @@ class FeatureExtractor(ABC):
     """
 
     def __init__(self) -> None:
+        self._epsg = None
+
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -87,6 +90,10 @@ class FeatureExtractor(ABC):
     def epsg(self) -> int:
         """Returns the EPSG code of the datacube."""
         return self._epsg
+
+    @epsg.setter
+    def epsg(self, value: int):
+        self._epsg = value
 
     def dependencies(self) -> list:
         """Returns the additional dependencies such as wheels or zip files.
@@ -204,6 +211,7 @@ class PatchFeatureExtractor(FeatureExtractor):
         arr.loc[dict(bands=s1_bands_to_select)] = data_to_rescale
         return arr
 
+    # TODO to remove the fixed transpose as it contributes to unclear code.
     def _execute(self, cube: XarrayDataCube, parameters: dict) -> XarrayDataCube:
         arr = cube.get_array().transpose("bands", "t", "y", "x")
         arr = self._common_preparations(arr, parameters)

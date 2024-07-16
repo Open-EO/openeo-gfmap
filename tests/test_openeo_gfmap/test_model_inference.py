@@ -36,6 +36,7 @@ onnx_model_url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfm
 dependency_url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/openeo/onnx_dependencies_1.16.3.zip"
 
 
+# TODO; as an addition we could include an assert on the output values, however this edges towards MLOPS
 def test_onnx_inference_local():
     """Test the ONNX Model inference locally"""
     inds = load_dataarray_url(resources_file)
@@ -64,6 +65,7 @@ def test_onnx_inference_local():
     output.to_netcdf(output_path)
 
 
+# TODO; integration test of +- full pipeline
 def test_onnx_inference():
     """Simple test on the ONNX Model Inference class"""
     connection = cdse_connection()
