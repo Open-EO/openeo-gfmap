@@ -21,10 +21,16 @@ from openeo_gfmap.stac import constants
 _stac_lock = Lock()
 
 
-def done_callback(future, df, idx):
-    """Sets the status of the job to the given status when the future is done."""
+def done_callback(future, df, idx, executor, retry=True):
+    """Sets the status of the job to the given status when the future is done.
+    
+    If an exception occurred, then tries to retry the post-job action once if
+    it wasn't done already. If this is the second time the post-job action
+    fails, then the job is set to error.
+    """
     current_status = df.loc[idx, "status"]
-    if not future.exception():
+    exception = future.exception()
+    if exception is None:
         if current_status == "postprocessing":
             df.loc[idx, "status"] = "finished"
         elif current_status == "postprocessing-error":
@@ -35,6 +41,22 @@ def done_callback(future, df, idx):
             raise ValueError(
                 f"Invalid status {current_status} for job {df.loc[idx, 'id']} for done_callback!"
             )
+    else:  # There is an exception that occured
+        _log.error(
+            "An exception occured in the postprocessing for job %s:\n%s",
+            df.loc[idx, 'id'],
+            exception
+        )
+        if retry:
+            _log.info("Retrying the postprocessing for job %s...", df.loc[idx, 'id'])
+            if current_status == "postprocessing":
+                future = executor.submit(df.loc[idx, "on_job_done"], df.loc[idx, "job"], df.loc[idx], _stac_lock)
+            elif current_status == "postprocessing-error":
+                future = executor.submit(df.loc[idx, "on_job_error"], df.loc[idx, "job"], df.loc[idx])
+            future.add_done_callback(partial(done_callback, df=df, idx=idx, executor=executor, retry=False))
+        else:
+            _log.info("Post-job action was already retried once, setting job %s to error.", df.loc[idx, 'id'])
+            df.loc[idx, "status"] = "error"
 
 
 class PostJobStatus(Enum):
@@ -97,12 +119,14 @@ class GFMAPJobManager(MultiBackendJobManager):
                 root_collection = pickle.load(file)
         elif self.stac is not None:
             _log.info(
-                f"Reloading the STAC collection from the provided path: {self.stac}."
+                "Reloading the STAC collection from the provided path: %s.",
+                self.stac
             )
             root_collection = pystac.read_file(str(self.stac))
         elif default_collection_path.exists():
             _log.info(
-                f"Reload the STAC collection from the default path: {default_collection_path}."
+                "Reload the STAC collection from the default path: %s.",
+                default_collection_path
             )
             self.stac = default_collection_path
             root_collection = pystac.read_file(str(self.stac))
@@ -160,16 +184,18 @@ class GFMAPJobManager(MultiBackendJobManager):
             job = connection.job(row.id)
             if row.status == "postprocessing":
                 _log.info(
-                    f"Resuming postprocessing of job {row.id}, queueing on_job_finished..."
+                    "Resuming postprocessing of job %s, queueing on_job_finished...",
+                    row.id
                 )
                 future = self._executor.submit(self.on_job_done, job, row, _stac_lock)
-                future.add_done_callback(partial(done_callback, df=df, idx=idx))
+                future.add_done_callback(partial(done_callback, df=df, idx=idx, executor=self._executor))
             else:
                 _log.info(
-                    f"Resuming postprocessing of job {row.id}, queueing on_job_error..."
+                    "Resuming postprocessing of job %s, queueing on_job_error...",
+                    row.id
                 )
                 future = self._executor.submit(self.on_job_error, job, row)
-                future.add_done_callback(partial(done_callback, df=df, idx=idx))
+                future.add_done_callback(partial(done_callback, df=df, idx=idx, executor=self._executor))
             self._futures.append(future)
 
     def _restart_failed_jobs(self, df: pd.DataFrame):
@@ -177,7 +203,9 @@ class GFMAPJobManager(MultiBackendJobManager):
         failed_tasks = df[df.status.isin(["error", "start_failed"])]
         not_started_tasks = df[df.status == "not_started"]
         _log.info(
-            f"Resetting {len(failed_tasks)} failed jobs to 'not_started'. {len(not_started_tasks)} jobs are already 'not_started'."
+            "Resetting %s failed jobs to 'not_started'. %s jobs are already 'not_started'.",
+            len(failed_tasks),
+            len(not_started_tasks)
         )
         for idx, _ in failed_tasks.iterrows():
             df.loc[idx, "status"] = "not_started"
@@ -213,12 +241,13 @@ class GFMAPJobManager(MultiBackendJobManager):
                 job_metadata["status"] == "finished"
             ):
                 _log.info(
-                    f"Job {job.job_id} finished successfully, queueing on_job_done..."
+                    "Job %s finished successfully, queueing on_job_done...",
+                    job.job_id
                 )
                 job_status = "postprocessing"
                 future = self._executor.submit(self.on_job_done, job, row, _stac_lock)
                 # Future will setup the status to finished when the job is done
-                future.add_done_callback(partial(done_callback, df=df, idx=idx))
+                future.add_done_callback(partial(done_callback, df=df, idx=idx, executor=self._executor))
                 self._futures.append(future)
                 if "costs" in job_metadata:
                     df.loc[idx, "costs"] = job_metadata["costs"]
@@ -233,12 +262,13 @@ class GFMAPJobManager(MultiBackendJobManager):
                 job_metadata["status"] == "error"
             ):
                 _log.info(
-                    f"Job {job.job_id} finished with error, queueing on_job_error..."
+                    "Job %s finished with error, queueing on_job_error...",
+                    job.job_id,
                 )
                 job_status = "postprocessing-error"
                 future = self._executor.submit(self.on_job_error, job, row)
                 # Future will setup the status to error when the job is done
-                future.add_done_callback(partial(done_callback, df=df, idx=idx))
+                future.add_done_callback(partial(done_callback, df=df, idx=idx, executor=self._executor))
                 self._futures.append(future)
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
@@ -285,7 +315,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         for idx, asset in enumerate(job.get_results().get_assets()):
             try:
                 _log.debug(
-                    f"Generating output path for asset {asset.name} from job {job.job_id}..."
+                    "Generating output path for asset %s from job %s...", asset.name, job.job_id
                 )
                 output_path = self._output_path_gen(self._output_dir, idx, row)
                 # Make the output path
@@ -294,7 +324,10 @@ class GFMAPJobManager(MultiBackendJobManager):
                 # Add to the list of downloaded products
                 job_products[f"{job.job_id}_{asset.name}"] = [output_path]
                 _log.debug(
-                    f"Downloaded {asset.name} from job {job.job_id} -> {output_path}"
+                    "Downloaded %s from job %s -> %s",
+                    asset.name,
+                    job.job_id,
+                    output_path,
                 )
             except Exception as e:
                 _log.exception(
@@ -406,7 +439,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         }
         df = df.assign(**new_columns)
 
-        _log.debug(f"Normalizing dataframe. Columns: {df.columns}")
+        _log.debug("Normalizing dataframe. Columns: %s", df.columns)
 
         return df
 
