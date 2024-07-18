@@ -2,14 +2,16 @@ import json
 import pickle
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from enum import Enum
 from functools import partial
 from pathlib import Path
 from threading import Lock
-from typing import Callable, Optional, Union
+from typing import Callable, NamedTuple, Optional, Union
 
 import pandas as pd
 import pystac
+from openeo import Connection
 from openeo.extra.job_management import MultiBackendJobManager
 from openeo.rest.job import BatchJob
 from pystac import CatalogType
@@ -23,7 +25,7 @@ _stac_lock = Lock()
 
 def done_callback(future, df, idx, executor, retry=True):
     """Sets the status of the job to the given status when the future is done.
-    
+
     If an exception occurred, then tries to retry the post-job action once if
     it wasn't done already. If this is the second time the post-job action
     fails, then the job is set to error.
@@ -44,18 +46,30 @@ def done_callback(future, df, idx, executor, retry=True):
     else:  # There is an exception that occured
         _log.error(
             "An exception occured in the postprocessing for job %s:\n%s",
-            df.loc[idx, 'id'],
-            exception
+            df.loc[idx, "id"],
+            exception,
         )
         if retry:
-            _log.info("Retrying the postprocessing for job %s...", df.loc[idx, 'id'])
+            _log.info("Retrying the postprocessing for job %s...", df.loc[idx, "id"])
             if current_status == "postprocessing":
-                future = executor.submit(df.loc[idx, "on_job_done"], df.loc[idx, "job"], df.loc[idx], _stac_lock)
+                future = executor.submit(
+                    df.loc[idx, "on_job_done"],
+                    df.loc[idx, "job"],
+                    df.loc[idx],
+                    _stac_lock,
+                )
             elif current_status == "postprocessing-error":
-                future = executor.submit(df.loc[idx, "on_job_error"], df.loc[idx, "job"], df.loc[idx])
-            future.add_done_callback(partial(done_callback, df=df, idx=idx, executor=executor, retry=False))
+                future = executor.submit(
+                    df.loc[idx, "on_job_error"], df.loc[idx, "job"], df.loc[idx]
+                )
+            future.add_done_callback(
+                partial(done_callback, df=df, idx=idx, executor=executor, retry=False)
+            )
         else:
-            _log.info("Post-job action was already retried once, setting job %s to error.", df.loc[idx, 'id'])
+            _log.info(
+                "Post-job action was already retried once, setting job %s to error.",
+                df.loc[idx, "id"],
+            )
             df.loc[idx, "status"] = "error"
 
 
@@ -81,6 +95,9 @@ class GFMAPJobManager(MultiBackendJobManager):
         n_threads: int = 1,
         resume_postproc: bool = True,  # If we need to check for post-job actions that crashed
         restart_failed: bool = False,  # If we need to restart failed jobs
+        dynamic_max_jobs: bool = True,  # If we need to dynamically change the maximum number of parallel jobs
+        max_jobs_worktime: bool = 10,  # Maximum number of jobs to run in a given time
+        max_jobs: int = 20,  # Maximum number of jobs to run at the same time
     ):
         self._output_dir = output_dir
         self._catalogue_cache = output_dir / "catalogue_cache.bin"
@@ -108,6 +125,59 @@ class GFMAPJobManager(MultiBackendJobManager):
 
         self._root_collection = self._normalize_stac()
 
+        # Add a property that calculates the number of maximum concurrent jobs
+        # dinamically depending on the time
+        self._dynamic_max_jobs = dynamic_max_jobs
+        self._max_jobs_worktime = max_jobs_worktime
+        self._max_jobs = max_jobs
+
+    def add_backend(
+        self,
+        name: str,
+        connection: Connection | Callable[[], Connection],
+        parallel_jobs: Optional[int] = 2,
+        dynamic_max_jobs: bool = True,
+        min_jobs: Optional[int] = None,
+        max_jobs: Optional[int] = None,
+    ):
+        if not dynamic_max_jobs:
+            if parallel_jobs is None:
+                raise ValueError(
+                    "When dynamic_max_jobs is set to False, parallel_jobs must be provided."
+                )
+            return super().add_backend(name, connection, parallel_jobs)
+
+        if min_jobs is None or max_jobs is None:
+            raise ValueError(
+                "When dynamic_max_jobs is set to True, min_jobs and max_jobs must be provided."
+            )
+
+        if isinstance(connection, Connection):
+            c = connection
+            connection = lambda: c  # noqa: E731
+        assert callable(connection)
+
+        # Create a new NamedTuple to store the dynamic backend properties
+        class _DynamicBackend(NamedTuple):
+            get_connection: Callable[[], Connection]
+
+            @property
+            def parallel_jobs(self) -> int:
+                current_time = datetime.now()
+
+                # Limiting working hours
+                start_worktime_hour = 7
+                end_worktime_hour = 20
+
+                if (
+                    current_time.hour < start_worktime_hour
+                    or current_time.hour > end_worktime_hour
+                ):
+                    return min_jobs
+                return max_jobs
+
+        self.backends[name] = _DynamicBackend(get_connection=connection)
+
     def _normalize_stac(self):
         default_collection_path = self._output_dir / "stac/collection.json"
         if self._catalogue_cache.exists():
@@ -119,14 +189,13 @@ class GFMAPJobManager(MultiBackendJobManager):
                 root_collection = pickle.load(file)
         elif self.stac is not None:
             _log.info(
-                "Reloading the STAC collection from the provided path: %s.",
-                self.stac
+                "Reloading the STAC collection from the provided path: %s.", self.stac
             )
             root_collection = pystac.read_file(str(self.stac))
         elif default_collection_path.exists():
             _log.info(
                 "Reload the STAC collection from the default path: %s.",
-                default_collection_path
+                default_collection_path,
             )
             self.stac = default_collection_path
             root_collection = pystac.read_file(str(self.stac))
@@ -185,17 +254,21 @@ class GFMAPJobManager(MultiBackendJobManager):
             if row.status == "postprocessing":
                 _log.info(
                     "Resuming postprocessing of job %s, queueing on_job_finished...",
-                    row.id
+                    row.id,
                 )
                 future = self._executor.submit(self.on_job_done, job, row, _stac_lock)
-                future.add_done_callback(partial(done_callback, df=df, idx=idx, executor=self._executor))
+                future.add_done_callback(
+                    partial(done_callback, df=df, idx=idx, executor=self._executor)
+                )
             else:
                 _log.info(
                     "Resuming postprocessing of job %s, queueing on_job_error...",
-                    row.id
+                    row.id,
                 )
                 future = self._executor.submit(self.on_job_error, job, row)
-                future.add_done_callback(partial(done_callback, df=df, idx=idx, executor=self._executor))
+                future.add_done_callback(
+                    partial(done_callback, df=df, idx=idx, executor=self._executor)
+                )
             self._futures.append(future)
 
     def _restart_failed_jobs(self, df: pd.DataFrame):
@@ -205,7 +278,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         _log.info(
             "Resetting %s failed jobs to 'not_started'. %s jobs are already 'not_started'.",
             len(failed_tasks),
-            len(not_started_tasks)
+            len(not_started_tasks),
         )
         for idx, _ in failed_tasks.iterrows():
             df.loc[idx, "status"] = "not_started"
@@ -241,13 +314,14 @@ class GFMAPJobManager(MultiBackendJobManager):
                 job_metadata["status"] == "finished"
             ):
                 _log.info(
-                    "Job %s finished successfully, queueing on_job_done...",
-                    job.job_id
+                    "Job %s finished successfully, queueing on_job_done...", job.job_id
                 )
                 job_status = "postprocessing"
                 future = self._executor.submit(self.on_job_done, job, row, _stac_lock)
                 # Future will setup the status to finished when the job is done
-                future.add_done_callback(partial(done_callback, df=df, idx=idx, executor=self._executor))
+                future.add_done_callback(
+                    partial(done_callback, df=df, idx=idx, executor=self._executor)
+                )
                 self._futures.append(future)
                 if "costs" in job_metadata:
                     df.loc[idx, "costs"] = job_metadata["costs"]
@@ -268,7 +342,9 @@ class GFMAPJobManager(MultiBackendJobManager):
                 job_status = "postprocessing-error"
                 future = self._executor.submit(self.on_job_error, job, row)
                 # Future will setup the status to error when the job is done
-                future.add_done_callback(partial(done_callback, df=df, idx=idx, executor=self._executor))
+                future.add_done_callback(
+                    partial(done_callback, df=df, idx=idx, executor=self._executor)
+                )
                 self._futures.append(future)
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
@@ -315,7 +391,9 @@ class GFMAPJobManager(MultiBackendJobManager):
         for idx, asset in enumerate(job.get_results().get_assets()):
             try:
                 _log.debug(
-                    "Generating output path for asset %s from job %s...", asset.name, job.job_id
+                    "Generating output path for asset %s from job %s...",
+                    asset.name,
+                    job.job_id,
                 )
                 output_path = self._output_path_gen(self._output_dir, idx, row)
                 # Make the output path
@@ -489,11 +567,7 @@ class GFMAPJobManager(MultiBackendJobManager):
             "Finished running jobs, saving persisted STAC collection to final .json collection."
         )
         self._write_stac()
-        _log.info(
-            "Saved STAC catalogue to JSON format, deleting the persisted binary file."
-        )
-        self._catalogue_cache.unlink()
-        _log.info("All tasks finished!")
+        _log.info("Saved STAC catalogue to JSON format, all tasks finished!")
 
     def _write_stac(self):
         """Writes the STAC collection to the output directory."""
