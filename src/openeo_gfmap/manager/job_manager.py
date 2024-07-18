@@ -166,12 +166,12 @@ class GFMAPJobManager(MultiBackendJobManager):
                 current_time = datetime.now()
 
                 # Limiting working hours
-                start_worktime_hour = 7
+                start_worktime_hour = 8
                 end_worktime_hour = 20
 
                 if (
-                    current_time.hour < start_worktime_hour
-                    or current_time.hour > end_worktime_hour
+                    current_time.hour >= start_worktime_hour
+                    and current_time.hour < end_worktime_hour
                 ):
                     return min_jobs
                 return max_jobs
