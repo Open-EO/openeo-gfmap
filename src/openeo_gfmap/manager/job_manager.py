@@ -134,7 +134,7 @@ class GFMAPJobManager(MultiBackendJobManager):
     def add_backend(
         self,
         name: str,
-        connection: Connection | Callable[[], Connection],
+        connection,
         parallel_jobs: Optional[int] = 2,
         dynamic_max_jobs: bool = True,
         min_jobs: Optional[int] = None,
