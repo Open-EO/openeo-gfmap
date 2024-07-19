@@ -1,6 +1,7 @@
 import json
 import pickle
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from enum import Enum
@@ -23,7 +24,24 @@ from openeo_gfmap.stac import constants
 _stac_lock = Lock()
 
 
-def done_callback(future, df, idx, executor, retry=True):
+def retry_on_exception(max_retries, delay=30):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            latest_exception = None
+            for _ in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    time.sleep(delay)
+                    latest_exception = e
+            raise latest_exception
+
+        return wrapper
+
+    return decorator
+
+
+def done_callback(future, df, idx):
     """Sets the status of the job to the given status when the future is done.
 
     If an exception occurred, then tries to retry the post-job action once if
@@ -43,34 +61,13 @@ def done_callback(future, df, idx, executor, retry=True):
             raise ValueError(
                 f"Invalid status {current_status} for job {df.loc[idx, 'id']} for done_callback!"
             )
-    else:  # There is an exception that occured
-        _log.error(
-            "An exception occured in the postprocessing for job %s:\n%s",
+    else:
+        _log.exception(
+            "Exception occurred in post-job future for job %s:\n%s",
             df.loc[idx, "id"],
             exception,
         )
-        if retry:
-            _log.info("Retrying the postprocessing for job %s...", df.loc[idx, "id"])
-            if current_status == "postprocessing":
-                future = executor.submit(
-                    df.loc[idx, "on_job_done"],
-                    df.loc[idx, "job"],
-                    df.loc[idx],
-                    _stac_lock,
-                )
-            elif current_status == "postprocessing-error":
-                future = executor.submit(
-                    df.loc[idx, "on_job_error"], df.loc[idx, "job"], df.loc[idx]
-                )
-            future.add_done_callback(
-                partial(done_callback, df=df, idx=idx, executor=executor, retry=False)
-            )
-        else:
-            _log.info(
-                "Post-job action was already retried once, setting job %s to error.",
-                df.loc[idx, "id"],
-            )
-            df.loc[idx, "status"] = "error"
+        df.loc[idx, "status"] = "error"
 
 
 class PostJobStatus(Enum):
@@ -258,7 +255,11 @@ class GFMAPJobManager(MultiBackendJobManager):
                 )
                 future = self._executor.submit(self.on_job_done, job, row, _stac_lock)
                 future.add_done_callback(
-                    partial(done_callback, df=df, idx=idx, executor=self._executor)
+                    partial(
+                        done_callback,
+                        df=df,
+                        idx=idx,
+                    )
                 )
             else:
                 _log.info(
@@ -267,7 +268,11 @@ class GFMAPJobManager(MultiBackendJobManager):
                 )
                 future = self._executor.submit(self.on_job_error, job, row)
                 future.add_done_callback(
-                    partial(done_callback, df=df, idx=idx, executor=self._executor)
+                    partial(
+                        done_callback,
+                        df=df,
+                        idx=idx,
+                    )
                 )
             self._futures.append(future)
 
@@ -320,7 +325,11 @@ class GFMAPJobManager(MultiBackendJobManager):
                 future = self._executor.submit(self.on_job_done, job, row, _stac_lock)
                 # Future will setup the status to finished when the job is done
                 future.add_done_callback(
-                    partial(done_callback, df=df, idx=idx, executor=self._executor)
+                    partial(
+                        done_callback,
+                        df=df,
+                        idx=idx,
+                    )
                 )
                 self._futures.append(future)
                 if "costs" in job_metadata:
@@ -343,7 +352,11 @@ class GFMAPJobManager(MultiBackendJobManager):
                 future = self._executor.submit(self.on_job_error, job, row)
                 # Future will setup the status to error when the job is done
                 future.add_done_callback(
-                    partial(done_callback, df=df, idx=idx, executor=self._executor)
+                    partial(
+                        done_callback,
+                        df=df,
+                        idx=idx,
+                    )
                 )
                 self._futures.append(future)
                 df.loc[idx, "costs"] = job_metadata["costs"]
@@ -353,6 +366,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         # Clear the futures that are done and raise their potential exceptions if they occurred.
         self._clear_queued_actions()
 
+    @retry_on_exception(max_retries=2, delay=30)
     def on_job_error(self, job: BatchJob, row: pd.Series):
         """Method called when a job finishes with an error.
 
@@ -382,6 +396,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                 f"Couldn't find any error logs. Please check the error manually on job ID: {job.job_id}."
             )
 
+    @retry_on_exception(max_retries=2, delay=30)
     def on_job_done(self, job: BatchJob, row: pd.Series, lock: Lock):
         """Method called when a job finishes successfully. It will first download the results of
         the job and then call the `post_job_action` method.
