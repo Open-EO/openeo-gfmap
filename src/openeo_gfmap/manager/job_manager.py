@@ -211,6 +211,17 @@ class GFMAPJobManager(MultiBackendJobManager):
                 future.add_done_callback(partial(done_callback, df=df, idx=idx))
                 self._futures.append(future)
                 df.loc[idx, "costs"] = job_metadata["costs"]
+                df.loc[idx, "memory"] = (
+                    job_metadata["usage"]
+                    .get("max_executor_memory", {})
+                    .get("value", None)
+                )
+                df.loc[idx, "cpu"] = (
+                    job_metadata["usage"].get("cpu", {}).get("value", None)
+                )
+                df.loc[idx, "duration"] = (
+                    job_metadata["usage"].get("duration", {}).get("value", None)
+                )
 
             # Case in which it failed
             if (df.loc[idx, "status"] != "error") and (
