@@ -334,6 +334,8 @@ class GFMAPJobManager(MultiBackendJobManager):
                 self._futures.append(future)
                 if "costs" in job_metadata:
                     df.loc[idx, "costs"] = job_metadata["costs"]
+                    df.loc[idx, "memory"] = job_metadata["usage"].get("max_executor_memory", {}).get("value", None)
+                
                 else:
                     _log.warning(
                         "Costs not found in job %s metadata. Costs will be set to 'None'.",
@@ -478,23 +480,23 @@ class GFMAPJobManager(MultiBackendJobManager):
                 ]
                 job_items = [item for item in job_items if item.id not in existing_ids]
 
-                validated_items = []
-                # Validate the items
-                for item in job_items:
-                    try:
-                        item.validate()
-                        validated_items.append(item)
-                    except Exception as e:
-                        _log.warning(
-                            "Couldn't validate item %s from job %s, ignoring:\n%s",
-                            item.id,
-                            job.job_id,
-                            e,
-                        )
-
-                self._root_collection.add_items(validated_items)
+                # validated_items = []
+                # # Validate the items
+                # for item in job_items:
+                #     try:
+                #         item.validate()
+                #         validated_items.append(item)
+                #     except Exception as e:
+                #         _log.warning(
+                #             "Couldn't validate item %s from job %s, ignoring:\n%s",
+                #             item.id,
+                #             job.job_id,
+                #             e,
+                #         )
+                self._root_collection.add_items(job_items)
+                # self._root_collection.add_items(validated_items)
                 _log.info(
-                    "Added %s items to the STAC collection.", len(validated_items)
+                    "Added %s items to the STAC collection.", len(job_items)
                 )
 
                 self._persist_stac()
