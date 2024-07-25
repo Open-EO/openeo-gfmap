@@ -5,6 +5,7 @@ from typing import Union
 
 from geojson import GeoJSON
 from shapely.geometry import Polygon, box
+from openeo.rest.udp import Parameter
 
 
 @dataclass
@@ -50,4 +51,4 @@ class BoundingBoxExtent:
         return self.to_geometry().__geo_interface__
 
 
-SpatialContext = Union[GeoJSON, BoundingBoxExtent, str]
+SpatialContext = Union[GeoJSON, BoundingBoxExtent, str, Parameter]
