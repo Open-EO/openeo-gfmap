@@ -75,8 +75,9 @@ class ModelInference(ABC):
 
         return abs_path
 
+    @classmethod
     @functools.lru_cache(maxsize=6)
-    def load_ort_session(self, model_url: str):
+    def load_ort_session(cls, model_url: str):
         """Loads an onnx session from a publicly available URL. The URL must be a direct
         download link to the ONNX session file.
         The `lru_cache` decorator avoids loading multiple time the model within the same worker.
@@ -181,7 +182,7 @@ class ONNXModelInference(ModelInference):
             raise ValueError("The model_url must be defined in the parameters.")
 
         # Load the model and the input_name parameters
-        session = self.load_ort_session(self._parameters.get("model_url"))
+        session = ModelInference.load_ort_session(self._parameters.get("model_url"))
 
         input_name = self._parameters.get("input_name")
         if input_name is None:
