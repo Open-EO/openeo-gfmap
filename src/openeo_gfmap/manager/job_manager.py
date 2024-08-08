@@ -361,6 +361,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                     )
                 )
                 self._futures.append(future)
+            if "costs" in job_metadata:
                 df.loc[idx, "costs"] = job_metadata["costs"]
 
             df.loc[idx, "status"] = job_status
