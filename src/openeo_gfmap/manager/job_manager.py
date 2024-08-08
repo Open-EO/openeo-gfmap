@@ -335,14 +335,18 @@ class GFMAPJobManager(MultiBackendJobManager):
 
                 if "costs" in job_metadata:
                     df.loc[idx, "costs"] = job_metadata["costs"]
-                
+
                 else:
                     _log.warning(
                         "Costs not found in job %s metadata. Costs will be set to 'None'.",
                         job.job_id,
                     )
 
-                df.loc[idx, "memory"] = job_metadata["usage"].get("max_executor_memory", {}).get("value", None)
+                df.loc[idx, "memory"] = (
+                    job_metadata["usage"]
+                    .get("max_executor_memory", {})
+                    .get("value", None)
+                )
                 df.loc[idx, "cpu"] = (
                     job_metadata["usage"].get("cpu", {}).get("value", None)
                 )
@@ -504,9 +508,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                 #         )
                 self._root_collection.add_items(job_items)
                 # self._root_collection.add_items(validated_items)
-                _log.info(
-                    "Added %s items to the STAC collection.", len(job_items)
-                )
+                _log.info("Added %s items to the STAC collection.", len(job_items))
 
                 self._persist_stac()
             except Exception as e:
