@@ -332,15 +332,23 @@ class GFMAPJobManager(MultiBackendJobManager):
                     )
                 )
                 self._futures.append(future)
+
                 if "costs" in job_metadata:
                     df.loc[idx, "costs"] = job_metadata["costs"]
-                    df.loc[idx, "memory"] = job_metadata["usage"].get("max_executor_memory", {}).get("value", None)
                 
                 else:
                     _log.warning(
                         "Costs not found in job %s metadata. Costs will be set to 'None'.",
                         job.job_id,
                     )
+
+                df.loc[idx, "memory"] = job_metadata["usage"].get("max_executor_memory", {}).get("value", None)
+                df.loc[idx, "cpu"] = (
+                    job_metadata["usage"].get("cpu", {}).get("value", None)
+                )
+                df.loc[idx, "duration"] = (
+                    job_metadata["usage"].get("duration", {}).get("value", None)
+                )
 
             # Case in which it failed
             if (df.loc[idx, "status"] != "error") and (
