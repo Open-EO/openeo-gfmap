@@ -133,7 +133,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         name: str,
         connection,
         parallel_jobs: Optional[int] = 2,
-        dynamic_max_jobs: bool = True,
+        dynamic_max_jobs: bool = False,
         min_jobs: Optional[int] = None,
         max_jobs: Optional[int] = None,
     ):
