@@ -1,9 +1,12 @@
 """Functionalities to interract with product catalogues."""
 
+from typing import Optional
+
 import geojson
 import requests
 from pyproj.crs import CRS
 from rasterio.warp import transform_bounds
+from requests import adapters
 from shapely import unary_union
 from shapely.geometry import box, shape
 
@@ -14,6 +17,20 @@ from openeo_gfmap import (
     SpatialContext,
     TemporalContext,
 )
+
+request_sessions: Optional[requests.Session] = None
+
+
+def _request_session() -> requests.Session:
+    global request_sessions
+
+    if request_sessions is None:
+        request_sessions = requests.Session()
+        retries = adapters.Retry(
+            total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504]
+        )
+        request_sessions.mount("https://", adapters.HTTPAdapter(max_retries=retries))
+    return request_sessions
 
 
 class UncoveredS1Exception(Exception):
@@ -48,13 +65,14 @@ def _query_cdse_catalogue(
     url = (
         f"https://catalogue.dataspace.copernicus.eu/resto/api/collections/"
         f"{collection}/search.json?box={minx},{miny},{maxx},{maxy}"
-        f"&sortParam=startDate&maxRecords=100"
+        f"&sortParam=startDate&maxRecords=1000&polarisation=VV%26VH"
         f"&dataset=ESA-DATASET&startDate={start_date}&completionDate={end_date}"
     )
     for key, value in additional_parameters.items():
         url += f"&{key}={value}"
 
-    response = requests.get(url)
+    session = _request_session()
+    response = session.get(url, timeout=60)
 
     if response.status_code != 200:
         raise Exception(
