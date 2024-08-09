@@ -1,4 +1,5 @@
 """Utility function to split a STAC collection into multiple STAC collections based on CRS.
+Requires the "proj:epsg" property to be present in all the STAC items.
 """
 
 import os
@@ -16,13 +17,17 @@ def _extract_epsg_from_stac_item(stac_item: pystac.Item) -> int:
     stac_item (pystac.Item): The STAC item.
 
     Returns:
-    int: The EPSG code, or None if not found.
+    int: The EPSG code.
+
+    Raises:
+    KeyError: If the "proj:epsg" property is missing from the STAC item.
     """
+
     try:
-        epsg_code = stac_item.properties.get("proj:epsg")
+        epsg_code = stac_item.properties["proj:epsg"]
         return epsg_code
     except KeyError:
-        return None
+        raise KeyError("The 'proj:epsg' property is missing from the STAC item.")
 
 
 def _create_item_by_epsg_dict(collection: pystac.Collection) -> dict:
