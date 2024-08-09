@@ -2,7 +2,6 @@
 form of a GeoDataFrames.
 """
 
-from functools import lru_cache
 from pathlib import Path
 from typing import List
 
@@ -13,17 +12,16 @@ import requests
 from openeo_gfmap.manager import _log
 
 
-@lru_cache(maxsize=1)
 def load_s2_grid() -> gpd.GeoDataFrame:
     """Returns a geo data frame from the S2 grid."""
     # Builds the path where the geodataframe should be
-    gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_bounds_v2.geojson"
+    gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_bounds.geojson"
     if not gdf_path.exists():
         _log.info("S2 grid not found, downloading it from artifactory.")
         # Downloads the file from the artifactory URL
         gdf_path.parent.mkdir(exist_ok=True)
         response = requests.get(
-            "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds_v2.geojson",
+            "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds.geojson",
             timeout=180,  # 3mins
         )
         with open(gdf_path, "wb") as f:
@@ -63,14 +61,12 @@ def split_job_s2grid(
         raise ValueError("The GeoDataFrame must contain a CRS")
 
     polygons = polygons.to_crs(epsg=4326)
-    polygons["geometry"] = polygons.geometry.centroid
+    if polygons.geometry.geom_type[0] != "Point":
+        polygons["geometry"] = polygons.geometry.centroid
 
     # Dataset containing all the S2 tiles, find the nearest S2 tile for each point
     s2_grid = load_s2_grid()
     s2_grid["geometry"] = s2_grid.geometry.centroid
-
-    # Filter tiles on CDSE availability
-    s2_grid = s2_grid[s2_grid.cdse_valid]
 
     polygons = gpd.sjoin_nearest(polygons, s2_grid[["tile", "geometry"]]).drop(
         columns=["index_right"]
