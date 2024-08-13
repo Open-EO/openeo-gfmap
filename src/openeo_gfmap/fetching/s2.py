@@ -113,6 +113,7 @@ def _get_s2_l2a_default_fetcher(
     return s2_l2a_fetch_default
 
 
+# TODO deprecated?
 def _get_s2_l2a_element84_fetcher(
     collection_name: str, fetch_type: FetchType
 ) -> Callable:

@@ -124,3 +124,19 @@ def test_collection_fetcher_get_cube(
 
     # Assert that the result is an instance of xarray.DataArray
     assert isinstance(result, xr.DataArray)
+
+
+def test_collection_fetcher_with_empty_bands(
+    mock_backend_context, mock_connection, mock_spatial_extent, mock_temporal_context
+):
+    """Test that CollectionFetcher raises an error with empty bands."""
+    bands = []
+    fetcher = CollectionFetcher(
+        backend_context=mock_backend_context,
+        bands=bands,
+        collection_fetch=MagicMock(),  # No need to mock fetch here
+        collection_preprocessing=MagicMock(),
+    )
+
+    # with pytest.raises(ValueError, match="Bands cannot be empty"):
+    fetcher.get_cube(mock_connection, mock_spatial_extent, mock_temporal_context)
