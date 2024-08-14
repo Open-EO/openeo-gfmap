@@ -67,8 +67,6 @@ def _get_s1_grd_default_fetcher(
         """
         bands = convert_band_names(bands, BASE_SENTINEL1_GRD_MAPPING)
 
-        load_collection_parameters = params.get("load_collection", {})
-
         cube = _load_collection(
             connection,
             bands,
@@ -76,7 +74,7 @@ def _get_s1_grd_default_fetcher(
             spatial_extent,
             temporal_extent,
             fetch_type,
-            **load_collection_parameters,
+            **params,
         )
 
         if fetch_type is not FetchType.POINT and isinstance(spatial_extent, GeoJSON):
