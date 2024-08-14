@@ -85,7 +85,7 @@ def test_fetch_function_calls_convert_and_load(
     mock_convert_band_names.return_value = BANDS
 
     # Call the fetch function
-    result = fetcher(mock_connection, mock_spatial_extent, mock_temporal_extent, BANDS)
+    fetcher(mock_connection, mock_spatial_extent, mock_temporal_extent, BANDS)
 
     # Assert that convert_band_names was called with correct bands
     mock_convert_band_names.assert_called_once_with(BANDS, BASE_SENTINEL2_L2A_MAPPING)
@@ -156,10 +156,7 @@ def test_processor_calls_resample_reproject_and_rename_bands(
 
 
 # test error in case only target crs is given and not target resolution
-@patch("openeo_gfmap.fetching.s2.resample_reproject")
-def test_processor_raises_valueerror_for_missing_resolution(
-    mock_resample_reproject, mock_datacube
-):
+def test_processor_raises_valueerror_for_missing_resolution(mock_datacube):
     """Test that the processor raises a ValueError if target_crs is specified without target_resolution."""
     processor = _get_s2_l2a_default_processor(COLLECTION_NAME, FETCH_TYPE)
 
@@ -210,6 +207,7 @@ def test_processor_changes_datatype_to_uint16(mock_rename_bands, mock_datacube):
 
     # Check that linear_scale_range was called with the correct parameters
     mock_datacube.linear_scale_range.assert_called_once_with(0, 65534, 0, 65534)
+    assert isinstance(result_cube, openeo.DataCube)
 
 
 # test the extractor

@@ -71,7 +71,7 @@ def test_resample_reproject_valid_epsg():
     mock_datacube.resample_spatial.return_value = mock_resampled_datacube
 
     # Call the resample_reproject function
-    result = resample_reproject(
+    resample_reproject(
         mock_datacube, resolution=10.0, epsg_code="4326", method="bilinear"
     )
 
@@ -108,7 +108,7 @@ def test_resample_reproject_only_resolution():
     mock_datacube.resample_spatial.return_value = mock_resampled_datacube
 
     # Call the resample_reproject function with only resolution provided
-    result = resample_reproject(mock_datacube, resolution=20.0)
+    resample_reproject(mock_datacube, resolution=20.0)
 
     # Ensure resample_spatial was called correctly with the resolution and default method
     mock_datacube.resample_spatial.assert_called_once_with(
@@ -127,7 +127,7 @@ def test_resample_reproject_no_epsg():
     mock_datacube.resample_spatial.return_value = mock_resampled_datacube
 
     # Call the resample_reproject function without specifying an EPSG code
-    result = resample_reproject(
+    resample_reproject(
         mock_datacube, resolution=10.0, epsg_code=None, method="bilinear"
     )
 
@@ -148,7 +148,7 @@ def test_resample_reproject_default_method():
     mock_datacube.resample_spatial.return_value = mock_resampled_datacube
 
     # Call the resample_reproject function with default method ("near")
-    result = resample_reproject(mock_datacube, resolution=10.0, epsg_code="4326")
+    resample_reproject(mock_datacube, resolution=10.0, epsg_code="4326")
 
     # Ensure resample_spatial was called correctly with the default method
     mock_datacube.resample_spatial.assert_called_once_with(
