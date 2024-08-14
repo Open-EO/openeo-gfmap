@@ -108,6 +108,7 @@ def _load_collection_hybrid(
     return cube
 
 
+# TODO; deprecated?
 def _load_collection(
     connection: openeo.Connection,
     bands: list,
