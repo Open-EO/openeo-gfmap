@@ -3,16 +3,13 @@ import pickle
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
-from enum import Enum
 from functools import partial
 from pathlib import Path
 from threading import Lock
-from typing import Callable, NamedTuple, Optional, Union
+from typing import Callable, Optional, Union
 
 import pandas as pd
 import pystac
-from openeo import Connection
 from openeo.extra.job_management import MultiBackendJobManager
 from openeo.rest.job import BatchJob
 from pystac import CatalogType
@@ -24,7 +21,19 @@ from openeo_gfmap.stac import constants
 _stac_lock = Lock()
 
 
-def retry_on_exception(max_retries, delay=30):
+def retry_on_exception(max_retries: int, delay_s: float = 180.0):
+    """Decorator to retry a function if an exception occurs.
+    Used for post-job actions that can crash due to internal backend issues. Restarting the action
+    usually helps to solve the issue.
+
+    Parameters
+    ----------
+    max_retries: int
+        The maximum number of retries to attempt before finally raising the exception.
+    delay: int (default=180 seconds)
+        The delay in seconds to wait before retrying the decorated function.
+    """
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             latest_exception = None
@@ -32,7 +41,9 @@ def retry_on_exception(max_retries, delay=30):
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
-                    time.sleep(delay)
+                    time.sleep(
+                        delay_s
+                    )  # Waits before retrying, while allowing other futures to run.
                     latest_exception = e
             raise latest_exception
 
@@ -42,12 +53,7 @@ def retry_on_exception(max_retries, delay=30):
 
 
 def done_callback(future, df, idx):
-    """Sets the status of the job to the given status when the future is done.
-
-    If an exception occurred, then tries to retry the post-job action once if
-    it wasn't done already. If this is the second time the post-job action
-    fails, then the job is set to error.
-    """
+    """Changes the status of the job when the post-job action future is done."""
     current_status = df.loc[idx, "status"]
     exception = future.exception()
     if exception is None:
@@ -68,13 +74,6 @@ def done_callback(future, df, idx):
             exception,
         )
         df.loc[idx, "status"] = "error"
-
-
-class PostJobStatus(Enum):
-    """Indicates the workers if the job finished as sucessful or with an error."""
-
-    FINISHED = "finished"
-    ERROR = "error"
 
 
 class GFMAPJobManager(MultiBackendJobManager):
@@ -127,53 +126,6 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._dynamic_max_jobs = dynamic_max_jobs
         self._max_jobs_worktime = max_jobs_worktime
         self._max_jobs = max_jobs
-
-    def add_backend(
-        self,
-        name: str,
-        connection,
-        parallel_jobs: Optional[int] = 2,
-        dynamic_max_jobs: bool = False,
-        min_jobs: Optional[int] = None,
-        max_jobs: Optional[int] = None,
-    ):
-        if not dynamic_max_jobs:
-            if parallel_jobs is None:
-                raise ValueError(
-                    "When dynamic_max_jobs is set to False, parallel_jobs must be provided."
-                )
-            return super().add_backend(name, connection, parallel_jobs)
-
-        if min_jobs is None or max_jobs is None:
-            raise ValueError(
-                "When dynamic_max_jobs is set to True, min_jobs and max_jobs must be provided."
-            )
-
-        if isinstance(connection, Connection):
-            c = connection
-            connection = lambda: c  # noqa: E731
-        assert callable(connection)
-
-        # Create a new NamedTuple to store the dynamic backend properties
-        class _DynamicBackend(NamedTuple):
-            get_connection: Callable[[], Connection]
-
-            @property
-            def parallel_jobs(self) -> int:
-                current_time = datetime.now()
-
-                # Limiting working hours
-                start_worktime_hour = 8
-                end_worktime_hour = 20
-
-                if (
-                    current_time.hour >= start_worktime_hour
-                    and current_time.hour < end_worktime_hour
-                ):
-                    return min_jobs
-                return max_jobs
-
-        self.backends[name] = _DynamicBackend(get_connection=connection)
 
     def _normalize_stac(self):
         default_collection_path = self._output_dir / "stac/collection.json"
@@ -373,7 +325,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         # Clear the futures that are done and raise their potential exceptions if they occurred.
         self._clear_queued_actions()
 
-    @retry_on_exception(max_retries=2, delay=30)
+    @retry_on_exception(max_retries=2, delay_s=180)
     def on_job_error(self, job: BatchJob, row: pd.Series):
         """Method called when a job finishes with an error.
 
@@ -410,8 +362,10 @@ class GFMAPJobManager(MultiBackendJobManager):
                 f"Couldn't find any error logs. Please check the error manually on job ID: {job.job_id}."
             )
 
-    @retry_on_exception(max_retries=2, delay=30)
-    def on_job_done(self, job: BatchJob, row: pd.Series, lock: Lock):
+    @retry_on_exception(max_retries=2, delay_s=30)
+    def on_job_done(
+        self, job: BatchJob, row: pd.Series, lock: Lock
+    ):  # pylint: disable=arguments-differ
         """Method called when a job finishes successfully. It will first download the results of
         the job and then call the `post_job_action` method.
         """
@@ -492,21 +446,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                 ]
                 job_items = [item for item in job_items if item.id not in existing_ids]
 
-                # validated_items = []
-                # # Validate the items
-                # for item in job_items:
-                #     try:
-                #         item.validate()
-                #         validated_items.append(item)
-                #     except Exception as e:
-                #         _log.warning(
-                #             "Couldn't validate item %s from job %s, ignoring:\n%s",
-                #             item.id,
-                #             job.job_id,
-                #             e,
-                #         )
                 self._root_collection.add_items(job_items)
-                # self._root_collection.add_items(validated_items)
                 _log.info("Added %s items to the STAC collection.", len(job_items))
 
                 self._persist_stac()

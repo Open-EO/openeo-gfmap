@@ -106,6 +106,12 @@ def _get_generic_processor(collection_name: str, fetch_type: FetchType) -> Calla
     return generic_default_processor
 
 
+def _unavailable_collection_error(collection_name: str, _: FetchType):
+    raise ValueError(
+        f"Collection {collection_name} is not available for the selected backend."
+    )
+
+
 OTHER_BACKEND_MAP = {
     "AGERA5": {
         Backend.TERRASCOPE: {
@@ -113,11 +119,11 @@ OTHER_BACKEND_MAP = {
             "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
         },
         Backend.CDSE: {
-            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
+            "fetch": _unavailable_collection_error,
             "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
         },
         Backend.CDSE_STAGING: {
-            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
+            "fetch": _unavailable_collection_error,
             "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
         },
         Backend.FED: {
