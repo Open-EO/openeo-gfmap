@@ -56,6 +56,14 @@ def _query_cdse_catalogue(
     temporal_extent: TemporalContext,
     **additional_parameters: dict,
 ) -> dict:
+    """
+    Queries the CDSE catalogue for a given collection, spatio-temporal context and additional
+    parameters.
+
+    Params
+    ------
+
+    """
     minx, miny, maxx, maxy = bounds
 
     # The date format should be YYYY-MM-DD
@@ -228,7 +236,7 @@ def s1_area_per_orbitstate_vvvh(
     }
 
 
-def select_S1_orbitstate_vvvh(
+def select_s1_orbitstate_vvvh(
     backend: BackendContext,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,

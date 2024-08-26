@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import pystac
 import pytest
 from netCDF4 import Dataset
 
@@ -8,7 +9,7 @@ from openeo_gfmap import Backend, BackendContext, BoundingBoxExtent, TemporalCon
 from openeo_gfmap.utils import update_nc_attributes
 from openeo_gfmap.utils.catalogue import (
     s1_area_per_orbitstate_vvvh,
-    select_S1_orbitstate_vvvh,
+    select_s1_orbitstate_vvvh,
 )
 
 # Region of Paris, France
@@ -44,7 +45,7 @@ def test_query_cdse_catalogue():
     assert response["DESCENDING"]["full_overlap"] is True
 
     # Testing the decision maker, it should return DESCENDING
-    decision = select_S1_orbitstate_vvvh(
+    decision = select_s1_orbitstate_vvvh(
         backend=backend_context,
         spatial_extent=SPATIAL_CONTEXT,
         temporal_extent=TEMPORAL_CONTEXT,
@@ -79,3 +80,99 @@ def test_update_nc_attributes(temp_nc_file):
             assert getattr(nc, attr_name) == attr_value
         assert "existing_attribute" in nc.ncattrs()
         assert nc.getncattr("existing_attribute") == "existing_value"
+
+
+def test_split_collection_by_epsg(tmp_path):
+    collection = pystac.collection.Collection.from_dict(
+        {
+            "type": "Collection",
+            "id": "test-collection",
+            "stac_version": "1.0.0",
+            "description": "Test collection",
+            "links": [],
+            "title": "Test Collection",
+            "extent": {
+                "spatial": {"bbox": [[-180.0, -90.0, 180.0, 90.0]]},
+                "temporal": {
+                    "interval": [["2020-01-01T00:00:00Z", "2020-01-10T00:00:00Z"]]
+                },
+            },
+            "license": "proprietary",
+            "summaries": {"eo:bands": [{"name": "B01"}, {"name": "B02"}]},
+        }
+    )
+    first_item = pystac.item.Item.from_dict(
+        {
+            "type": "Feature",
+            "stac_version": "1.0.0",
+            "id": "4326-item",
+            "properties": {
+                "datetime": "2020-05-22T00:00:00Z",
+                "eo:bands": [{"name": "SCL"}, {"name": "B08"}],
+                "proj:epsg": 4326,
+            },
+            "geometry": {
+                "coordinates": [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]],
+                "type": "Polygon",
+            },
+            "links": [],
+            "assets": {},
+            "bbox": [0, 1, 0, 1],
+            "stac_extensions": [],
+        }
+    )
+    second_item = pystac.item.Item.from_dict(
+        {
+            "type": "Feature",
+            "stac_version": "1.0.0",
+            "id": "3857-item",
+            "properties": {
+                "datetime": "2020-05-22T00:00:00Z",
+                "eo:bands": [{"name": "SCL"}, {"name": "B08"}],
+                "proj:epsg": 3857,
+            },
+            "geometry": {
+                "coordinates": [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]],
+                "type": "Polygon",
+            },
+            "links": [],
+            "assets": {},
+            "bbox": [0, 1, 0, 1],
+            "stac_extensions": [],
+        }
+    )
+    collection.add_items([first_item, second_item])
+    input_dir = str(tmp_path / "collection.json")
+    output_dir = str(tmp_path / "split_collections")
+
+    collection.normalize_and_save(input_dir)
+    split_collection_by_epsg(path=input_dir, output_dir=output_dir)
+
+    # Collection contains two different EPSG codes, so 2 collections should be created
+    assert len([p for p in Path(output_dir).iterdir() if p.is_dir()]) == 2
+
+    missing_epsg_item = pystac.item.Item.from_dict(
+        {
+            "type": "Feature",
+            "stac_version": "1.0.0",
+            "id": "3857-item",
+            "properties": {
+                "datetime": "2020-05-22T00:00:00Z",
+                "eo:bands": [{"name": "SCL"}, {"name": "B08"}],
+            },
+            "geometry": {
+                "coordinates": [[[0, 0], [0, 1], [1, 1], [1, 0], [0, 0]]],
+                "type": "Polygon",
+            },
+            "links": [],
+            "assets": {},
+            "bbox": [0, 1, 0, 1],
+            "stac_extensions": [],
+        }
+    )
+
+    # Collection contains item without EPSG, so KeyError should be raised
+    with pytest.raises(KeyError):
+        collection.add_item(missing_epsg_item)
+        collection.normalize_and_save(input_dir)
+        split_collection_by_epsg(path=input_dir, output_dir=output_dir)
