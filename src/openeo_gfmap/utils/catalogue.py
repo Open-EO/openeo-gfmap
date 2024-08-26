@@ -65,8 +65,8 @@ def _query_cdse_catalogue(
     url = (
         f"https://catalogue.dataspace.copernicus.eu/resto/api/collections/"
         f"{collection}/search.json?box={minx},{miny},{maxx},{maxy}"
-        f"&sortParam=startDate&maxRecords=1000&polarisation=VV%26VH"
-        f"&dataset=ESA-DATASET&startDate={start_date}&completionDate={end_date}"
+        f"&sortParam=startDate&maxRecords=1000&dataset=ESA-DATASET"
+        f"&startDate={start_date}&completionDate={end_date}"
     )
     for key, value in additional_parameters.items():
         url += f"&{key}={value}"
@@ -125,19 +125,20 @@ def _check_cdse_catalogue(
     return len(grd_tiles) > 0
 
 
-def s1_area_per_orbitstate(
+def s1_area_per_orbitstate_vvvh(
     backend: BackendContext,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
 ) -> dict:
     """Evaluates for both the ascending and descending state orbits the area of interesection
     between the given spatio-temporal context and the products available in the backend's
-    catalogue.
+    catalogue. Only works for the products with the VV&VH polarisation.
 
     Parameters
     ----------
     backend : BackendContext
-        The backend to be within, as each backend might use different catalogues.
+        The backend to be within, as each backend might use different catalogues. Only the CDSE,
+        CDSE_STAGING and FED backends are supported.
     spatial_extent : SpatialContext
         The spatial extent to be checked, it will check within its bounding box.
     temporal_extent : TemporalContext
@@ -177,7 +178,11 @@ def s1_area_per_orbitstate(
     if backend.backend in [Backend.CDSE, Backend.CDSE_STAGING, Backend.FED]:
         ascending_products = _parse_cdse_products(
             _query_cdse_catalogue(
-                "Sentinel1", bounds, temporal_extent, orbitDirection="ASCENDING"
+                "Sentinel1",
+                bounds,
+                temporal_extent,
+                orbitDirection="ASCENDING",
+                polarisation="VV&VH",
             )
         )
         descending_products = _parse_cdse_products(
@@ -186,6 +191,7 @@ def s1_area_per_orbitstate(
                 bounds,
                 temporal_extent,
                 orbitDirection="DESCENDING",
+                polarisation="VV&VH",
             )
         )
     else:
@@ -222,18 +228,19 @@ def s1_area_per_orbitstate(
     }
 
 
-def select_S1_orbitstate(
+def select_S1_orbitstate_vvvh(
     backend: BackendContext,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
 ) -> str:
     """Selects the orbit state that covers the most area of the given spatio-temporal context
-    for the Sentinel-1 collection.
+    for the Sentinel-1 collection. Only works for the product with the VV&VH polarisation.
 
     Parameters
     ----------
     backend : BackendContext
-        The backend to be within, as each backend might use different catalogues.
+        The backend to be within, as each backend might use different catalogues. Only the CDSE,
+        CDSE_STAGING and FED backends are supported.
     spatial_extent : SpatialContext
         The spatial extent to be checked, it will check within its bounding box.
     temporal_extent : TemporalContext
@@ -246,7 +253,7 @@ def select_S1_orbitstate(
     """
 
     # Queries the products in the catalogues
-    areas = s1_area_per_orbitstate(backend, spatial_extent, temporal_extent)
+    areas = s1_area_per_orbitstate_vvvh(backend, spatial_extent, temporal_extent)
 
     ascending_overlap = areas["ASCENDING"]["full_overlap"]
     descending_overlap = areas["DESCENDING"]["full_overlap"]
