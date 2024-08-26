@@ -6,7 +6,7 @@ import pytest
 from netCDF4 import Dataset
 
 from openeo_gfmap import Backend, BackendContext, BoundingBoxExtent, TemporalContext
-from openeo_gfmap.utils import update_nc_attributes
+from openeo_gfmap.utils import split_collection_by_epsg, update_nc_attributes
 from openeo_gfmap.utils.catalogue import (
     s1_area_per_orbitstate_vvvh,
     select_s1_orbitstate_vvvh,
