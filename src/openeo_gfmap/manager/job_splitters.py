@@ -61,16 +61,18 @@ def split_job_s2grid(
         raise ValueError("The GeoDataFrame must contain a CRS")
 
     polygons = polygons.to_crs(epsg=4326)
-    if polygons.geometry.geom_type[0] != "Point":
-        polygons["geometry"] = polygons.geometry.centroid
+
+    polygons["centroid"] = polygons.geometry.centroid
 
     # Dataset containing all the S2 tiles, find the nearest S2 tile for each point
     s2_grid = load_s2_grid()
     s2_grid["geometry"] = s2_grid.geometry.centroid
 
-    polygons = gpd.sjoin_nearest(polygons, s2_grid[["tile", "geometry"]]).drop(
-        columns=["index_right"]
-    )
+    polygons = gpd.sjoin_nearest(
+        polygons.set_geometry("centroid"), s2_grid[["tile", "geometry"]]
+    ).drop(columns=["index_right", "centroid"])
+
+    polygons = polygons.set_geometry("geometry")
 
     split_datasets = []
     for _, sub_gdf in polygons.groupby("tile"):
