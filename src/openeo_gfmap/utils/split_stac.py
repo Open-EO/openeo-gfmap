@@ -42,7 +42,7 @@ def _get_items_by_epsg(
     Yields:
     tuple[int, pystac.Item]: EPSG code and corresponding STAC item.
     """
-    for item in collection.get_items():
+    for item in collection.get_all_items():
         epsg = _extract_epsg_from_stac_item(item)
         yield epsg, item
 
@@ -72,94 +72,15 @@ def _create_collection_skeleton(
         item_assets_extension = pystac.extensions.item_assets.ItemAssetsExtension.ext(
             collection
         )
-        item_assets_extension.add_to(new_collection)
+
+        new_item_assets_extension = (
+            pystac.extensions.item_assets.ItemAssetsExtension.ext(
+                new_collection, add_if_missing=True
+            )
+        )
+
+        new_item_assets_extension.item_assets = item_assets_extension.item_assets
     return new_collection
-
-
-def _create_item_by_epsg_dict(collection: pystac.Collection) -> dict:
-    """
-    Create a dictionary that groups items by their EPSG code.
-
-    Parameters:
-    collection (pystac.Collection): The STAC collection.
-
-    Returns:
-    dict: A dictionary that maps EPSG codes to lists of items.
-    """
-    # Dictionary to store items grouped by their EPSG codes
-    items_by_epsg = {}
-
-    # Iterate through items and group them
-    for item in collection.get_items():
-        epsg = _extract_epsg_from_stac_item(item)
-        if epsg not in items_by_epsg:
-            items_by_epsg[epsg] = []
-        items_by_epsg[epsg].append(item)
-
-    return items_by_epsg
-
-
-def _create_new_epsg_collection(
-    epsg: int, items: list, collection: pystac.Collection
-) -> pystac.Collection:
-    """
-    Create a new STAC collection with a given EPSG code.
-
-    Parameters:
-    epsg (int): The EPSG code.
-    items (list): The list of items.
-    collection (pystac.Collection): The original STAC collection.
-
-    Returns:
-    pystac.Collection: The new STAC collection.
-    """
-    new_collection = collection.clone()
-    new_collection.id = f"{collection.id}_{epsg}"
-    new_collection.description = (
-        f"{collection.description} Containing only items with EPSG code {epsg}"
-    )
-    new_collection.clear_items()
-    for item in items:
-        new_collection.add_item(item)
-
-    new_collection.update_extent_from_items()
-
-    return new_collection
-
-
-def _create_collection_by_epsg_dict(collection: pystac.Collection) -> dict:
-    """
-    Create a dictionary that groups collections by their EPSG code.
-
-    Parameters:
-    collection (pystac.Collection): The STAC collection.
-
-    Returns:
-    dict: A dictionary that maps EPSG codes to STAC collections.
-    """
-    items_by_epsg = _create_item_by_epsg_dict(collection)
-    collections_by_epsg = {}
-    for epsg, items in items_by_epsg.items():
-        new_collection = _create_new_epsg_collection(epsg, items, collection)
-        collections_by_epsg[epsg] = new_collection
-
-    return collections_by_epsg
-
-
-def _write_collection_dict(collection_dict: dict, output_dir: Union[str, Path]):
-    """
-    Write the collection dictionary to disk.
-
-    Parameters:
-    collection_dict (dict): The dictionary that maps EPSG codes to STAC collections.
-    output_dir (str): The output directory.
-    """
-    output_dir = Path(output_dir)
-    os.makedirs(output_dir, exist_ok=True)
-
-    for epsg, collection in collection_dict.items():
-        collection.normalize_hrefs(os.path.join(output_dir, f"collection-{epsg}"))
-        collection.save()
 
 
 def split_collection_by_epsg(path: Union[str, Path], output_dir: Union[str, Path]):
