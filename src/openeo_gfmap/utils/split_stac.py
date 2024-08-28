@@ -91,13 +91,6 @@ def split_collection_by_epsg(path: Union[str, Path], output_dir: Union[str, Path
     path (str): The path to the STAC collection.
     output_dir (str): The output directory.
     """
-    # path = Path(path)
-    # try:
-    #     collection = pystac.read_file(path)
-    # except pystac.STACError:
-    #     print("Please provide a path to a valid STAC collection.")
-    # collection_dict = _create_collection_by_epsg_dict(collection)
-    # _write_collection_dict(collection_dict, output_dir)
 
     path = Path(path)
     output_dir = Path(output_dir)
