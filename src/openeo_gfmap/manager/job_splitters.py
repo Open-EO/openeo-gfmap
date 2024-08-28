@@ -60,19 +60,23 @@ def split_job_s2grid(
     if polygons.crs is None:
         raise ValueError("The GeoDataFrame must contain a CRS")
 
-    polygons = polygons.to_crs(epsg=4326)
+    original_crs = polygons.crs
+
+    # Transform to web mercator, to calculate the centroid
+    polygons = polygons.to_crs(epsg=3857)
 
     polygons["centroid"] = polygons.geometry.centroid
 
     # Dataset containing all the S2 tiles, find the nearest S2 tile for each point
     s2_grid = load_s2_grid()
+    s2_grid = s2_grid.to_crs(epsg=3857)
     s2_grid["geometry"] = s2_grid.geometry.centroid
 
     polygons = gpd.sjoin_nearest(
         polygons.set_geometry("centroid"), s2_grid[["tile", "geometry"]]
     ).drop(columns=["index_right", "centroid"])
 
-    polygons = polygons.set_geometry("geometry")
+    polygons = polygons.set_geometry("geometry").to_crs(original_crs)
 
     split_datasets = []
     for _, sub_gdf in polygons.groupby("tile"):
@@ -88,10 +92,13 @@ def append_h3_index(
     polygons: gpd.GeoDataFrame, grid_resolution: int = 3
 ) -> gpd.GeoDataFrame:
     """Append the H3 index to the polygons."""
-    if polygons.geometry.geom_type[0] != "Point":
-        geom_col = polygons.geometry.centroid
-    else:
-        geom_col = polygons.geometry
+
+    # Project to Web mercator to calculate centroids
+    polygons = polygons.to_crs(epsg=3857)
+    geom_col = polygons.geometry.centroid
+    # Project to lat lon to calculate the h3 index
+    geom_col = geom_col.to_crs(epsg=4326)
+
     polygons["h3index"] = geom_col.apply(
         lambda pt: h3.geo_to_h3(pt.y, pt.x, grid_resolution)
     )
@@ -129,11 +136,12 @@ def split_job_hex(
     if polygons.crs is None:
         raise ValueError("The GeoDataFrame must contain a CRS")
 
-    # Project to lat/lon positions
-    polygons = polygons.to_crs(epsg=4326)
+    original_crs = polygons.crs
 
     # Split the polygons into multiple jobs
     polygons = append_h3_index(polygons, grid_resolution)
+
+    polygons = polygons.to_crs(original_crs)
 
     split_datasets = []
     for _, sub_gdf in polygons.groupby("h3index"):
