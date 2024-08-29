@@ -595,6 +595,8 @@ class GFMAPJobManager(MultiBackendJobManager):
 
     def _persist_stac(self):
         """Persists the STAC collection by saving it into a binary file."""
+        _log.debug("Validating the STAC collection before persisting.")
+        self._root_collection.validate_all()
         _log.info("Persisting STAC collection to temp file %s.", self._catalogue_cache)
         with open(self._catalogue_cache, "wb") as file:
             pickle.dump(self._root_collection, file)
