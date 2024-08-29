@@ -138,9 +138,9 @@ def s1_area_per_orbitstate_vvvh(
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
 ) -> dict:
-    """Evaluates for both the ascending and descending state orbits the area of interesection
-    between the given spatio-temporal context and the products available in the backend's
-    catalogue. Only works for the products with the VV&VH polarisation.
+    """
+    Evaluates for both the ascending and descending state orbits the area of interesection for the
+    available products with a VV&VH polarisation.
 
     Parameters
     ----------
@@ -241,8 +241,8 @@ def select_s1_orbitstate_vvvh(
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
 ) -> str:
-    """Selects the orbit state that covers the most area of the given spatio-temporal context
-    for the Sentinel-1 collection. Only works for the product with the VV&VH polarisation.
+    """Selects the orbit state that covers the most area of intersection for the
+    available products with a VV&VH polarisation.
 
     Parameters
     ----------

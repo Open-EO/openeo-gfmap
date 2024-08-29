@@ -26,6 +26,11 @@ def load_s2_grid() -> gpd.GeoDataFrame:
             "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds_v2.geojson",
             timeout=180,  # 3mins
         )
+        if response.status_code != 200:
+            raise ValueError(
+                "Failed to download the S2 grid from the artifactory. "
+                f"Status code: {response.status_code}"
+            )
         with open(gdf_path, "wb") as f:
             f.write(response.content)
     return gpd.read_file(gdf_path)
