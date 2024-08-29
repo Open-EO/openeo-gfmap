@@ -1,7 +1,6 @@
 """ Generic extraction of features, supporting VITO backend.
 """
 
-from functools import partial
 from typing import Callable, Optional
 
 import openeo
@@ -129,13 +128,7 @@ def build_generic_extractor(
     **params,
 ) -> CollectionFetcher:
     """Creates a generic extractor adapted to the given backend. Currently only tested with VITO backend"""
-    fetcher = partial(
-        _get_generic_fetcher,
-        fetch_type=fetch_type,
-        backend=backend_context.backend,
-    )
-    preprocessor = partial(
-        _get_generic_processor, collection_name=collection_name, fetch_type=fetch_type
-    )
+    fetcher = _get_generic_fetcher(collection_name, fetch_type, backend_context.backend)
+    preprocessor = _get_generic_processor(collection_name, fetch_type)
 
     return CollectionFetcher(backend_context, bands, fetcher, preprocessor, **params)
