@@ -190,7 +190,7 @@ def s1_area_per_orbitstate_vvvh(
                 bounds,
                 temporal_extent,
                 orbitDirection="ASCENDING",
-                polarisation="VV&VH",
+                polarisation="VV%26VH",
             )
         )
         descending_products = _parse_cdse_products(
@@ -199,7 +199,7 @@ def s1_area_per_orbitstate_vvvh(
                 bounds,
                 temporal_extent,
                 orbitDirection="DESCENDING",
-                polarisation="VV&VH",
+                polarisation="VV%26VH",
             )
         )
     else:

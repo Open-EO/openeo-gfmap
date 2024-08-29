@@ -131,7 +131,6 @@ def build_generic_extractor(
     """Creates a generic extractor adapted to the given backend. Currently only tested with VITO backend"""
     fetcher = partial(
         _get_generic_fetcher,
-        collection_name=collection_name,
         fetch_type=fetch_type,
         backend=backend_context.backend,
     )
