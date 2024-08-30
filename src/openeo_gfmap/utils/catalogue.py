@@ -7,8 +7,8 @@ import requests
 from pyproj.crs import CRS
 from rasterio.warp import transform_bounds
 from requests import adapters
-from shapely import unary_union
 from shapely.geometry import box, shape
+from shapely.ops import unary_union
 
 from openeo_gfmap import (
     Backend,
