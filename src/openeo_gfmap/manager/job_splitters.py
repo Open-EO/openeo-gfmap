@@ -12,21 +12,27 @@ import requests
 from openeo_gfmap.manager import _log
 
 
-def load_s2_grid() -> gpd.GeoDataFrame:
+def load_s2_grid(web_mercator: bool = False) -> gpd.GeoDataFrame:
     """Returns a geo data frame from the S2 grid."""
     # Builds the path where the geodataframe should be
-    gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_bounds.geojson"
+    if not web_mercator:
+        gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_bounds_4326.geoparquet"
+        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds_4326.geoparquet"
+    else:
+        gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_bounds_3857.geoparquet"
+        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds_3857.geoparquet"
+
     if not gdf_path.exists():
         _log.info("S2 grid not found, downloading it from artifactory.")
         # Downloads the file from the artifactory URL
         gdf_path.parent.mkdir(exist_ok=True)
         response = requests.get(
-            "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds.geojson",
+            url,
             timeout=180,  # 3mins
         )
         with open(gdf_path, "wb") as f:
             f.write(response.content)
-    return gpd.read_file(gdf_path)
+    return gpd.read_parquet(gdf_path)
 
 
 def _resplit_group(
@@ -38,7 +44,7 @@ def _resplit_group(
 
 
 def split_job_s2grid(
-    polygons: gpd.GeoDataFrame, max_points: int = 500
+    polygons: gpd.GeoDataFrame, max_points: int = 500, web_mercator: bool = False
 ) -> List[gpd.GeoDataFrame]:
     """Split a job into multiple jobs from the position of the polygons/points. The centroid of
     the geometries to extract are used to select tile in the Sentinel-2 tile grid.
@@ -60,17 +66,23 @@ def split_job_s2grid(
     if polygons.crs is None:
         raise ValueError("The GeoDataFrame must contain a CRS")
 
-    polygons = polygons.to_crs(epsg=4326)
-    if polygons.geometry.geom_type[0] != "Point":
-        polygons["geometry"] = polygons.geometry.centroid
+    epsg = 3857 if web_mercator else 4326
+
+    original_crs = polygons.crs
+
+    polygons = polygons.to_crs(epsg=epsg)
+
+    polygons["centroid"] = polygons.geometry.centroid
 
     # Dataset containing all the S2 tiles, find the nearest S2 tile for each point
-    s2_grid = load_s2_grid()
+    s2_grid = load_s2_grid(web_mercator)
     s2_grid["geometry"] = s2_grid.geometry.centroid
 
-    polygons = gpd.sjoin_nearest(polygons, s2_grid[["tile", "geometry"]]).drop(
-        columns=["index_right"]
-    )
+    polygons = gpd.sjoin_nearest(
+        polygons.set_geometry("centroid"), s2_grid[["tile", "geometry"]]
+    ).drop(columns=["index_right", "centroid"])
+
+    polygons = polygons.set_geometry("geometry").to_crs(original_crs)
 
     split_datasets = []
     for _, sub_gdf in polygons.groupby("tile"):
@@ -86,10 +98,13 @@ def append_h3_index(
     polygons: gpd.GeoDataFrame, grid_resolution: int = 3
 ) -> gpd.GeoDataFrame:
     """Append the H3 index to the polygons."""
-    if polygons.geometry.geom_type[0] != "Point":
-        geom_col = polygons.geometry.centroid
-    else:
-        geom_col = polygons.geometry
+
+    # Project to Web mercator to calculate centroids
+    polygons = polygons.to_crs(epsg=3857)
+    geom_col = polygons.geometry.centroid
+    # Project to lat lon to calculate the h3 index
+    geom_col = geom_col.to_crs(epsg=4326)
+
     polygons["h3index"] = geom_col.apply(
         lambda pt: h3.geo_to_h3(pt.y, pt.x, grid_resolution)
     )
@@ -127,11 +142,12 @@ def split_job_hex(
     if polygons.crs is None:
         raise ValueError("The GeoDataFrame must contain a CRS")
 
-    # Project to lat/lon positions
-    polygons = polygons.to_crs(epsg=4326)
+    original_crs = polygons.crs
 
     # Split the polygons into multiple jobs
     polygons = append_h3_index(polygons, grid_resolution)
+
+    polygons = polygons.to_crs(original_crs)
 
     split_datasets = []
     for _, sub_gdf in polygons.groupby("h3index"):

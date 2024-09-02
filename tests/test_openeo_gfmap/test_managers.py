@@ -1,26 +1,94 @@
 """Test the job splitters and managers of OpenEO GFMAP."""
 
-from pathlib import Path
 
 import geopandas as gpd
+from shapely.geometry import Point, Polygon
 
-from openeo_gfmap.manager.job_splitters import split_job_hex
+from openeo_gfmap.manager.job_splitters import split_job_hex, split_job_s2grid
 
 
-# TODO can we instead assert on exact numbers ?
-# would remove the print statement
-def test_split_jobs():
-    dataset_path = Path(__file__).parent / "resources/wc_extraction_dataset.gpkg"
+def test_split_job_s2grid():
+    # Create a mock GeoDataFrame with points
+    # The points are located in two different S2 tiles
+    data = {
+        "id": [1, 2, 3, 4, 5],
+        "geometry": [
+            Point(60.02, 4.57),
+            Point(59.6, 5.04),
+            Point(59.92, 3.37),
+            Point(59.07, 4.11),
+            Point(58.77, 4.87),
+        ],
+    }
+    polygons = gpd.GeoDataFrame(data, crs="EPSG:4326")
 
-    # Load the dataset
-    dataset = gpd.read_file(dataset_path)
+    # Define expected number of split groups
+    max_points = 2
 
-    # Split the dataset
-    split_dataset = split_job_hex(dataset, max_points=500)
+    # Call the function
+    result = split_job_s2grid(polygons, max_points)
 
-    # Check the number of splits
-    assert len(split_dataset) > 1
+    assert (
+        len(result) == 3
+    ), "The number of GeoDataFrames returned should match the number of splits needed."
 
-    for ds in split_dataset:
-        print(len(ds))
-        assert len(ds) <= 500
+    # Check if the geometries are preserved
+    for gdf in result:
+        assert (
+            "geometry" in gdf.columns
+        ), "Each GeoDataFrame should have a geometry column."
+        assert gdf.crs == 4326, "The original CRS should be preserved."
+        assert all(
+            gdf.geometry.geom_type == "Point"
+        ), "Original geometries should be preserved."
+
+
+def test_split_job_hex():
+    # Create a mock GeoDataFrame with points
+    # The points/polygons are located in three different h3 hexes of size 3
+    data = {
+        "id": [1, 2, 3, 4, 5, 6],
+        "geometry": [
+            Point(60.02, 4.57),
+            Point(58.34, 5.06),
+            Point(59.92, 3.37),
+            Point(58.85, 4.90),
+            Point(58.77, 4.87),
+            Polygon(
+                [
+                    (58.78, 4.88),
+                    (58.78, 4.86),
+                    (58.76, 4.86),
+                    (58.76, 4.88),
+                    (58.78, 4.88),
+                ]
+            ),
+        ],
+    }
+    polygons = gpd.GeoDataFrame(data, crs="EPSG:4326")
+
+    max_points = 3
+
+    result = split_job_hex(polygons, max_points)
+
+    assert (
+        len(result) == 4
+    ), "The number of GeoDataFrames returned should match the number of splits needed."
+
+    for idx, gdf in enumerate(result):
+        assert (
+            "geometry" in gdf.columns
+        ), "Each GeoDataFrame should have a geometry column."
+        assert gdf.crs == 4326, "The CRS should be preserved."
+        if idx == 1:
+            assert all(
+                gdf.geometry.geom_type == "Polygon"
+            ), "Original geometries should be preserved."
+        else:
+            assert all(
+                gdf.geometry.geom_type == "Point"
+            ), "Original geometries should be preserved."
+
+        assert (
+            len(result[0]) == 3
+        ), "The number of geometries in the first split should be 3."
