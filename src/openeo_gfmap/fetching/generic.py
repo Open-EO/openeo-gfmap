@@ -55,7 +55,7 @@ def _get_generic_fetcher(
             temporal_extent is not None
         ):
             _log.warning(
-                "User set-up non None temporal extent for %s collection. Ignoring it.",
+                "Ignoring the temporal extent provided by the user as the collection %s is known to be untemporal.",
                 collection_name,
             )
             temporal_extent = None

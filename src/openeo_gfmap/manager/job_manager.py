@@ -21,7 +21,7 @@ from openeo_gfmap.stac import constants
 _stac_lock = Lock()
 
 
-def retry_on_exception(max_retries: int, delay_s: float = 180.0):
+def retry_on_exception(max_retries: int, delay_s: int = 180):
     """Decorator to retry a function if an exception occurs.
     Used for post-job actions that can crash due to internal backend issues. Restarting the action
     usually helps to solve the issue.
