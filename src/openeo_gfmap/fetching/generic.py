@@ -1,10 +1,10 @@
 """ Generic extraction of features, supporting VITO backend.
 """
 
-from functools import partial
-from typing import Callable
+from typing import Callable, Optional
 
 import openeo
+from openeo.rest import OpenEoApiError
 
 from openeo_gfmap.backend import Backend, BackendContext
 from openeo_gfmap.fetching import CollectionFetcher, FetchType, _log
@@ -28,15 +28,18 @@ BASE_WEATHER_MAPPING = {
     "vapour-pressure": "AGERA5-VAPOUR",
     "wind-speed": "AGERA5-WIND",
 }
+KNOWN_UNTEMPORAL_COLLECTIONS = ["COPERNICUS_30"]
 
 
-def _get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callable:
+def _get_generic_fetcher(
+    collection_name: str, fetch_type: FetchType, backend: Backend
+) -> Callable:
+    band_mapping: Optional[dict] = None
+
     if collection_name == "COPERNICUS_30":
-        BASE_MAPPING = BASE_DEM_MAPPING
+        band_mapping = BASE_DEM_MAPPING
     elif collection_name == "AGERA5":
-        BASE_MAPPING = BASE_WEATHER_MAPPING
-    else:
-        raise Exception("Please choose a valid collection.")
+        band_mapping = BASE_WEATHER_MAPPING
 
     def generic_default_fetcher(
         connection: openeo.Connection,
@@ -45,23 +48,34 @@ def _get_generic_fetcher(collection_name: str, fetch_type: FetchType) -> Callabl
         bands: list,
         **params,
     ) -> openeo.DataCube:
-        bands = convert_band_names(bands, BASE_MAPPING)
+        if band_mapping is not None:
+            bands = convert_band_names(bands, band_mapping)
 
-        if (collection_name == "COPERNICUS_30") and (temporal_extent is not None):
+        if (collection_name in KNOWN_UNTEMPORAL_COLLECTIONS) and (
+            temporal_extent is not None
+        ):
             _log.warning(
-                "User set-up non None temporal extent for DEM collection. Ignoring it."
+                "Ignoring the temporal extent provided by the user as the collection %s is known to be untemporal.",
+                collection_name,
             )
             temporal_extent = None
 
-        cube = _load_collection(
-            connection,
-            bands,
-            collection_name,
-            spatial_extent,
-            temporal_extent,
-            fetch_type,
-            **params,
-        )
+        try:
+            cube = _load_collection(
+                connection,
+                bands,
+                collection_name,
+                spatial_extent,
+                temporal_extent,
+                fetch_type,
+                **params,
+            )
+        except OpenEoApiError as e:
+            if "CollectionNotFound" in str(e):
+                raise ValueError(
+                    f"Collection {collection_name} not found in the selected backend {backend.value}."
+                ) from e
+            raise e
 
         # # Apply if the collection is a GeoJSON Feature collection
         # if isinstance(spatial_extent, GeoJSON):
@@ -76,12 +90,11 @@ def _get_generic_processor(collection_name: str, fetch_type: FetchType) -> Calla
     """Builds the preprocessing function from the collection name as it stored
     in the target backend.
     """
+    band_mapping: Optional[dict] = None
     if collection_name == "COPERNICUS_30":
-        BASE_MAPPING = BASE_DEM_MAPPING
+        band_mapping = BASE_DEM_MAPPING
     elif collection_name == "AGERA5":
-        BASE_MAPPING = BASE_WEATHER_MAPPING
-    else:
-        raise Exception("Please choose a valid collection.")
+        band_mapping = BASE_WEATHER_MAPPING
 
     def generic_default_processor(cube: openeo.DataCube, **params):
         """Default collection preprocessing method for generic datasets.
@@ -99,49 +112,12 @@ def _get_generic_processor(collection_name: str, fetch_type: FetchType) -> Calla
         if collection_name == "COPERNICUS_30":
             cube = cube.min_time()
 
-        cube = rename_bands(cube, BASE_MAPPING)
+        if band_mapping is not None:
+            cube = rename_bands(cube, band_mapping)
 
         return cube
 
     return generic_default_processor
-
-
-OTHER_BACKEND_MAP = {
-    "AGERA5": {
-        Backend.TERRASCOPE: {
-            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
-            "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
-        },
-        Backend.CDSE: {
-            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
-            "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
-        },
-        Backend.FED: {
-            "fetch": partial(_get_generic_fetcher, collection_name="AGERA5"),
-            "preprocessor": partial(_get_generic_processor, collection_name="AGERA5"),
-        },
-    },
-    "COPERNICUS_30": {
-        Backend.TERRASCOPE: {
-            "fetch": partial(_get_generic_fetcher, collection_name="COPERNICUS_30"),
-            "preprocessor": partial(
-                _get_generic_processor, collection_name="COPERNICUS_30"
-            ),
-        },
-        Backend.CDSE: {
-            "fetch": partial(_get_generic_fetcher, collection_name="COPERNICUS_30"),
-            "preprocessor": partial(
-                _get_generic_processor, collection_name="COPERNICUS_30"
-            ),
-        },
-        Backend.FED: {
-            "fetch": partial(_get_generic_fetcher, collection_name="COPERNICUS_30"),
-            "preprocessor": partial(
-                _get_generic_processor, collection_name="COPERNICUS_30"
-            ),
-        },
-    },
-}
 
 
 def build_generic_extractor(
@@ -152,13 +128,7 @@ def build_generic_extractor(
     **params,
 ) -> CollectionFetcher:
     """Creates a generic extractor adapted to the given backend. Currently only tested with VITO backend"""
-    backend_functions = OTHER_BACKEND_MAP.get(collection_name).get(
-        backend_context.backend
-    )
-
-    fetcher, preprocessor = (
-        backend_functions["fetch"](fetch_type=fetch_type),
-        backend_functions["preprocessor"](fetch_type=fetch_type),
-    )
+    fetcher = _get_generic_fetcher(collection_name, fetch_type, backend_context.backend)
+    preprocessor = _get_generic_processor(collection_name, fetch_type)
 
     return CollectionFetcher(backend_context, bands, fetcher, preprocessor, **params)
