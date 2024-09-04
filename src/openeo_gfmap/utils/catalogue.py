@@ -1,12 +1,9 @@
 """Functionalities to interract with product catalogues."""
 
-from typing import Optional
-
 import geojson
 import requests
 from pyproj.crs import CRS
 from rasterio.warp import transform_bounds
-from requests import adapters
 from shapely.geometry import box, shape
 from shapely.ops import unary_union
 
@@ -17,20 +14,6 @@ from openeo_gfmap import (
     SpatialContext,
     TemporalContext,
 )
-
-request_sessions: Optional[requests.Session] = None
-
-
-def _request_session() -> requests.Session:
-    global request_sessions
-
-    if request_sessions is None:
-        request_sessions = requests.Session()
-        retries = adapters.Retry(
-            total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504]
-        )
-        request_sessions.mount("https://", adapters.HTTPAdapter(max_retries=retries))
-    return request_sessions
 
 
 class UncoveredS1Exception(Exception):
@@ -56,14 +39,6 @@ def _query_cdse_catalogue(
     temporal_extent: TemporalContext,
     **additional_parameters: dict,
 ) -> dict:
-    """
-    Queries the CDSE catalogue for a given collection, spatio-temporal context and additional
-    parameters.
-
-    Params
-    ------
-
-    """
     minx, miny, maxx, maxy = bounds
 
     # The date format should be YYYY-MM-DD
@@ -73,14 +48,13 @@ def _query_cdse_catalogue(
     url = (
         f"https://catalogue.dataspace.copernicus.eu/resto/api/collections/"
         f"{collection}/search.json?box={minx},{miny},{maxx},{maxy}"
-        f"&sortParam=startDate&maxRecords=1000&dataset=ESA-DATASET"
-        f"&startDate={start_date}&completionDate={end_date}"
+        f"&sortParam=startDate&maxRecords=100"
+        f"&dataset=ESA-DATASET&startDate={start_date}&completionDate={end_date}"
     )
     for key, value in additional_parameters.items():
         url += f"&{key}={value}"
 
-    session = _request_session()
-    response = session.get(url, timeout=60)
+    response = requests.get(url)
 
     if response.status_code != 200:
         raise Exception(
@@ -133,20 +107,19 @@ def _check_cdse_catalogue(
     return len(grd_tiles) > 0
 
 
-def s1_area_per_orbitstate_vvvh(
+def s1_area_per_orbitstate(
     backend: BackendContext,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
 ) -> dict:
-    """
-    Evaluates for both the ascending and descending state orbits the area of interesection for the
-    available products with a VV&VH polarisation.
+    """Evaluates for both the ascending and descending state orbits the area of interesection
+    between the given spatio-temporal context and the products available in the backend's
+    catalogue.
 
     Parameters
     ----------
     backend : BackendContext
-        The backend to be within, as each backend might use different catalogues. Only the CDSE,
-        CDSE_STAGING and FED backends are supported.
+        The backend to be within, as each backend might use different catalogues.
     spatial_extent : SpatialContext
         The spatial extent to be checked, it will check within its bounding box.
     temporal_extent : TemporalContext
@@ -186,11 +159,7 @@ def s1_area_per_orbitstate_vvvh(
     if backend.backend in [Backend.CDSE, Backend.CDSE_STAGING, Backend.FED]:
         ascending_products = _parse_cdse_products(
             _query_cdse_catalogue(
-                "Sentinel1",
-                bounds,
-                temporal_extent,
-                orbitDirection="ASCENDING",
-                polarisation="VV%26VH",
+                "Sentinel1", bounds, temporal_extent, orbitDirection="ASCENDING"
             )
         )
         descending_products = _parse_cdse_products(
@@ -199,7 +168,6 @@ def s1_area_per_orbitstate_vvvh(
                 bounds,
                 temporal_extent,
                 orbitDirection="DESCENDING",
-                polarisation="VV%26VH",
             )
         )
     else:
@@ -236,19 +204,18 @@ def s1_area_per_orbitstate_vvvh(
     }
 
 
-def select_s1_orbitstate_vvvh(
+def select_S1_orbitstate(
     backend: BackendContext,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
 ) -> str:
-    """Selects the orbit state that covers the most area of intersection for the
-    available products with a VV&VH polarisation.
+    """Selects the orbit state that covers the most area of the given spatio-temporal context
+    for the Sentinel-1 collection.
 
     Parameters
     ----------
     backend : BackendContext
-        The backend to be within, as each backend might use different catalogues. Only the CDSE,
-        CDSE_STAGING and FED backends are supported.
+        The backend to be within, as each backend might use different catalogues.
     spatial_extent : SpatialContext
         The spatial extent to be checked, it will check within its bounding box.
     temporal_extent : TemporalContext
@@ -261,7 +228,7 @@ def select_s1_orbitstate_vvvh(
     """
 
     # Queries the products in the catalogues
-    areas = s1_area_per_orbitstate_vvvh(backend, spatial_extent, temporal_extent)
+    areas = s1_area_per_orbitstate(backend, spatial_extent, temporal_extent)
 
     ascending_overlap = areas["ASCENDING"]["full_overlap"]
     descending_overlap = areas["DESCENDING"]["full_overlap"]

@@ -7,10 +7,7 @@ from netCDF4 import Dataset
 
 from openeo_gfmap import Backend, BackendContext, BoundingBoxExtent, TemporalContext
 from openeo_gfmap.utils import split_collection_by_epsg, update_nc_attributes
-from openeo_gfmap.utils.catalogue import (
-    s1_area_per_orbitstate_vvvh,
-    select_s1_orbitstate_vvvh,
-)
+from openeo_gfmap.utils.catalogue import s1_area_per_orbitstate, select_S1_orbitstate
 
 # Region of Paris, France
 SPATIAL_CONTEXT = BoundingBoxExtent(
@@ -24,7 +21,7 @@ TEMPORAL_CONTEXT = TemporalContext(start_date="2023-06-21", end_date="2023-09-21
 def test_query_cdse_catalogue():
     backend_context = BackendContext(Backend.CDSE)
 
-    response = s1_area_per_orbitstate_vvvh(
+    response = s1_area_per_orbitstate(
         backend=backend_context,
         spatial_extent=SPATIAL_CONTEXT,
         temporal_extent=TEMPORAL_CONTEXT,
@@ -45,7 +42,7 @@ def test_query_cdse_catalogue():
     assert response["DESCENDING"]["full_overlap"] is True
 
     # Testing the decision maker, it should return DESCENDING
-    decision = select_s1_orbitstate_vvvh(
+    decision = select_S1_orbitstate(
         backend=backend_context,
         spatial_extent=SPATIAL_CONTEXT,
         temporal_extent=TEMPORAL_CONTEXT,

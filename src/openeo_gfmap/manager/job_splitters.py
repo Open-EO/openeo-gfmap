@@ -2,7 +2,6 @@
 form of a GeoDataFrames.
 """
 
-from functools import lru_cache
 from pathlib import Path
 from typing import List
 
@@ -31,11 +30,6 @@ def load_s2_grid(web_mercator: bool = False) -> gpd.GeoDataFrame:
             url,
             timeout=180,  # 3mins
         )
-        if response.status_code != 200:
-            raise ValueError(
-                "Failed to download the S2 grid from the artifactory. "
-                f"Status code: {response.status_code}"
-            )
         with open(gdf_path, "wb") as f:
             f.write(response.content)
     return gpd.read_parquet(gdf_path)
@@ -72,10 +66,6 @@ def split_job_s2grid(
     if polygons.crs is None:
         raise ValueError("The GeoDataFrame must contain a CRS")
 
-<<<<<<< HEAD
-    polygons = polygons.to_crs(epsg=4326)
-    polygons["geometry"] = polygons.geometry.centroid
-=======
     epsg = 3857 if web_mercator else 4326
 
     original_crs = polygons.crs
@@ -83,26 +73,16 @@ def split_job_s2grid(
     polygons = polygons.to_crs(epsg=epsg)
 
     polygons["centroid"] = polygons.geometry.centroid
->>>>>>> 1110e4aa35cfbe72a9dbd9b56e40048ea40ca2d8
 
     # Dataset containing all the S2 tiles, find the nearest S2 tile for each point
     s2_grid = load_s2_grid(web_mercator)
     s2_grid["geometry"] = s2_grid.geometry.centroid
 
-<<<<<<< HEAD
-    # Filter tiles on CDSE availability
-    s2_grid = s2_grid[s2_grid.cdse_valid]
-
-    polygons = gpd.sjoin_nearest(polygons, s2_grid[["tile", "geometry"]]).drop(
-        columns=["index_right"]
-    )
-=======
     polygons = gpd.sjoin_nearest(
         polygons.set_geometry("centroid"), s2_grid[["tile", "geometry"]]
     ).drop(columns=["index_right", "centroid"])
 
     polygons = polygons.set_geometry("geometry").to_crs(original_crs)
->>>>>>> 1110e4aa35cfbe72a9dbd9b56e40048ea40ca2d8
 
     split_datasets = []
     for _, sub_gdf in polygons.groupby("tile"):
