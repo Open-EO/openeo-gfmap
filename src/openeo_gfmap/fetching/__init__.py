@@ -8,6 +8,7 @@ component.
 import logging
 
 from .fetching import CollectionFetcher, FetchType
+from .generic import build_generic_extractor
 from .s1 import build_sentinel1_grd_extractor
 from .s2 import build_sentinel2_l2a_extractor
 
@@ -18,4 +19,5 @@ __all__ = [
     "CollectionFetcher",
     "FetchType",
     "build_sentinel1_grd_extractor",
+    "build_generic_extractor",
 ]
