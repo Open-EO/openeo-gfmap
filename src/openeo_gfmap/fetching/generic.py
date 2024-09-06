@@ -28,11 +28,23 @@ BASE_WEATHER_MAPPING = {
     "vapour-pressure": "AGERA5-VAPOUR",
     "wind-speed": "AGERA5-WIND",
 }
+AGERA5_STAC_MAPPING = {
+    "dewpoint_temperature_mean": "AGERA5-DEWTEMP",
+    "total_precipitation": "AGERA5-PRECIP",
+    "solar_radiation_flux": "AGERA5-SOLRAD",
+    "2m_temperature_max": "AGERA5-TMAX",
+    "2m_temperature_mean": "AGERA5-TMEAN",
+    "2m_temperature_min": "AGERA5-TMIN",
+    "vapour_pressure": "AGERA5-VAPOUR",
+    "wind_speed": "AGERA5-WIND",
+}
 KNOWN_UNTEMPORAL_COLLECTIONS = ["COPERNICUS_30"]
+
+AGERA5_TERRASCOPE_STAC = "https://stac.openeo.vito.be/collections/agera5_daily"
 
 
 def _get_generic_fetcher(
-    collection_name: str, fetch_type: FetchType, backend: Backend
+    collection_name: str, fetch_type: FetchType, backend: Backend, is_stac: bool
 ) -> Callable:
     band_mapping: Optional[dict] = None
 
@@ -40,6 +52,12 @@ def _get_generic_fetcher(
         band_mapping = BASE_DEM_MAPPING
     elif collection_name == "AGERA5":
         band_mapping = BASE_WEATHER_MAPPING
+    elif is_stac and (AGERA5_TERRASCOPE_STAC in collection_name):
+        if backend not in [Backend.TERRASCOPE, Backend.FED]:
+            raise ValueError(
+                f"Collection {collection_name} is only supported on Terrascope/FED backend."
+            )
+        band_mapping = AGERA5_STAC_MAPPING
 
     def generic_default_fetcher(
         connection: openeo.Connection,
@@ -68,6 +86,7 @@ def _get_generic_fetcher(
                 spatial_extent,
                 temporal_extent,
                 fetch_type,
+                is_stac=is_stac,
                 **params,
             )
         except OpenEoApiError as e:
@@ -86,7 +105,9 @@ def _get_generic_fetcher(
     return generic_default_fetcher
 
 
-def _get_generic_processor(collection_name: str, fetch_type: FetchType) -> Callable:
+def _get_generic_processor(
+    collection_name: str, fetch_type: FetchType, is_stac: bool
+) -> Callable:
     """Builds the preprocessing function from the collection name as it stored
     in the target backend.
     """
@@ -95,6 +116,8 @@ def _get_generic_processor(collection_name: str, fetch_type: FetchType) -> Calla
         band_mapping = BASE_DEM_MAPPING
     elif collection_name == "AGERA5":
         band_mapping = BASE_WEATHER_MAPPING
+    elif is_stac and (AGERA5_TERRASCOPE_STAC in collection_name):
+        band_mapping = AGERA5_STAC_MAPPING
 
     def generic_default_processor(cube: openeo.DataCube, **params):
         """Default collection preprocessing method for generic datasets.
@@ -127,8 +150,28 @@ def build_generic_extractor(
     collection_name: str,
     **params,
 ) -> CollectionFetcher:
+    """Creates a generic extractor adapted to the given backend. Provides band mappings for known
+    collections, such as AGERA5 available on Terrascope/FED and Copernicus 30m DEM in all backends.
+    """
+    fetcher = _get_generic_fetcher(
+        collection_name, fetch_type, backend_context.backend, False
+    )
+    preprocessor = _get_generic_processor(collection_name, fetch_type, False)
+
+    return CollectionFetcher(backend_context, bands, fetcher, preprocessor, **params)
+
+
+def build_generic_extractor_stac(
+    backend_context: BackendContext,
+    bands: list,
+    fetch_type: FetchType,
+    collection_url: str,
+    **params,
+) -> CollectionFetcher:
     """Creates a generic extractor adapted to the given backend. Currently only tested with VITO backend"""
-    fetcher = _get_generic_fetcher(collection_name, fetch_type, backend_context.backend)
-    preprocessor = _get_generic_processor(collection_name, fetch_type)
+    fetcher = _get_generic_fetcher(
+        collection_url, fetch_type, backend_context.backend, True
+    )
+    preprocessor = _get_generic_processor(collection_url, fetch_type, True)
 
     return CollectionFetcher(backend_context, bands, fetcher, preprocessor, **params)
