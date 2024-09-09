@@ -3,6 +3,7 @@
 from typing import Optional
 
 import geojson
+import pandas as pd
 import requests
 from pyproj.crs import CRS
 from rasterio.warp import transform_bounds
@@ -41,13 +42,15 @@ class UncoveredS1Exception(Exception):
 
 
 def _parse_cdse_products(response: dict):
-    """Parses the geometry of products from the CDSE catalogue."""
-    geoemetries = []
+    """Parses the geometry and timestamps of products from the CDSE catalogue."""
+    geometries = []
+    timestamps = []
     products = response["features"]
 
     for product in products:
-        geoemetries.append(shape(product["geometry"]))
-    return geoemetries
+        geometries.append(shape(product["geometry"]))
+        timestamps.append(pd.to_datetime(product["properties"]["startDate"]))
+    return geometries, timestamps
 
 
 def _query_cdse_catalogue(
@@ -139,8 +142,8 @@ def s1_area_per_orbitstate_vvvh(
     temporal_extent: TemporalContext,
 ) -> dict:
     """
-    Evaluates for both the ascending and descending state orbits the area of interesection for the
-    available products with a VV&VH polarisation.
+    Evaluates for both the ascending and descending state orbits the area of interesection and
+    maximum temporal gap for the available products with a VV&VH polarisation.
 
     Parameters
     ----------
@@ -155,8 +158,8 @@ def s1_area_per_orbitstate_vvvh(
     Returns
     ------
     dict
-        Keys containing the orbit state and values containing the total area of intersection in
-        km^2
+        Keys containing the orbit state and values containing the total area of intersection and
+        in km^2 and maximum temporal gap in days.
     """
     if isinstance(spatial_extent, geojson.FeatureCollection):
         # Transform geojson into shapely geometry and compute bounds
@@ -211,26 +214,46 @@ def s1_area_per_orbitstate_vvvh(
     spatial_extent = box(*bounds)
 
     # Computes if there is the full overlap for each of those states
-    union_ascending = unary_union(ascending_products)
-    union_descending = unary_union(descending_products)
+    union_ascending = unary_union(ascending_products[0])
+    union_descending = unary_union(descending_products[0])
 
     ascending_covers = union_ascending.contains(spatial_extent)
     descending_covers = union_descending.contains(spatial_extent)
+
+    # Computes max temporal gap. Include requested start and end date so we dont miss
+    # any start or end gap before first/last observation
+    ascending_timestamps = pd.DatetimeIndex(
+        sorted(
+            [pd.to_datetime(temporal_extent.start_date, utc=True)]
+            + ascending_products[1]
+            + [pd.to_datetime(temporal_extent.end_date, utc=True)]
+        )
+    )
+
+    descending_timestamps = pd.DatetimeIndex(
+        sorted(
+            [pd.to_datetime(temporal_extent.start_date, utc=True)]
+            + descending_products[1]
+            + [pd.to_datetime(temporal_extent.end_date, utc=True)]
+        )
+    )
 
     # Computes the area of intersection
     return {
         "ASCENDING": {
             "full_overlap": ascending_covers,
+            "max_temporal_gap": ascending_timestamps.diff().max().days,
             "area": sum(
                 product.intersection(spatial_extent).area
-                for product in ascending_products
+                for product in ascending_products[0]
             ),
         },
         "DESCENDING": {
             "full_overlap": descending_covers,
+            "max_temporal_gap": descending_timestamps.diff().max().days,
             "area": sum(
                 product.intersection(spatial_extent).area
-                for product in descending_products
+                for product in descending_products[0]
             ),
         },
     }
