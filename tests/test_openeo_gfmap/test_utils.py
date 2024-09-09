@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import geojson
 import pystac
 import pytest
 from netCDF4 import Dataset
@@ -44,11 +45,37 @@ def test_query_cdse_catalogue():
     assert response["ASCENDING"]["full_overlap"] is True
     assert response["DESCENDING"]["full_overlap"] is True
 
+    assert response["ASCENDING"]["max_temporal_gap"] > 0.0
+    assert response["DESCENDING"]["max_temporal_gap"] > 0.0
+
     # Testing the decision maker, it should return DESCENDING
     decision = select_s1_orbitstate_vvvh(
         backend=backend_context,
         spatial_extent=SPATIAL_CONTEXT,
         temporal_extent=TEMPORAL_CONTEXT,
+    )
+
+    assert decision == "DESCENDING"
+
+
+def test_query_cdse_catalogue_with_s1_gap():
+    """This example has a large S1 gap in ASCENDING,
+    so the decision should be DESCENDING
+    """
+    backend_context = BackendContext(Backend.CDSE)
+
+    spatial_extent = geojson.loads(
+        (
+            '{"features": [{"geometry": {"coordinates": [[[35.85799, 49.705688], [35.85799, 49.797363], [36.039682, 49.797363], '
+            '[36.039682, 49.705688], [35.85799, 49.705688]]], "type": "Polygon"}, "id": "0", "properties": '
+            '{"GT_available": true, "extract": 1, "index": 12, "sample_id": "ukraine_sunflower", "tile": '
+            '"36UYA", "valid_time": "2019-05-01", "year": 2019}, "type": "Feature"}], "type": "FeatureCollection"}'
+        )
+    )
+    temporal_extent = TemporalContext("2019-01-30", "2019-08-31")
+
+    decision = select_s1_orbitstate_vvvh(
+        backend_context, spatial_extent, temporal_extent
     )
 
     assert decision == "DESCENDING"
@@ -175,4 +202,5 @@ def test_split_collection_by_epsg(tmp_path):
     with pytest.raises(KeyError):
         collection.add_item(missing_epsg_item)
         collection.normalize_and_save(input_dir)
+        split_collection_by_epsg(path=input_dir, output_dir=output_dir)
         split_collection_by_epsg(path=input_dir, output_dir=output_dir)

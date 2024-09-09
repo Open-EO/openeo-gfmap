@@ -18,6 +18,7 @@ from openeo_gfmap import (
     SpatialContext,
     TemporalContext,
 )
+from openeo_gfmap.utils import _log
 
 request_sessions: Optional[requests.Session] = None
 
@@ -263,9 +264,15 @@ def select_s1_orbitstate_vvvh(
     backend: BackendContext,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
+    max_temporal_gap: int = 30,
 ) -> str:
-    """Selects the orbit state that covers the most area of intersection for the
-    available products with a VV&VH polarisation.
+    """Selects the orbit state based on some predefined rules that
+    are checked in sequential order:
+    1. prefer an orbit with full coverage over the requested bounds
+    2. prefer an orbit with a maximum temporal gap under a
+        predefined threshold
+    3. prefer the orbit that covers the most area of intersection
+        for the available products
 
     Parameters
     ----------
@@ -276,6 +283,8 @@ def select_s1_orbitstate_vvvh(
         The spatial extent to be checked, it will check within its bounding box.
     temporal_extent : TemporalContext
         The temporal period to be checked.
+    max_temporal_gap: int, optional, default: 30
+        The maximum temporal gap in days to be considered for the orbit state.
 
     Returns
     ------
@@ -288,21 +297,55 @@ def select_s1_orbitstate_vvvh(
 
     ascending_overlap = areas["ASCENDING"]["full_overlap"]
     descending_overlap = areas["DESCENDING"]["full_overlap"]
+    ascending_gap_too_large = areas["ASCENDING"]["max_temporal_gap"] > max_temporal_gap
+    descending_gap_too_large = (
+        areas["DESCENDING"]["max_temporal_gap"] > max_temporal_gap
+    )
 
+    orbit_choice = None
+
+    # Rule 1: Prefer an orbit with full coverage over the requested bounds
     if ascending_overlap and not descending_overlap:
-        return "ASCENDING"
+        orbit_choice = "ASCENDING"
+        reason = "Only orbit fully covering the requested area."
     elif descending_overlap and not ascending_overlap:
-        return "DESCENDING"
+        orbit_choice = "DESCENDING"
+        reason = "Only orbit fully covering the requested area."
+    elif ascending_gap_too_large and not descending_gap_too_large:
+        orbit_choice = "DESCENDING"
+        reason = (
+            "Only orbit with temporal gap under the threshold. "
+            f"{areas['DESCENDING']['max_temporal_gap']} days < {max_temporal_gap} days"
+        )
+    elif descending_gap_too_large and not ascending_gap_too_large:
+        orbit_choice = "ASCENDING"
+        reason = (
+            "Only orbit with temporal gap under the threshold. "
+            f"{areas['ASCENDING']['max_temporal_gap']} < {max_temporal_gap}"
+        )
+    # Rule 3: Prefer the orbit that covers the most area of intersection
+    # for the available products
     elif ascending_overlap and descending_overlap:
         ascending_cover_area = areas["ASCENDING"]["area"]
         descending_cover_area = areas["DESCENDING"]["area"]
 
         # Selects the orbit state that covers the most area
         if ascending_cover_area > descending_cover_area:
-            return "ASCENDING"
+            orbit_choice = "ASCENDING"
+            reason = (
+                "Orbit has more cumulative intersected area. "
+                f"{ascending_cover_area} > {descending_cover_area}"
+            )
         else:
-            return "DESCENDING"
+            reason = (
+                "Orbit has more cumulative intersected area. "
+                f"{descending_cover_area} > {ascending_cover_area}"
+            )
+            orbit_choice = "DESCENDING"
 
+    if orbit_choice is not None:
+        _log.info(f"Selected orbit state: {orbit_choice}. Reason: {reason}")
+        return orbit_choice
     raise UncoveredS1Exception(
         "No product available to fully cover the given spatio-temporal context."
     )
