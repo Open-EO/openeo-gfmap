@@ -203,4 +203,3 @@ def test_split_collection_by_epsg(tmp_path):
         collection.add_item(missing_epsg_item)
         collection.normalize_and_save(input_dir)
         split_collection_by_epsg(path=input_dir, output_dir=output_dir)
-        split_collection_by_epsg(path=input_dir, output_dir=output_dir)
