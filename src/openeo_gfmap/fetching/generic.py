@@ -53,10 +53,6 @@ def _get_generic_fetcher(
     elif collection_name == "AGERA5":
         band_mapping = BASE_WEATHER_MAPPING
     elif is_stac and (AGERA5_TERRASCOPE_STAC in collection_name):
-        if backend not in [Backend.TERRASCOPE, Backend.FED]:
-            raise ValueError(
-                f"Collection {collection_name} is only supported on Terrascope/FED backend."
-            )
         band_mapping = AGERA5_STAC_MAPPING
 
     def generic_default_fetcher(
