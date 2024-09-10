@@ -49,8 +49,14 @@ def _parse_cdse_products(response: dict):
     products = response["features"]
 
     for product in products:
-        geometries.append(shape(product["geometry"]))
-        timestamps.append(pd.to_datetime(product["properties"]["startDate"]))
+        if "geometry" in product and "startDate" in product["properties"]:
+            geometries.append(shape(product["geometry"]))
+            timestamps.append(pd.to_datetime(product["properties"]["startDate"]))
+        else:
+            _log.warning(
+                "Cannot parse product %s does not have a geometry or timestamp.",
+                product["properties"]["id"],
+            )
     return geometries, timestamps
 
 
@@ -137,6 +143,37 @@ def _check_cdse_catalogue(
     return len(grd_tiles) > 0
 
 
+def _compute_max_gap_days(
+    temporal_extent: TemporalContext, timestamps: list[pd.DatetimeIndex]
+) -> int:
+    """Computes the maximum temporal gap in days from the timestamps parsed from the catalogue.
+    Requires the start and end date to be included in the timestamps to compute the gap before
+    and after the first and last observation.
+
+    Parameters
+    ----------
+    temporal_extent : TemporalContext
+        The temporal extent to be checked. Same as used to query the catalogue.
+    timestamps : list[pd.DatetimeIndex]
+        The list of timestamps parsed from the catalogue and to compute the gap from.
+
+    Returns
+    -------
+    days : int
+        The maximum temporal gap in days.
+    """
+    # Computes max temporal gap. Include requested start and end date so we dont miss
+    # any start or end gap before first/last observation
+    timestamps = pd.DatetimeIndex(
+        sorted(
+            [pd.to_datetime(temporal_extent.start_date, utc=True)]
+            + timestamps
+            + [pd.to_datetime(temporal_extent.end_date, utc=True)]
+        )
+    )
+    return timestamps.to_series().diff().max().days
+
+
 def s1_area_per_orbitstate_vvvh(
     backend: BackendContext,
     spatial_extent: SpatialContext,
@@ -188,7 +225,7 @@ def s1_area_per_orbitstate_vvvh(
 
     # Queries the products in the catalogues
     if backend.backend in [Backend.CDSE, Backend.CDSE_STAGING, Backend.FED]:
-        ascending_products = _parse_cdse_products(
+        ascending_products, ascending_timestamps = _parse_cdse_products(
             _query_cdse_catalogue(
                 "Sentinel1",
                 bounds,
@@ -197,7 +234,7 @@ def s1_area_per_orbitstate_vvvh(
                 polarisation="VV%26VH",
             )
         )
-        descending_products = _parse_cdse_products(
+        descending_products, descending_timestamps = _parse_cdse_products(
             _query_cdse_catalogue(
                 "Sentinel1",
                 bounds,
@@ -215,46 +252,32 @@ def s1_area_per_orbitstate_vvvh(
     spatial_extent = box(*bounds)
 
     # Computes if there is the full overlap for each of those states
-    union_ascending = unary_union(ascending_products[0])
-    union_descending = unary_union(descending_products[0])
+    union_ascending = unary_union(ascending_products)
+    union_descending = unary_union(descending_products)
 
     ascending_covers = union_ascending.contains(spatial_extent)
     descending_covers = union_descending.contains(spatial_extent)
-
-    # Computes max temporal gap. Include requested start and end date so we dont miss
-    # any start or end gap before first/last observation
-    ascending_timestamps = pd.DatetimeIndex(
-        sorted(
-            [pd.to_datetime(temporal_extent.start_date, utc=True)]
-            + ascending_products[1]
-            + [pd.to_datetime(temporal_extent.end_date, utc=True)]
-        )
-    )
-
-    descending_timestamps = pd.DatetimeIndex(
-        sorted(
-            [pd.to_datetime(temporal_extent.start_date, utc=True)]
-            + descending_products[1]
-            + [pd.to_datetime(temporal_extent.end_date, utc=True)]
-        )
-    )
 
     # Computes the area of intersection
     return {
         "ASCENDING": {
             "full_overlap": ascending_covers,
-            "max_temporal_gap": ascending_timestamps.diff().max().days,
+            "max_temporal_gap": _compute_max_gap_days(
+                temporal_extent, ascending_timestamps
+            ),
             "area": sum(
                 product.intersection(spatial_extent).area
-                for product in ascending_products[0]
+                for product in ascending_products
             ),
         },
         "DESCENDING": {
             "full_overlap": descending_covers,
-            "max_temporal_gap": descending_timestamps.diff().max().days,
+            "max_temporal_gap": _compute_max_gap_days(
+                temporal_extent, descending_timestamps
+            ),
             "area": sum(
                 product.intersection(spatial_extent).area
-                for product in descending_products[0]
+                for product in descending_products
             ),
         },
     }

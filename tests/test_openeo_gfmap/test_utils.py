@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import geojson
+import pandas as pd
 import pystac
 import pytest
 from netCDF4 import Dataset
@@ -9,6 +10,7 @@ from netCDF4 import Dataset
 from openeo_gfmap import Backend, BackendContext, BoundingBoxExtent, TemporalContext
 from openeo_gfmap.utils import split_collection_by_epsg, update_nc_attributes
 from openeo_gfmap.utils.catalogue import (
+    _compute_max_gap_days,
     s1_area_per_orbitstate_vvvh,
     select_s1_orbitstate_vvvh,
 )
@@ -203,3 +205,27 @@ def test_split_collection_by_epsg(tmp_path):
         collection.add_item(missing_epsg_item)
         collection.normalize_and_save(input_dir)
         split_collection_by_epsg(path=input_dir, output_dir=output_dir)
+
+
+def test_compute_max_gap():
+    start_date = "2020-01-01"
+    end_date = "2020-01-31"
+
+    temporal_context = TemporalContext(start_date, end_date)
+
+    resulting_dates = [
+        "2020-01-03",
+        "2020-01-05",
+        "2020-01-10",
+        "2020-01-25",
+        "2020-01-26",
+        "2020-01-27",
+    ]
+
+    resulting_dates = [
+        pd.to_datetime(date, format="%Y-%m-%d", utc=True) for date in resulting_dates
+    ]
+
+    max_gap = _compute_max_gap_days(temporal_context, resulting_dates)
+
+    assert max_gap == 15
