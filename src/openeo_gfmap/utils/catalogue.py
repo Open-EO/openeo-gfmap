@@ -351,7 +351,7 @@ def select_s1_orbitstate_vvvh(
         orbit_choice = "ASCENDING"
         reason = (
             "Only orbit with temporal gap under the threshold. "
-            f"{areas['ASCENDING']['max_temporal_gap']} < {max_temporal_gap}"
+            f"{areas['ASCENDING']['max_temporal_gap']} days < {max_temporal_gap} days"
         )
     # Rule 3: Prefer the orbit that covers the most area of intersection
     # for the available products
