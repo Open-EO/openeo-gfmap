@@ -1,5 +1,8 @@
+import hashlib
+import json
 import os
 from pathlib import Path
+from unittest.mock import patch
 
 import geojson
 import pandas as pd
@@ -24,6 +27,34 @@ SPATIAL_CONTEXT = BoundingBoxExtent(
 TEMPORAL_CONTEXT = TemporalContext(start_date="2023-06-21", end_date="2023-09-21")
 
 
+def mock_query_cdse_catalogue(
+    collection: str,
+    bounds: list,
+    temporal_extent: TemporalContext,
+    **additional_parameters: dict,
+):
+    """Mocks the results of the CDSE catalogue query by computing the hash of the input parameters
+    and returning the results from a resource file if it exists.
+    """
+    # Compute the hash of the input parameters
+    arguments = "".join([str(x) for x in [collection, bounds, temporal_extent]])
+    kw_arguments = "".join(
+        [f"{key}{value}" for key, value in additional_parameters.items()]
+    )
+    combined_arguments = arguments + kw_arguments
+    hash_value = hashlib.sha256(combined_arguments.encode()).hexdigest()
+
+    src_path = (
+        Path(__file__).parent / f"resources/{hash_value[:8]}_query_cdse_results.json"
+    )
+
+    if not src_path.exists():
+        raise ValueError("No cached results for the given parameters.")
+
+    return json.loads(src_path.read_text())
+
+
+@patch("openeo_gfmap.utils.catalogue._query_cdse_catalogue", mock_query_cdse_catalogue)
 def test_query_cdse_catalogue():
     backend_context = BackendContext(Backend.CDSE)
 
@@ -60,6 +91,7 @@ def test_query_cdse_catalogue():
     assert decision == "DESCENDING"
 
 
+@patch("openeo_gfmap.utils.catalogue._query_cdse_catalogue", mock_query_cdse_catalogue)
 def test_query_cdse_catalogue_with_s1_gap():
     """This example has a large S1 gap in ASCENDING,
     so the decision should be DESCENDING
@@ -207,6 +239,7 @@ def test_split_collection_by_epsg(tmp_path):
         split_collection_by_epsg(path=input_dir, output_dir=output_dir)
 
 
+@patch("openeo_gfmap.utils.catalogue._query_cdse_catalogue", mock_query_cdse_catalogue)
 def test_compute_max_gap():
     start_date = "2020-01-01"
     end_date = "2020-01-31"

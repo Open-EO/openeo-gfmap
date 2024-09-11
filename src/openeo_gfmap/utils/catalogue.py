@@ -287,7 +287,7 @@ def select_s1_orbitstate_vvvh(
     backend: BackendContext,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
-    max_temporal_gap: int = 30,
+    max_temporal_gap: int = 60,
 ) -> str:
     """Selects the orbit state based on some predefined rules that
     are checked in sequential order:
@@ -326,6 +326,11 @@ def select_s1_orbitstate_vvvh(
     )
 
     orbit_choice = None
+
+    if not ascending_overlap and not descending_overlap:
+        raise UncoveredS1Exception(
+            "No product available to fully cover the requested area in both orbit states."
+        )
 
     # Rule 1: Prefer an orbit with full coverage over the requested bounds
     if ascending_overlap and not descending_overlap:
