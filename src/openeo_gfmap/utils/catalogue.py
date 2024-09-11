@@ -334,6 +334,8 @@ def select_s1_orbitstate_vvvh(
     elif descending_overlap and not ascending_overlap:
         orbit_choice = "DESCENDING"
         reason = "Only orbit fully covering the requested area."
+
+    # Rule 2: Prefer an orbit with a maximum temporal gap under a predefined threshold
     elif ascending_gap_too_large and not descending_gap_too_large:
         orbit_choice = "DESCENDING"
         reason = (
@@ -369,6 +371,4 @@ def select_s1_orbitstate_vvvh(
     if orbit_choice is not None:
         _log.info(f"Selected orbit state: {orbit_choice}. Reason: {reason}")
         return orbit_choice
-    raise UncoveredS1Exception(
-        "No product available to fully cover the given spatio-temporal context."
-    )
+    raise UncoveredS1Exception("Failed to select suitable Sentinel-1 orbit.")
