@@ -1,6 +1,11 @@
+import hashlib
+import json
 import os
 from pathlib import Path
+from unittest.mock import patch
 
+import geojson
+import pandas as pd
 import pystac
 import pytest
 from netCDF4 import Dataset
@@ -8,6 +13,7 @@ from netCDF4 import Dataset
 from openeo_gfmap import Backend, BackendContext, BoundingBoxExtent, TemporalContext
 from openeo_gfmap.utils import split_collection_by_epsg, update_nc_attributes
 from openeo_gfmap.utils.catalogue import (
+    _compute_max_gap_days,
     s1_area_per_orbitstate_vvvh,
     select_s1_orbitstate_vvvh,
 )
@@ -21,6 +27,34 @@ SPATIAL_CONTEXT = BoundingBoxExtent(
 TEMPORAL_CONTEXT = TemporalContext(start_date="2023-06-21", end_date="2023-09-21")
 
 
+def mock_query_cdse_catalogue(
+    collection: str,
+    bounds: list,
+    temporal_extent: TemporalContext,
+    **additional_parameters: dict,
+):
+    """Mocks the results of the CDSE catalogue query by computing the hash of the input parameters
+    and returning the results from a resource file if it exists.
+    """
+    # Compute the hash of the input parameters
+    arguments = "".join([str(x) for x in [collection, bounds, temporal_extent]])
+    kw_arguments = "".join(
+        [f"{key}{value}" for key, value in additional_parameters.items()]
+    )
+    combined_arguments = arguments + kw_arguments
+    hash_value = hashlib.sha256(combined_arguments.encode()).hexdigest()
+
+    src_path = (
+        Path(__file__).parent / f"resources/{hash_value[:8]}_query_cdse_results.json"
+    )
+
+    if not src_path.exists():
+        raise ValueError("No cached results for the given parameters.")
+
+    return json.loads(src_path.read_text())
+
+
+@patch("openeo_gfmap.utils.catalogue._query_cdse_catalogue", mock_query_cdse_catalogue)
 def test_query_cdse_catalogue():
     backend_context = BackendContext(Backend.CDSE)
 
@@ -44,11 +78,38 @@ def test_query_cdse_catalogue():
     assert response["ASCENDING"]["full_overlap"] is True
     assert response["DESCENDING"]["full_overlap"] is True
 
+    assert response["ASCENDING"]["max_temporal_gap"] > 0.0
+    assert response["DESCENDING"]["max_temporal_gap"] > 0.0
+
     # Testing the decision maker, it should return DESCENDING
     decision = select_s1_orbitstate_vvvh(
         backend=backend_context,
         spatial_extent=SPATIAL_CONTEXT,
         temporal_extent=TEMPORAL_CONTEXT,
+    )
+
+    assert decision == "DESCENDING"
+
+
+@patch("openeo_gfmap.utils.catalogue._query_cdse_catalogue", mock_query_cdse_catalogue)
+def test_query_cdse_catalogue_with_s1_gap():
+    """This example has a large S1 gap in ASCENDING,
+    so the decision should be DESCENDING
+    """
+    backend_context = BackendContext(Backend.CDSE)
+
+    spatial_extent = geojson.loads(
+        (
+            '{"features": [{"geometry": {"coordinates": [[[35.85799, 49.705688], [35.85799, 49.797363], [36.039682, 49.797363], '
+            '[36.039682, 49.705688], [35.85799, 49.705688]]], "type": "Polygon"}, "id": "0", "properties": '
+            '{"GT_available": true, "extract": 1, "index": 12, "sample_id": "ukraine_sunflower", "tile": '
+            '"36UYA", "valid_time": "2019-05-01", "year": 2019}, "type": "Feature"}], "type": "FeatureCollection"}'
+        )
+    )
+    temporal_extent = TemporalContext("2019-01-30", "2019-08-31")
+
+    decision = select_s1_orbitstate_vvvh(
+        backend_context, spatial_extent, temporal_extent
     )
 
     assert decision == "DESCENDING"
@@ -176,3 +237,28 @@ def test_split_collection_by_epsg(tmp_path):
         collection.add_item(missing_epsg_item)
         collection.normalize_and_save(input_dir)
         split_collection_by_epsg(path=input_dir, output_dir=output_dir)
+
+
+@patch("openeo_gfmap.utils.catalogue._query_cdse_catalogue", mock_query_cdse_catalogue)
+def test_compute_max_gap():
+    start_date = "2020-01-01"
+    end_date = "2020-01-31"
+
+    temporal_context = TemporalContext(start_date, end_date)
+
+    resulting_dates = [
+        "2020-01-03",
+        "2020-01-05",
+        "2020-01-10",
+        "2020-01-25",
+        "2020-01-26",
+        "2020-01-27",
+    ]
+
+    resulting_dates = [
+        pd.to_datetime(date, format="%Y-%m-%d", utc=True) for date in resulting_dates
+    ]
+
+    max_gap = _compute_max_gap_days(temporal_context, resulting_dates)
+
+    assert max_gap == 15
