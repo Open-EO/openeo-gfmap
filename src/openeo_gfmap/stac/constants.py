@@ -29,7 +29,7 @@ PLATFORM = {
 
 INSTRUMENTS = {"sentinel2": ["msi"], "sentinel1": ["c-sar"]}
 
-GSD = {"sentinel2": [10, 20, 60], "sentinel1": [10]}
+GSD = {"sentinel2": [10, 20, 60], "sentinel1": [20]}
 
 SUMMARIES = {
     "sentinel2": pystac.summaries.Summaries(
