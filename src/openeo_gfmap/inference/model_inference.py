@@ -331,6 +331,7 @@ def apply_model_inference_local(
         )
 
     model_inference = model_inference_class()
+    model_inference._parameters = parameters
     output_labels = model_inference.output_labels()
     dependencies = model_inference.dependencies()
 

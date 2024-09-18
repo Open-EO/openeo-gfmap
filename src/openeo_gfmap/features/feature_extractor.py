@@ -379,6 +379,7 @@ def apply_feature_extractor_local(
         )
 
     feature_extractor = feature_extractor_class()
+    feature_extractor._parameters = parameters
     output_labels = feature_extractor.output_labels()
     dependencies = feature_extractor.dependencies()
 
