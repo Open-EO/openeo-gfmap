@@ -1,6 +1,5 @@
 from openeo_gfmap.spatial import BoundingBoxExtent
 
-
 class TestBoundingBoxExtent:
     def test_basic(self):
         bbox = BoundingBoxExtent(1, 2, 3, 4)

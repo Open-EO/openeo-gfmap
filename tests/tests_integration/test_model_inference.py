@@ -22,7 +22,7 @@ from openeo_gfmap.inference.model_inference import (
 from openeo_gfmap.preprocessing.cloudmasking import mask_scl_dilation
 from openeo_gfmap.preprocessing.compositing import median_compositing
 
-from .utils import load_dataarray_url
+from tests.utils.helpers import load_dataarray_url
 
 spatial_context = BoundingBoxExtent(
     west=5.0, south=51.2, east=5.025, north=51.225, epsg=4326

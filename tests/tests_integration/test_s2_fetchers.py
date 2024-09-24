@@ -38,12 +38,12 @@ TEMPORAL_CONTEXT = ["2023-04-01", "2023-05-01"]
 
 # Dataset of polygons for POINT based extraction
 POINT_EXTRACTION_DF = (
-    Path(__file__).parent / "resources/malawi_extraction_polygons.gpkg"
+    Path(__file__).parent / "tests/resources/malawi_extraction_polygons.gpkg"
 )
 
 # Datase of polygons for Polygon based extraction
 POLYGON_EXTRACTION_DF = (
-    Path(__file__).parent / "resources/puglia_extraction_polygons.gpkg"
+    Path(__file__).parent / "tests/resources/puglia_extraction_polygons.gpkg"
 )
 
 # test_backends = [Backend.TERRASCOPE, Backend.CDSE]

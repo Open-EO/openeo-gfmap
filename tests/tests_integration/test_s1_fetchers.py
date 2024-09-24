@@ -25,8 +25,9 @@ from openeo_gfmap.utils import (
     select_sar_bands,
 )
 
+#TODO to centralize
 # Retrieve the test parameters from the s2 fetcher tests
-from .test_s2_fetchers import POINT_EXTRACTION_DF, test_backends, test_configurations
+from tests.tests_integration.test_s2_fetchers import POINT_EXTRACTION_DF, test_backends, test_configurations
 
 
 # integration test checks if the output S1 cube has the correct band names;
