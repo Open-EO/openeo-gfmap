@@ -4,23 +4,25 @@ output-dir: ../docs
 resources:
   - "data/**"
 website:
-  navbar:
-    title: "GFMAP"
-    right:
-      - text: "Introduction"
-        href: introduction.qmd
-      - text: "Sections"
-        dropdown:
-          - text: "Data Fetching"
-            href: fetching.qmd
-          - text: "Preprocessing"
-            href: preprocessing.qmd
-          - text: "Features"
-            href: features.qmd
-          - text: "Inference"
-            href: inference.qmd
-          - text: "Managers"
-            href: managers.qmd
-          - text: "Utils"
-            href: utilities.qmd
+  sidebar:
+    style: "floating"
+    collapse-level: 1
+    - section: "Introduction"
+      contents:
+        - text: "Introduction"
+          href: introduction.qmd
+    - section: "Sections"
+      contents:
+        - text: "Data Fetching"
+          href: fetching.qmd
+        - text: "Preprocessing"
+          href: preprocessing.qmd
+        - text: "Features"
+          href: features.qmd
+        - text: "Inference"
+          href: inference.qmd
+        - text: "Managers"
+          href: managers.qmd
+        - text: "Utils"
+          href: utilities.qmd
   
