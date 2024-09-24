@@ -83,24 +83,30 @@ def _create_collection_skeleton(
     return new_collection
 
 
-def split_collection_by_epsg(path: Union[str, Path], output_dir: Union[str, Path]):
+def split_collection_by_epsg(
+    collection: Union[str, Path, pystac.Collection], output_dir: Union[str, Path]
+):
     """
     Split a STAC collection into multiple STAC collections based on EPSG code.
 
-    Parameters:
-    path (str): The path to the STAC collection.
-    output_dir (str): The output directory.
+    Parameters
+    ----------
+    collection: Union[str, Path, pystac.Collection]
+        A collection of STAC items or a path to a STAC collection.
+    output_dir: Union[str, Path]
+        The directory where the split STAC collections will be saved.
     """
 
-    path = Path(path)
-    output_dir = Path(output_dir)
-    os.makedirs(output_dir, exist_ok=True)
+    if not isinstance(collection, pystac.Collection):
+        collection = Path(collection)
+        output_dir = Path(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
 
-    try:
-        collection = pystac.read_file(path)
-    except pystac.STACError:
-        print("Please provide a path to a valid STAC collection.")
-        return
+        try:
+            collection = pystac.read_file(collection)
+        except pystac.STACError:
+            print("Please provide a path to a valid STAC collection.")
+            return
 
     collections_by_epsg = {}
 

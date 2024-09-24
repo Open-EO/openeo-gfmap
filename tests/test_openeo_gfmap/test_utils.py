@@ -207,7 +207,7 @@ def test_split_collection_by_epsg(tmp_path):
     output_dir = str(tmp_path / "split_collections")
 
     collection.normalize_and_save(input_dir)
-    split_collection_by_epsg(path=input_dir, output_dir=output_dir)
+    split_collection_by_epsg(collection=input_dir, output_dir=output_dir)
 
     # Collection contains two different EPSG codes, so 2 collections should be created
     assert len([p for p in Path(output_dir).iterdir() if p.is_dir()]) == 2
@@ -236,7 +236,7 @@ def test_split_collection_by_epsg(tmp_path):
     with pytest.raises(KeyError):
         collection.add_item(missing_epsg_item)
         collection.normalize_and_save(input_dir)
-        split_collection_by_epsg(path=input_dir, output_dir=output_dir)
+        split_collection_by_epsg(collection=input_dir, output_dir=output_dir)
 
 
 @patch("openeo_gfmap.utils.catalogue._query_cdse_catalogue", mock_query_cdse_catalogue)
