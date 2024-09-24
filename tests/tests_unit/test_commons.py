@@ -13,7 +13,7 @@ from openeo_gfmap.fetching.s2 import (
     ELEMENT84_SENTINEL2_L2A_MAPPING,
 )
 
-from .utils import create_test_datacube
+from tests.utils.helpers import create_test_datacube
 
 # band names
 

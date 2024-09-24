@@ -16,7 +16,7 @@ from openeo_gfmap.fetching.s2 import (
     _get_s2_l2a_default_processor,
 )
 
-from .utils import create_test_datacube
+from tests.utils.helpers import create_test_datacube
 
 # Mock constants for the tests
 BANDS = ["S2-L2A-B01", "S2-L2A-B02"]
