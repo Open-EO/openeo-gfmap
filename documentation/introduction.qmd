@@ -1,8 +1,6 @@
 ---
-title: "GFMAP - Introduction"
+title: "OpenEO General Framework for Mapping"
 ---
-
-# OpenEO General Framework for Mapping
 
 ## Introduction
 
@@ -31,7 +29,7 @@ For a <u>training workflow</u> the Data Fetching, Preprocessing, Features and Jo
 
 For a <u>inference workflow</u> all the above as well as the Inference features are interesting.
 
-![OpenEO GFMAP Core Worklow](worklow.png)
+![OpenEO GFMAP Core Worklow](./data/worklow.png)
 
 ## Sections
 
