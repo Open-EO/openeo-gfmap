@@ -1,0 +1,42 @@
+name: Run Unit Tests
+
+on:
+  push:
+    branches:
+      - '*'      # Trigger on every branch
+  pull_request:
+    branches:
+      - '*'      # Trigger on pull requests for any branch
+
+jobs:
+  unit_tests:
+    name: Run Unit Tests on Multiple Python Versions
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10, 3.11]  # List of Python versions to test
+
+    steps:
+    - name: Checkout the repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}  # Use Python version from the matrix
+        cache: 'pip'
+
+    - name: Install Hatchling (build system)
+      run: |
+        pip install hatchling
+
+    - name: Install dependencies
+      run: |
+        pip install .[dev]  # This will install all dependencies including optional dev dependencies
+
+    - name: Run Unit Tests
+      run: |
+        python -m pytest tests/tests_unit  # Adjust the path if necessary
+      env:
+        PYTHONPATH: .  # Set PYTHONPATH to include your project root (if needed for imports)
