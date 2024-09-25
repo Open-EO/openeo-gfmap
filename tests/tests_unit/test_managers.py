@@ -1,6 +1,5 @@
 """Test the job splitters and managers of OpenEO GFMAP."""
 
-
 import geopandas as gpd
 from shapely.geometry import Point, Polygon
 

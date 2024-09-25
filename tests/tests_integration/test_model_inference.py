@@ -21,7 +21,6 @@ from openeo_gfmap.inference.model_inference import (
 )
 from openeo_gfmap.preprocessing.cloudmasking import mask_scl_dilation
 from openeo_gfmap.preprocessing.compositing import median_compositing
-
 from tests.utils.helpers import load_dataarray_url
 
 spatial_context = BoundingBoxExtent(
@@ -62,6 +61,7 @@ def test_onnx_inference_local():
     assert len(np.unique(output.values)) == 3
 
     output_path = Path(__file__).parent / "results/test_onnx_inference_local.nc"
+    print(output_path)
     output.to_netcdf(output_path)
 
 
