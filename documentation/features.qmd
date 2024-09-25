@@ -1,0 +1,121 @@
+---
+title: "Features extraction"
+---
+
+In mapping pipelines, feature extraction typically occurs after the pre-processing of data fetched from the sources. Feature extraction allows to create new features from source data, and reduce timeseries signals in specific features. For example, timeseries Sentinel2 data is can be derived into spectral indices such as NDVI, but also vegetation indices such as Start of Season, Peak of Season, etc...
+
+Additionally, reducing timeseries data into features is an ideal task for foundation models. The flagship project of GFMAP <i>WorldCereal</i> is using [Presto](https://github.com/nasaharvest/presto) to perform data fusion of multiple data sources and to return vectors of 128 features.
+
+Feature extractors are therefore python classes that will be transformed in an UDF, allowing to transform a cube of dimensions `(bands, t, x, y)` to `(features, x, y)`. Essentially, this is a transformation from a 4D cube to a 3D cube. To implement your own feature extractor, you simply need to create your derived class based on `openeo_gfmap.features.feature_extractor.PatchFeatureExtractor`.
+
+### Example of feature extractor
+
+Let's imagine a feature extractor that performs spatial smoothing and computes the median of the signal for the red, green and blue bands and well as the latitude and longitude values.
+
+
+```python
+from openeo_gfmap.features.feature_extractor import PatchFeatureExtractor, apply_feature_extractor
+
+class MyExtractor(PatchFeatureExtractor):
+
+    def output_labels(self) -> List[str]:
+        if self._parameters.get("extract_latlons", False):
+            return ["red", "green", "blue", "lat", "lon"]
+        else:
+            return ["red", "green", "blue"]
+
+    def execute(self, inarr: xr.DataArray):
+        import xarray as xr
+        from scipy.ndimage import gaussian_filter
+
+        # Performs some gaussian filtering to blur the RGB bands
+        rgb_bands = inarr.sel(bands=["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02"])
+
+        for band in rgb_bands.bands:
+            for timestamp in rgb_bands.t:
+                rgb_bands.loc[{"bands": band, "t": timestamp}] = gaussian_filter(
+                    rgb_bands.loc[{"bands": band, "t": timestamp}], sigma=1.0
+                )
+
+        # Compute the median on the time band
+        rgb_bands = rgb_bands.median(dim="t").assign_coords(
+            {"bands": ["red", "green", "blue"]}
+        )
+
+        if self._parameters.get("extract_latlons", False):
+            # Compute the latlons, feature implemented in the superclass PatchFeatureExtractor
+            latlons = self.get_latlons(inarr)
+            return xr.concat([rgb_bands, latlons], dim="bands")
+        
+        return rgb_bands
+
+```
+
+* The `output_labels` function returns what bands are expected to be returned by the feature extractor. The function can also read custom parameters for the extractor through `self._parameters.get(...)`, allowing to dynamically evaluate what are the expected output labels.
+
+* The execute function is the entrypoint of user code, and is expected to return a 3D `xarray.DataArray` with dimension names (bands, y, x). In this output cube, the `bands` dimensions are actually what we consider `features`, but must be named as `bands` for OpenEO compatibility.
+
+* Imports of libraries should be included in the individual functions or inside the class. The class source code will be read and added in a generated UDF, but code outside the class will not be exported.
+
+* In this example of `MyExtractore.execute` function, we compute the latlons with a function defined in a superclass `PatchFeatureExtractor.get_latlons`.
+
+
+More advanced Feature Extractors can be found in the [WorldCereal Repository](https://github.com/WorldCereal/worldcereal-classification/blob/main/src/worldcereal/openeo/feature_extractor.py).
+
+
+Here is an example of executing this feature extraction on a patch:
+
+```python
+
+# We first fetch the data from sources.
+from openeo_gfmap import BoundingBoxExtent, SpatialContext, TemporalContext
+from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext, cdse_connection
+from openeo_gfmap.fetching import (
+    FetchType,
+    build_sentinel2_l2a_extractor,
+)
+
+SPATIAL_EXTENT = BoundingBoxExtent(
+    west=5.05,
+    south=51.21,
+    east=5.06,
+    north=51.22,
+    epsg=4326,
+)
+
+# Recent dates for first extent
+TEMPORAL_CONTEXT = ["2023-04-01", "2023-05-01"]
+
+# Bands to extract
+bands = [
+    "S2-L2A-B04",
+    "S2-L2A-B03",
+    "S2-L2A-B02",
+]
+
+context = BackendContext(Backend.CDSE)
+
+# Creating an OpenEO client connection
+connection = cdse_connection()
+
+fetcher = build_sentinel2_l2a_extractor(
+    backend_context=context, bands=bands, fetch_type=FetchType.TILE
+)
+
+cube = fetcher.get_cube(connection, spatial_extent, temporal_extent)
+
+# We then run the extractor
+from openeo_gfmap.features.feature_extractor import apply_feature_extractor
+
+# Parameters, can be dinamically changed by user inputs...
+parameters = {
+    "extract_latlons": True
+}
+
+features = apply_feature_extractor(MyExtractor, cube, parameters)
+
+
+# Start the job asynchronously.
+```
+
+<i>Note:</i> you can test your Feature Extractor locally using `openeo_gfmap.features.feature_extractor.apply_feature_extractor_local`.

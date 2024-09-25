@@ -6,9 +6,9 @@ resources:
 website:
   sidebar:
     style: "floating"
-    collapse-level: 1
+    collapse-level: 2
     contents:
-      - section: "Introduction"
+      - section: "Home"
         contents:
           - text: "Introduction"
             href: introduction.qmd
@@ -26,4 +26,3 @@ website:
             href: managers.qmd
           - text: "Utils"
             href: utilities.qmd
-  

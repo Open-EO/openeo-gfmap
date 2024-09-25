@@ -29,7 +29,7 @@ For a <u>training workflow</u> the Data Fetching, Preprocessing, Features and Jo
 
 For a <u>inference workflow</u> all the above as well as the Inference features are interesting.
 
-![OpenEO GFMAP Core Worklow](./data/worklow.png)
+![OpenEO GFMAP Core Worklow](data/worklow.png)
 
 ## Sections
 
@@ -37,10 +37,10 @@ This documentation covers the different building blocks that an user can use on 
 
 * [Data Fetching](fetching.qmd): Allows to fetch multiple data sources and performs source specific preprocessing (backscatter computation for Sentinel1, resolution resampling, ...).
 * [Preprocessing](preprocessing.qmd): Offers preprocessing functionalities common to all data sources.
-* Features: Assists in the creation of an UDF to compute features. Reducing the `(bands, time)` dimension into `features` (running PCA, Foundation Models, Vegetation indices...).
-* Inference: Assists in the creation of an UDF to run a classification/regression model to transform the `features` into predictions.
-* Managers: Split large tasks into multiple jobs, tracks the jobs, manage their STAC metadata and their assets.
-* Utils: Miscalleneous utilities (choosing the best Sentinel1 orbit, managing STAC catalogues, working with NetCDF files...)
+* [Features](features.qmd): Assists in the creation of an UDF to compute features. Reducing the `(bands, time)` dimension into `features` (running PCA, Foundation Models, Vegetation indices...).
+* [Inference](inference.qmd): Assists in the creation of an UDF to run a classification/regression model to transform the `features` into predictions.
+* [Managers](managers.qmd): Split large tasks into multiple jobs, tracks the jobs, manage their STAC metadata and their assets.
+* [Utils](utils.qmd): Miscalleneous utilities (choosing the best Sentinel1 orbit, managing STAC catalogues, working with NetCDF files...)
 
 ## Related projects
 

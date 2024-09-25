@@ -1,1 +1,204 @@
-# Data Fetching
+---
+title: "Data Fetching"
+---
+
+### Supported collections
+
+The submodule `openeo_gfmap.fetching` provides ways to access data catalogues and perform source-specific preprocessing for multiple collections.
+
+So far, the following collections are well supported, provinding standardized band mappings and preprocessing routines:
+
+* Sentinel 2 L2A
+* Sentinel 1 L1C
+* Copernicus 30 DEM
+* AGERA5
+
+For example, the output band names for Sentinel2 are:
+
+```python
+from openeo_gfmap.fetching.s2 import BASE_SENTINEL2_L2A_MAPPING
+
+BASE_SENTINEL2_L2A_MAPPING
+```
+
+### Additional collections
+
+Using the generic extractor in `openeo_gfmap.fetching.generic`, you can also provide other collections available in OpenEO backends, or other collections through a STAC catalogue. Those collections band names will not be set to standardized names but instead names as provided in the collection or in the STAC catalogue.
+
+Ideally, GFMAP should support in priority collections that are well used. If an unsupported collections is frequently used, then GFMAP should work to integrate it.
+
+### Different fetch types
+
+GFMAP contains different data types, categorized under the `openeo_gfmap.FetchType` enum:
+
+* Tile based data, which consists of raster data over a continuous area.
+* Polygon based data, which is also raster data, but multiple patches are scattered around a region.
+* Point base data, where the output is a `VectorCube` and results are saved in a DataFrame.
+
+```python
+from openeo_gfmap import FetchType
+
+[value for value in FetchType]
+```
+
+Whenever using a collection fetcher, the user is required to specify which Fetch Type will be used.
+
+### Fetcher parameters
+
+Whenever constructing a collection fetcher, additional parameters can be provided in the form of a python dictionnary.
+
+Parameters related to collection loading are provided in a subdictionnary under the `load_collection` key.
+
+| Parameter name | Description | Supported Collections | Example |
+|:--------------:|:------------|:----------------------|:--------|
+|<i>tileID</i>   | Filters on a specific MGRS tile. | Sentinel2 L2A | "20LMR" |
+|<i>eo:cloud_cover</i> | Filters on estimated cloud cover, between 0 and 100 | Sentinel2 L2A | `lambda val: val <= 95.0` | 
+|<i>sat:orbit_state</i> | Filters on satellite orbit direction, either `ASCENDING` or `DESCENDING` | Sentinel1 L1C | `lambda val: val == "ASCENDING" |
+|<i>polarisation</i> | Filters on the polarisations present in the product | Sentinel1 L1C | `lambda val: val == "VV&VH"` |
+
+Other collection parameters exists and are dependant on the collection that is being fetched. Refer to the [OpenEO's Python Client API](https://open-eo.github.io/openeo-python-client/api.html#openeo.rest.datacube.DataCube.load_collection) and the [collection properties](https://hub.openeo.org/) for more parameters.
+
+In addition to collection parameters, other parameters are available and related to the source-specific preprocessing operations.
+
+| Parameter name | Description | Supported Collections | Example |
+|:--------------:|:------------|:----------------------|:--------|
+|<i>tilesize</i> | Size of the tile to load at a time. | <i>All</i> | {"update_arguments": {"feature_flag": {"tilesize": 1}}} |
+|<i>target_resolution</i> | Resolution on which to sample the collection, experessed in meters. | <i>All</i> | 10 |
+|<i>resampling_method</i> | Method on which to resample. | <i>All</i> | "near" |
+|<i>target_crs</i> | CRS code - in EPSG - on which to warp the fetched data. | <i>All</i> | 32631 |
+|<i>elevation_model</i> | Elevation model to use to compute the Backscatter. | <i>Sentinel 1</i> | "COPERNICUS_30" |
+|<i>coefficient</i> | Backscatter coefficient to compute. | <i>Sentinel 1</i> | "sigma0-ellipsoid" |
+
+### Example: extracting a tile from Sentinel2.
+
+Extracting a continuous tile from the Sentinel 2 collection.
+
+```python
+
+from openeo_gfmap import BoundingBoxExtent, SpatialContext, TemporalContext
+from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext, cdse_connection
+from openeo_gfmap.fetching import (
+    FetchType,
+    build_sentinel2_l2a_extractor,
+)
+
+SPATIAL_EXTENT = BoundingBoxExtent(
+    west=5.0515130512706845,
+    south=51.215806593713,
+    east=5.060320484557499,
+    north=51.22149744530769,
+    epsg=4326,
+)
+
+# Recent dates for first extent
+TEMPORAL_CONTEXT = ["2023-04-01", "2023-05-01"]
+
+# Bands to extract
+bands = [
+    "S2-L2A-B01",
+    "S2-L2A-B04",
+    "S2-L2A-B08",
+    "S2-L2A-B11",
+    "S2-L2A-SCL",
+    "S2-L2A-AOT",
+]
+
+context = BackendContext(Backend.CDSE)
+
+# Creating an OpenEO client connection
+connection = cdse_connection()
+
+fetcher = build_sentinel2_l2a_extractor(
+    backend_context=context, bands=bands, fetch_type=FetchType.TILE
+)
+
+cube = fetcher.get_cube(connection, spatial_extent, temporal_extent)
+
+# Create a job asynchronously or run it synchronously;
+```
+
+### Example: extracting sparse polygons from Sentinel2
+
+Extracting sparse polygons from a large extent in Sentinel2, note the parameters used used in this
+case.
+
+```python
+from pathlib import Path
+
+import geopandas as gpd
+import geojson
+
+POINTS_EXTRACTIONS_DF = Path(__file__).parent.parent / "tests/test_openeo_gfmap/resources/puglia_extractions_polygons.gpkg"
+
+# Converting the files to a Lat/LON GeoJSON format
+extraction_df = gpd.read_file(POINTS_EXTRACTIONS_DF)
+geojson_feats = extraction_df.geometry.__geo_interface__
+spatial_context = geojson.GeoJSON(
+    {"type": "FeatureCollection", "features": geojson_features["features"]}
+)
+
+# Alternatively, you can submit a GeoParquet file in an artifactory bucket and use it from a public
+# URL. This will allow you to specify polygons in a specific UTM projection.
+
+# Define the temporal context
+temporal_context = TemporalContext(
+    start_date=extraction_df.iloc[0]["start_date"],
+    end_date=extraction_df.iloc[0]["end_date"],
+)
+
+fetching_parameters = {
+    "target_crs": 3035,
+    "load_collection": {
+        "eo:cloud_cover": lambda val: val <= 80.0  # Max 80% cloud cover per product
+    }
+}
+
+fethcer = build_sentinel2_l2a_extractor(
+    backend_context=context,
+    bands=bands,
+    fetch_type=FetchType.POLYGON,
+    **fetching_parameters,
+)
+
+cube = fethcer.get_cube(connection, spatial_context, temporal_context)
+
+# Create a job asynchronously or run it synchronously;
+```
+
+### Example: extracting a dataset of points from Sentinel2
+
+Extracting a dataset of points is similar, however you will be required to add manually an aggregation operation after getting the cube from the fetcher.
+
+Whenever extracting points, processing is done as it if was a set of polygons of small size, allowing to use the same processes and workflow in OpenEO than whenever processing tiles or sparse polyongs. To get points, you then need to run an aggregating operation, for example: `cube.aggregate_spatial(spatial_context, reducer="mean")`.
+
+```python
+
+# Dataset of polygons for POINT based extraction
+POINT_EXTRACTION_DF = (
+    Path(__file__).parent.parent / "tests/test_openeo_gfmap/resources/malawi_extraction_polygons.gpkg"
+)
+
+extraction_df = gpd.read_file(POINT_EXTRACTION_DF)
+
+# Convert GeoDataFrame to feature collection to build spatial context
+geojson_features = extraction_df.geometry.__geo_interface__
+spatial_context = geojson.GeoJSON(
+    {"type": "FeatureCollection", "features": geojson_features["features"]}
+)
+
+# Build the temporal context
+temporal_context = TemporalContext(
+    start_date=extraction_df.iloc[0]["start_date"],
+    end_date=extraction_df.iloc[0]["end_date"],
+)
+
+extractor = build_sentinel2_l2a_extractor(
+    backend_context=context,
+    bands=bands,
+    fetch_type=FetchType.POINT,
+)
+
+cube = extractor.get_cube(connection, spatial_context, temporal_context)
+
+cube = cube.aggregate_spatial(spatial_context, reducer="mean")
+```
