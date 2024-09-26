@@ -122,7 +122,8 @@ def test_bap_masking(backend: Backend):
     for asset in job.get_results().get_assets():
         if asset.metadata["type"].startswith("application/x-netcdf"):
             asset.download(
-                Path(__file__).parent.parent / f"results/bap_composited_{backend.value}.nc"
+                Path(__file__).parent.parent
+                / f"results/bap_composited_{backend.value}.nc"
             )
 
 
