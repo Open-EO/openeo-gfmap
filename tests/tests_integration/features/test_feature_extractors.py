@@ -96,7 +96,9 @@ def test_patch_feature_udf(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
     backend_context = BackendContext(backend=backend)
 
-    output_path = Path(__file__).parent.parent / f"results/patch_features_{backend.value}.nc/"
+    output_path = (
+        Path(__file__).parent.parent / f"results/patch_features_{backend.value}.nc/"
+    )
 
     bands_to_extract = ["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02"]
 
@@ -140,7 +142,8 @@ def test_s1_rescale(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
     backend_context = BackendContext(backend=backend)
     output_path = (
-        Path(__file__).parent.parent / f"results/s1_rescaled_features_{backend.value}.nc"
+        Path(__file__).parent.parent
+        / f"results/s1_rescaled_features_{backend.value}.nc"
     )
 
     REDUCED_TEMPORAL_CONTEXT = TemporalContext(
@@ -183,7 +186,9 @@ def test_s1_rescale(backend: Backend):
 def test_latlon_extractor(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
     backend_context = BackendContext(backend=backend)
-    output_path = Path(__file__).parent.parent / f"results/latlon_features_{backend.value}.nc"
+    output_path = (
+        Path(__file__).parent.parent / f"results/latlon_features_{backend.value}.nc"
+    )
 
     REDUCED_TEMPORAL_CONTEXT = TemporalContext(
         start_date="2023-06-01", end_date="2023-06-30"

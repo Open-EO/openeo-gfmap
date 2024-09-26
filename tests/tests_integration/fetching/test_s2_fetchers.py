@@ -127,7 +127,8 @@ class TestS2Extractors:
             if backend == Backend.EODC:  # TODO fix EDOC backend first
                 continue
             tile_path = (
-                Path(__file__).parent.parent / f"results/{backend.value}_sentinel2_l2a.nc"
+                Path(__file__).parent.parent
+                / f"results/{backend.value}_sentinel2_l2a.nc"
             )
             loaded_tiles.append(xr.open_dataset(tile_path))
 
@@ -190,7 +191,8 @@ class TestS2Extractors:
         cube = cube.aggregate_spatial(spatial_context, reducer="mean")
 
         output_file = (
-            Path(__file__).parent.parent / f"results/points_{backend.value}_sentinel2_l2a.json"
+            Path(__file__).parent.parent
+            / f"results/points_{backend.value}_sentinel2_l2a.json"
         )
 
         cube.download(output_file, format="JSON")
@@ -231,7 +233,9 @@ class TestS2Extractors:
 
         cube = extractor.get_cube(connection, spatial_context, temporal_context)
 
-        output_folder = Path(__file__).parent.parent / f"results/polygons_s2_{backend.value}/"
+        output_folder = (
+            Path(__file__).parent.parent / f"results/polygons_s2_{backend.value}/"
+        )
         output_folder.mkdir(exist_ok=True, parents=True)
 
         job = cube.create_job(
