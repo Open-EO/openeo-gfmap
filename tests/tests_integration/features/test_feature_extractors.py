@@ -96,7 +96,7 @@ def test_patch_feature_udf(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
     backend_context = BackendContext(backend=backend)
 
-    output_path = Path(__file__).parent / f"results/patch_features_{backend.value}.nc/"
+    output_path = Path(__file__).parent.parent / f"results/patch_features_{backend.value}.nc/"
 
     bands_to_extract = ["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02"]
 
@@ -140,7 +140,7 @@ def test_s1_rescale(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
     backend_context = BackendContext(backend=backend)
     output_path = (
-        Path(__file__).parent / f"results/s1_rescaled_features_{backend.value}.nc"
+        Path(__file__).parent.parent / f"results/s1_rescaled_features_{backend.value}.nc"
     )
 
     REDUCED_TEMPORAL_CONTEXT = TemporalContext(
@@ -183,7 +183,7 @@ def test_s1_rescale(backend: Backend):
 def test_latlon_extractor(backend: Backend):
     connection = BACKEND_CONNECTIONS[backend]()
     backend_context = BackendContext(backend=backend)
-    output_path = Path(__file__).parent / f"results/latlon_features_{backend.value}.nc"
+    output_path = Path(__file__).parent.parent / f"results/latlon_features_{backend.value}.nc"
 
     REDUCED_TEMPORAL_CONTEXT = TemporalContext(
         start_date="2023-06-01", end_date="2023-06-30"
@@ -225,7 +225,7 @@ def test_latlon_extractor(backend: Backend):
 
 # TODO; will local processing be part of the API?
 def test_patch_feature_local():
-    input_path = Path(__file__).parent / "resources/test_optical_cube.nc"
+    input_path = Path(__file__).parent.parent / "resources/test_optical_cube.nc"
 
     inds = (
         xr.open_dataset(input_path)
@@ -239,6 +239,6 @@ def test_patch_feature_local():
         DummyPatchExtractor, inds, parameters={"GEO-EPSG": 32631}
     )
 
-    features.to_netcdf(Path(__file__).parent / "results/patch_features_local.nc")
+    features.to_netcdf(Path(__file__).parent.parent / "results/patch_features_local.nc")
 
     assert set(features.bands.values) == set(["red", "green", "blue"])

@@ -27,7 +27,7 @@ from openeo_gfmap.utils import (
 
 # TODO to centralize
 # Retrieve the test parameters from the s2 fetcher tests
-from tests.tests_integration.test_s2_fetchers import (
+from test_s2_fetchers import (
     POINT_EXTRACTION_DF,
     test_backends,
     test_configurations,
@@ -71,7 +71,7 @@ class TestS1Extractors:
         cube = compress_backscatter_uint16(context, cube)
 
         output_file = (
-            Path(__file__).parent / f"results/{backend.value}_sentinel1_grd.nc"
+            Path(__file__).parent.parent / f"results/{backend.value}_sentinel1_grd.nc"
         )
 
         job = cube.create_job(
@@ -106,7 +106,7 @@ class TestS1Extractors:
         loaded_tiles = []
         for backend in backend_types:
             tile_path = (
-                Path(__file__).parent / f"results/{backend.value}_sentinel1_grd.nc"
+                Path(__file__).parent.parent / f"results/{backend.value}_sentinel1_grd.nc"
             )
             loaded_tiles.append(xr.open_dataset(tile_path))
 
@@ -177,7 +177,7 @@ class TestS1Extractors:
         cube = cube.aggregate_spatial(spatial_context, reducer="mean")
 
         output_file = (
-            Path(__file__).parent / f"results/points_{backend.value}_sentinel1_grd.nc"
+            Path(__file__).parent.parent / f"results/points_{backend.value}_sentinel1_grd.nc"
         )
 
         cube.download(output_file, format="JSON")
@@ -228,7 +228,7 @@ class TestS1Extractors:
         cube = extractor.get_cube(connection, spatial_context, temporal_context)
         cube = compress_backscatter_uint16(context, cube)
 
-        output_folder = Path(__file__).parent / f"results/polygons_s1_{backend.value}/"
+        output_folder = Path(__file__).parent.parent / f"results/polygons_s1_{backend.value}/"
         output_folder.mkdir(exist_ok=True, parents=True)
 
         job = cube.create_job(
