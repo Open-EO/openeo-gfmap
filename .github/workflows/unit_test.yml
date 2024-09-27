@@ -31,9 +31,9 @@ jobs:
       run: |
         pip install hatchling
 
-    - name: Install dependencies
+    - name: Install dependencies and pytest
       run: |
-        pip install .[dev]  # This will install all dependencies including optional dev dependencies
+        pip install .[dev] pytest  # This installs both dev dependencies and pytest explicitly
 
     - name: Run Unit Tests
       run: |
