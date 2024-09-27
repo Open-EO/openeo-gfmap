@@ -27,13 +27,11 @@ jobs:
         python-version: ${{ matrix.python-version }}  # Use Python version from the matrix
         cache: 'pip'
 
-    - name: Install Hatchling (build system)
-      run: |
-        pip install hatchling
-
     - name: Install dependencies and pytest
       run: |
-        pip install .[dev] pytest  # This installs both dev dependencies and pytest explicitly
+        python -m pip install --upgrade pip
+        python -m pip install pytest
+        python -m pip install .[dev]
 
     - name: Run Unit Tests
       run: |
