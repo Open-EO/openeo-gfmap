@@ -21,8 +21,7 @@ from openeo_gfmap.inference.model_inference import (
 )
 from openeo_gfmap.preprocessing.cloudmasking import mask_scl_dilation
 from openeo_gfmap.preprocessing.compositing import median_compositing
-
-from .utils import load_dataarray_url
+from tests.utils.helpers import load_dataarray_url
 
 spatial_context = BoundingBoxExtent(
     west=5.0, south=51.2, east=5.025, north=51.225, epsg=4326
@@ -61,7 +60,8 @@ def test_onnx_inference_local():
     assert output.shape == (1, 256, 256)
     assert len(np.unique(output.values)) == 3
 
-    output_path = Path(__file__).parent / "results/test_onnx_inference_local.nc"
+    output_path = Path(__file__).parent.parent / "results/test_onnx_inference_local.nc"
+    print(output_path)
     output.to_netcdf(output_path)
 
 
@@ -113,7 +113,7 @@ def test_onnx_inference():
         ],
     )
 
-    output_path = Path(__file__).parent / "results/test_onnx_inference.tif"
+    output_path = Path(__file__).parent.parent / "results/test_onnx_inference.tif"
 
     # Download the results as tif file.
     job = cube.create_job(

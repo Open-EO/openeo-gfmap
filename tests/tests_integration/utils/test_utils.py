@@ -45,7 +45,8 @@ def mock_query_cdse_catalogue(
     hash_value = hashlib.sha256(combined_arguments.encode()).hexdigest()
 
     src_path = (
-        Path(__file__).parent / f"resources/{hash_value[:8]}_query_cdse_results.json"
+        Path(__file__).parent.parent
+        / f"resources/{hash_value[:8]}_query_cdse_results.json"
     )
 
     if not src_path.exists():
