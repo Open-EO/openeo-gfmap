@@ -3,10 +3,10 @@ name: Run Unit Tests
 on:
   push:
     branches:
-      - '*'      # Trigger on every branch
+      - '*'  # or specific branches you want to include
   pull_request:
     branches:
-      - '*'      # Trigger on pull requests for any branch
+      - '*'  # same here
 
 jobs:
   unit_tests:
@@ -15,11 +15,11 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.9, 3.11, 3.13 ]  # List of Python versions to test
+        python-version: [3.9, 3.11, 3.12]  
 
     steps:
     - name: Checkout the repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3  # Updated to v3
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -35,6 +35,4 @@ jobs:
 
     - name: Run Unit Tests
       run: |
-        python -m pytest tests/tests_unit  # Adjust the path if necessary
-      env:
-        PYTHONPATH: .  # Set PYTHONPATH to include your project root (if needed for imports)
+        python -m pytest tests/tests_unit  # Ensure the path is correct
