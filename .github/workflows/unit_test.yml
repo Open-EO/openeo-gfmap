@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: [3.10.0, 3.11.0, 3.12.0]  # List of Python versions to test
+        python-version: [3.10.5, 3.11, 3.12, 3.13, 3.14]  # List of Python versions to test
 
     steps:
     - name: Checkout the repository
