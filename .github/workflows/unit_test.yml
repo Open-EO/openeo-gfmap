@@ -1,0 +1,38 @@
+name: Run Unit Tests
+
+on:
+  push:
+    branches:
+      - '*'  # or specific branches you want to include
+  pull_request:
+    branches:
+      - '*'  # same here
+
+jobs:
+  unit_tests:
+    name: Run Unit Tests on Multiple Python Versions
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.9, 3.11, 3.12]  
+
+    steps:
+    - name: Checkout the repository
+      uses: actions/checkout@v3  # Updated to v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}  # Use Python version from the matrix
+        cache: 'pip'
+
+    - name: Install dependencies and pytest
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest
+        python -m pip install .[dev]
+
+    - name: Run Unit Tests
+      run: |
+        python -m pytest tests/tests_unit  # Ensure the path is correct
