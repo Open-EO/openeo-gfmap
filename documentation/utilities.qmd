@@ -1,0 +1,27 @@
+---
+title: "Utilities"
+---
+
+There are several utilies implemented in OpenEO GFMAP
+
+
+## Source catalogue related utilities
+
+* `select_s1_orbitstate_vvvh`: Allows you to choose which is the best orbit to select from a SENTINEL1 catalogue between "ASCENDING" and "DESCENDING" from a spatio-temporal context. Works at the moment only for the `CDSE`, `CDSE-STAGING` and `FED` backend, as it is using CloudFerro's catalogues. Is using a multitude of factors, please refer to the functions docstring.
+
+
+## Intervals
+
+* `quintad_intervals`: Allows you to compute 5-days interval that never overarch two months, similarly to "dekad" (10-days) intervals.
+
+## STAC catalogues
+
+* `split_collection_by_epsg`: Splits a given stac catalogue or path to a stac catalogue into multiple catalogues based on the local projection of each item.
+
+## Build dataframe
+
+* Builds a proper dataframe from a geojson result (from a VectorCube).
+
+## NetCDF
+
+* `update_nc_attributes`: Allows to update the attributes of a netcdf file without needing to rewrite it (useful for large files).
