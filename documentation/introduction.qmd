@@ -1,0 +1,49 @@
+---
+title: "OpenEO General Framework for Mapping"
+---
+
+## Introduction
+
+OpenEO GFMAP is a centralized repository of tools and utilities to build mapping pipelines with OpenEO. It is designed with four core principles in mind:
+
+1. <b>Backend agnostic</b>: The users shouldn’t have to take care of backend related configurations. The use of OpenEO can vary depending on the backend that is currently in use (for example, the name of data collections). The framework takes care of those differences, while the users only specify the backend they desire to use.
+
+2. <b>Data consistent</b>: providing a common pipeline for training and for inference. The best way of making sure data is processed the same way during the construction of a training dataset than during inference, is to re-use as much as code as possible. The users should be able to extract and preprocess training data with the same configuration. OpenEO leaves the possibility to perform data extraction on sparse points/polygons or directly on dense datacubes. This leaves the possibility to implement a framework that could do both tile-based inference and pixel-based or parcel-based data extraction/preprocessing using the same code.
+
+3. <b>Easy and Collaborative</b>: Pre-implementing common preprocessing/postprocessing routines. Many operations, such a compositing or linear interpolation, are very common within Remote Sensing applications and should be already implemented in the framework. This will avoid code duplication among the personal code of the framework’s users and encourage collaboration for improvement and optimization of existing techniques.
+
+4. <b>Performant</b>: Leverage OpenEO processes as much as possible for preprocessing. In the cropclass and worldcereal projects, preprocessing is performed with a combination of OpenEO processes (masking, compositing, linear interpolation) and the implementation of a Feature Extractor within an UDF (computing indices, percentiles). Ideally, OpenEO features should be used as much as possible, while the features extractor should be as simple as possible, only implementing what is currently not possible within OpenEO.
+
+
+## How can I use GFMAP for my mapping project.
+
+Nowadays, mapping projects use Machine Learning moders to perform predictions. From large data catalogues (Sentinel2, Sentinel1, ...) data is being processed and then used to perform training or inference.
+
+One of the core difficulties lies in the workflow difference between training and inference. For example, a Ground Truth dataset could be based of sparse points scattered aroud a region, while the inference objective is to produce continuous raster maps. The data used for the training could be extracted and collected into a DataFrame, while GeoTiff or NetCDF files should be used for the input/outputs of the inference workflow. Very often, both workflows are distributed around different members of a team: while the data scientist will concentrate on the training of the model, the data engineer needs to design an efficient inference workflow to produce global maps.
+
+It is therefore crucial to ensure that both workflows go through as many common code paths as possible. In this way, both pipelines can process the different data types the same way. This reflects the <b>Data Consistent</b> core principle of GFMAP.
+
+Another aspect is the scalability: While OpenEO supports processing over large areas, there are limitations in how big an extent should be for every job. OpenEO GFMAP provides utilities to split, manage and archive thousands of jobs at the same time. For example, croptype data of WorldCereal consits of hundres of thousands of points scattered around the globe. In order to perform efficient extraction, GFMAP is used to split the datasets in sub-datasets based on a specific extent, then the Job Manager of GFMAP runs the jobs, tracks their status and automatically manages their assets and their STAC metadata once the job is finished.
+
+For a <u>training workflow</u> the Data Fetching, Preprocessing, Features and Job Manager sections are worth a read.
+
+For a <u>inference workflow</u> all the above as well as the Inference features are interesting.
+
+![OpenEO GFMAP Core Worklow](data/worklow.png)
+
+## Sections
+
+This documentation covers the different building blocks that an user can use on OpenEO GFMAP:
+
+* [Data Fetching](fetching.qmd): Allows to fetch multiple data sources and performs source specific preprocessing (backscatter computation for Sentinel1, resolution resampling, ...).
+* [Preprocessing](preprocessing.qmd): Offers preprocessing functionalities common to all data sources.
+* [Features](features.qmd): Assists in the creation of an UDF to compute features. Reducing the `(bands, time)` dimension into `features` (running PCA, Foundation Models, Vegetation indices...).
+* [Inference](inference.qmd): Assists in the creation of an UDF to run a classification/regression model to transform the `features` into predictions.
+* [Managers](managers.qmd): Split large tasks into multiple jobs, tracks the jobs, manage their STAC metadata and their assets.
+* [Utils](utils.qmd): Miscalleneous utilities (choosing the best Sentinel1 orbit, managing STAC catalogues, working with NetCDF files...)
+
+## Related projects
+
+The following projects were build using OpenEO GFMAP:
+
+* WorldCereal: An user-friendly global croptype mapping framework. [(Public GitHub project)](https://github.com/WorldCereal/worldcereal-classification/)
