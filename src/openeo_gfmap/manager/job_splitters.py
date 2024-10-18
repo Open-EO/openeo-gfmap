@@ -113,7 +113,7 @@ def append_h3_index(
     geom_col = geom_col.to_crs(epsg=4326)
 
     polygons["h3index"] = geom_col.apply(
-        lambda pt: h3.geo_to_h3(pt.y, pt.x, grid_resolution)
+        lambda pt: h3.latlng_to_cell(pt.y, pt.x, grid_resolution)
     )
     return polygons
 
