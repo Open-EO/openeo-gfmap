@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 import xarray as xr
+import openeo
 
 from openeo_gfmap import BoundingBoxExtent, FetchType, TemporalContext
 from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
@@ -27,8 +28,20 @@ SPATIAL_CONTEXT = BoundingBoxExtent(
 )
 TEMPORAL_EXTENT = TemporalContext("2023-10-01", "2024-01-01")
 
-backends = [Backend.CDSE]
+backend = Backend.CDSE
 
+@pytest.fixture
+def connection():
+    """Fixture to create a connection for the fixed backend."""
+    conn = BACKEND_CONNECTIONS[backend]()
+    # Assuming authenticate_oidc is needed; you can adjust this based on your context.
+    conn.authenticate_oidc()
+    return conn
+
+@pytest.fixture
+def backend_context(connection):
+    """Fixture to create backend context."""
+    return BackendContext(backend=backend)
 
 class DummyPatchExtractor(PatchFeatureExtractor):
     def output_labels(self) -> list:
@@ -91,10 +104,7 @@ class LatLonExtractor(PatchFeatureExtractor):
 # TODO; A convoluted test. I would write unit test functions for the functionalities defined within the Feature extractor class.
 # Then we can adapt this test to an integration/regression test
 # Is the idea to test the extractor? We want to catch data unavailibility?
-@pytest.mark.parametrize("backend", backends)
-def test_patch_feature_udf(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
-    backend_context = BackendContext(backend=backend)
+def test_patch_feature_udf(connection, backend_context):
 
     output_path = (
         Path(__file__).parent.parent / f"results/patch_features_{backend.value}.nc/"
@@ -137,10 +147,7 @@ def test_patch_feature_udf(backend: Backend):
 
 
 # TODO Similar as above, but for S1
-@pytest.mark.parametrize("backend", backends)
-def test_s1_rescale(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
-    backend_context = BackendContext(backend=backend)
+def test_s1_rescale(connection, backend_context):
     output_path = (
         Path(__file__).parent.parent
         / f"results/s1_rescaled_features_{backend.value}.nc"
@@ -182,10 +189,7 @@ def test_s1_rescale(backend: Backend):
 
 
 # TODO Replace by unit test on the functionalities defined in PatchFeatureExtractor/PointFeatureExtractor
-@pytest.mark.parametrize("backend", backends)
-def test_latlon_extractor(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
-    backend_context = BackendContext(backend=backend)
+def test_latlon_extractor(connection, backend_context):
     output_path = (
         Path(__file__).parent.parent / f"results/latlon_features_{backend.value}.nc"
     )
