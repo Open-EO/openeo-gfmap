@@ -8,7 +8,7 @@ import requests
 from pyproj.crs import CRS
 from rasterio.warp import transform_bounds
 from requests import adapters
-from shapely.geometry import box, Point, shape
+from shapely.geometry import Point, box, shape
 from shapely.ops import unary_union
 
 from openeo_gfmap import (
@@ -206,7 +206,7 @@ def s1_area_per_orbitstate_vvvh(
         ]
         if len(shapely_geometries) == 1 and isinstance(shapely_geometries[0], Point):
             point = shapely_geometries[0]
-            buffer_size = 0.0001 
+            buffer_size = 0.0001
             buffered_geometry = point.buffer(buffer_size)
             bounds = buffered_geometry.bounds
         else:
