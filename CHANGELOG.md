@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+Fixed bug where `s1_area_per_orbitstate_vvvh` failed for FeatureCollections containing a single point
 
 ## [0.2.0] - 2024-10-10
 
