@@ -1,0 +1,8 @@
+---
+title: "Preprocessing utilities"
+---
+
+The functions available in the `openeo_gfmap.preprocessing` submodule are mostly wrappers around OpenEO's processes. While GFMAP offers nothing new in terms of compositing, interpolation and band scaling, it collects a series of interesting tools not yet implemented natively in OpenEO:
+
+* Cloud Masking: Best Available Pixel (BAP) Cloud Masking, Deep Learning Cloud Masking (to come soon?)
+* SAR Preprocessing: Transform floating values of SAR backscatter into a compressed uint16 representation.

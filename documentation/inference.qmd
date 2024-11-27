@@ -1,0 +1,15 @@
+---
+title: "Model Inference"
+---
+
+Once features are computed, models predictions (classification, regression) are done in the Model Inference class.
+
+While being similar in logic on how the [Feature Extractor](features.qmd) is working, the Model Inference doesn't reduce 4 dimensions into 3 but insteads transforms the `features` dimensions in `predictions`.
+
+Essentially, a Model Inference class will load a model run inference and write probabilities. It can also be used to perfrom Postprocessing on predictions, as done in [WorldCereal](https://github.com/WorldCereal/worldcereal-classification/blob/main/src/worldcereal/openeo/postprocess.py).
+
+### Running a model inference.
+
+An example of a ModelInference to perform predictions can be found [here](https://github.com/WorldCereal/worldcereal-classification/blob/main/src/worldcereal/openeo/inference.py#L86). As whenever implementing a `FeatureExtractor`, two functions need to be at minimum implemented: `output_labels` and `execute`. The execute function is expected to return a 3D cube, with the dimensions `(bands, x, y)`.
+
+To then run a model inference class, use the function `openeo_gfmap.inference.model_inferece.apply_model_inference`.
