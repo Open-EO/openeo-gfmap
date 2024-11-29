@@ -17,9 +17,6 @@ from pystac import CatalogType
 from openeo_gfmap.manager import _log
 from openeo_gfmap.stac import constants
 
-# Lock to use when writing to the STAC collection
-_stac_lock = Lock()
-
 
 def retry_on_exception(max_retries: int, delay_s: int = 180):
     """Decorator to retry a function if an exception occurs.
@@ -132,6 +129,8 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._catalogue_cache = output_dir / "catalogue_cache.bin"
 
         self.stac = stac
+        if stac is not None:
+            self.lock = Lock()
         self.stac_enabled = stac_enabled
         self.collection_id = collection_id
         self.collection_description = collection_description
@@ -258,7 +257,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                     "Resuming postprocessing of job %s, queueing on_job_finished...",
                     row.id,
                 )
-                future = self._executor.submit(self.on_job_done, job, row, _stac_lock)
+                future = self._executor.submit(self.on_job_done, job, row)
                 future.add_done_callback(
                     partial(
                         done_callback,
@@ -327,7 +326,7 @@ class GFMAPJobManager(MultiBackendJobManager):
                     "Job %s finished successfully, queueing on_job_done...", job.job_id
                 )
                 job_status = "postprocessing"
-                future = self._executor.submit(self.on_job_done, job, row, _stac_lock)
+                future = self._executor.submit(self.on_job_done, job, row)
                 # Future will setup the status to finished when the job is done
                 future.add_done_callback(
                     partial(
@@ -416,9 +415,7 @@ class GFMAPJobManager(MultiBackendJobManager):
             )
 
     @retry_on_exception(max_retries=2, delay_s=30)
-    def on_job_done(
-        self, job: BatchJob, row: pd.Series, lock: Lock
-    ):  # pylint: disable=arguments-differ
+    def on_job_done(self, job: BatchJob, row: pd.Series):
         """Method called when a job finishes successfully. It will first download the results of
         the job and then call the `post_job_action` method.
         """
@@ -491,7 +488,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         _log.info("Adding %s items to the STAC collection...", len(job_items))
 
         if self.stac_enabled:
-            with lock:
+            with self.lock:
                 self._update_stac(job.job_id, job_items)
 
         _log.info("Job %s and post job action finished successfully.", job.job_id)
