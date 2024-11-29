@@ -129,8 +129,7 @@ class GFMAPJobManager(MultiBackendJobManager):
         self._catalogue_cache = output_dir / "catalogue_cache.bin"
 
         self.stac = stac
-        if stac is not None:
-            self.lock = Lock()
+        self.lock = Lock()
         self.stac_enabled = stac_enabled
         self.collection_id = collection_id
         self.collection_description = collection_description
