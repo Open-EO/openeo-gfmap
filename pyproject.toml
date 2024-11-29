@@ -33,7 +33,7 @@ dependencies = [
     "geojson>=3.0.0",
     "geopandas",
     "h5netcdf>=1.2.0",
-    "openeo",
+    "openeo<=0.35",
     "onnxruntime",
     "cftime",
     "pyarrow",

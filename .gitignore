@@ -163,3 +163,4 @@ cython_debug/
 tests/test_openeo_gfmap/results/
 notebook/
 data/
+tests/tests_integration/results/*
