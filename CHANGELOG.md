@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
+- Job Manager automatically tries to extract CPU and duration from the job metadata and add it to the job tracker
 ### Changed
 
 ### Removed
