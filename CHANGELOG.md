@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
-Fixed bug where `s1_area_per_orbitstate_vvvh` failed for FeatureCollections containing a single point
+- Fixed bug where `s1_area_per_orbitstate_vvvh` failed for FeatureCollections containing a single point
+- Fixed bug where gfmap didn't work with the latest version of the openeo-python-client
 
 ## [0.2.0] - 2024-10-10
 
