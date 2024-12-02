@@ -342,10 +342,20 @@ class GFMAPJobManager(MultiBackendJobManager):
                         .get("max_executor_memory", {})
                         .get("value", None)
                     )
+                    df.loc[idx, "cpu"] = (
+                        job_metadata["usage"]
+                        .get("cpu", {})
+                        .get("value", None)
+                    )
+                    df.loc[idx, "duration"] = (
+                        job_metadata["usage"]
+                        .get("duration", {})
+                        .get("value", None)
+                    )
 
                 else:
                     _log.warning(
-                        "Costs not found in job %s metadata. Costs will be set to 'None'.",
+                        "Costs not found in job %s metadata. Costs, memory, cpu and duration will be set to 'None'.",
                         job.job_id,
                     )
 
