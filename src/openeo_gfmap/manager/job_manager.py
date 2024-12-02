@@ -343,14 +343,10 @@ class GFMAPJobManager(MultiBackendJobManager):
                         .get("value", None)
                     )
                     df.loc[idx, "cpu"] = (
-                        job_metadata["usage"]
-                        .get("cpu", {})
-                        .get("value", None)
+                        job_metadata["usage"].get("cpu", {}).get("value", None)
                     )
                     df.loc[idx, "duration"] = (
-                        job_metadata["usage"]
-                        .get("duration", {})
-                        .get("value", None)
+                        job_metadata["usage"].get("duration", {}).get("value", None)
                     )
 
                 else:
