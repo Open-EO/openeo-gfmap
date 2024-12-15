@@ -420,29 +420,32 @@ class GFMAPJobManager(MultiBackendJobManager):
         """
 
         job_products = {}
-        for idx, asset in enumerate(job.get_results().get_assets()):
+        job_results = job.get_results()
+        asset_ids = [a.name for a in job_results.get_assets()]
+        for idx, asset_id in enumerate(asset_ids):
             try:
+                asset = job_results.get_asset(asset_id)
                 _log.debug(
                     "Generating output path for asset %s from job %s...",
-                    asset.name,
+                    asset_id,
                     job.job_id,
                 )
-                output_path = self._output_path_gen(self._output_dir, idx, row)
+                output_path = self._output_path_gen(self._output_dir, idx, row, asset_id)
                 # Make the output path
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 asset.download(output_path)
                 # Add to the list of downloaded products
-                job_products[f"{job.job_id}_{asset.name}"] = [output_path]
+                job_products[f"{job.job_id}_{asset_id}"] = [output_path]
                 _log.debug(
                     "Downloaded %s from job %s -> %s",
-                    asset.name,
+                    asset_id,
                     job.job_id,
                     output_path,
                 )
             except Exception as e:
                 _log.exception(
                     "Error downloading asset %s from job %s:\n%s",
-                    asset.name,
+                    asset_id,
                     job.job_id,
                     e,
                 )
