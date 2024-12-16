@@ -430,7 +430,9 @@ class GFMAPJobManager(MultiBackendJobManager):
                     asset_id,
                     job.job_id,
                 )
-                output_path = self._output_path_gen(self._output_dir, idx, row, asset_id)
+                output_path = self._output_path_gen(
+                    self._output_dir, idx, row, asset_id
+                )
                 # Make the output path
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 asset.download(output_path)
