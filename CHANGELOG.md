@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-- `ouput_path_generator` in `GFMapJobManager.on_job_done` now requires `sample_id` as a keyword argument
+- `ouput_path_generator` in `GFMapJobManager.on_job_done` now requires `asset_id` as a keyword argument
 ### Removed
 
 ### Fixed
