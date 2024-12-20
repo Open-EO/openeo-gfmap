@@ -1,9 +1,9 @@
 """Routines to pre-process sar signals."""
 
 import openeo
-from openeo.processes import array_create, if_, is_nodata, power
+from openeo.processes import array_create, power
 
-from openeo_gfmap import Backend, BackendContext
+from openeo_gfmap import BackendContext
 
 
 def compress_backscatter_uint16(
