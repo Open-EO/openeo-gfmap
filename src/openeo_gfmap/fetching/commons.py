@@ -114,7 +114,7 @@ def _load_collection(
     bands: list,
     collection_name: str,
     spatial_extent: SpatialContext,
-    temporal_extent: Optional[TemporalContext],
+    temporal_extent: Optional[Union[TemporalContext,Parameter]],
     fetch_type: FetchType,
     is_stac: bool = False,
     **params,
@@ -127,16 +127,18 @@ def _load_collection(
         _load_collection_hybrid, is_stac=is_stac, collection_id_or_url=collection_name
     )
 
+    spatial_is_param = isinstance(spatial_extent, Parameter)
+
     if (
-        temporal_extent is not None
+        temporal_extent is not None and not isinstance(temporal_extent, Parameter)
     ):  # Can be ignored for intemporal collections such as DEM
         temporal_extent = [temporal_extent.start_date, temporal_extent.end_date]
 
     if fetch_type == FetchType.TILE:
         assert isinstance(
             spatial_extent, BoundingBoxExtent
-        ), "Please provide only a bounding box for tile based fetching."
-        spatial_extent = dict(spatial_extent)
+        ) or spatial_is_param, "Please provide only a bounding box for tile based fetching."
+        spatial_extent = spatial_extent if spatial_is_param else dict(spatial_extent)
         cube = load_collection_method(
             connection=connection,
             bands=bands,
