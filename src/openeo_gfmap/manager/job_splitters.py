@@ -8,6 +8,7 @@ from typing import List
 import geopandas as gpd
 import h3
 import requests
+import s2sphere
 
 from openeo_gfmap.manager import _log
 
@@ -196,3 +197,81 @@ def split_job_hex(
             split_datasets.append(sub_gdf.reset_index(drop=True))
 
     return split_datasets
+
+
+def split_job_s2geo(gdf: gpd.GeoDataFrame, max_points=500, start_level=8)-> List[gpd.GeoDataFrame]:
+    """
+    EXPERIMENTAL
+    Split a GeoDataFrame into multiple groups based on the S2geometry cell ID of each geometry. 
+    
+    S2geometry is a library that provides a way to index and query spatial data. This function splits 
+    the GeoDataFrame into groups based on the S2 cell ID of each geometry, based on it's centroid. 
+    
+    If a cell contains more points than max_points, it will be recursively split into
+    smaller cells until each cell contains at most max_points points.
+
+    More information on S2geometry can be found at https://s2geometry.io/
+    An overview of the S2 cell hierarchy can be found at https://s2geometry.io/resources/s2cell_statistics.html
+
+    :param gdf: GeoDataFrame containing points to split
+    :param max_points: Maximum number of points per group
+    :param start_level: Starting S2 cell level
+    :return: List of GeoDataFrames containing the split groups  
+    """
+    if "geometry" not in gdf.columns:
+        raise ValueError("The GeoDataFrame must contain a 'geometry' column.")
+
+    if gdf.crs is None:
+        raise ValueError("The GeoDataFrame must contain a CRS")
+
+    original_crs = gdf.crs
+
+    gdf = gdf.to_crs(epsg=4326)
+
+    gdf["centroid"] = gdf.geometry.centroid
+
+    # Create a dictionary to store points by their S2 cell ID
+    cell_dict = {}
+
+    # Iterate over each point in the GeoDataFrame
+    for idx, row in gdf.iterrows():
+        # Get the S2 cell ID for the point at a given level
+        cell_id = _get_s2cell_id(row.centroid, start_level)
+
+        if cell_id not in cell_dict:
+            cell_dict[cell_id] = []
+
+        cell_dict[cell_id].append(row)
+
+    result_groups = []
+
+    # Function to recursively split cells if they contain more points than max_points
+    def split_s2cell(cell_id, points, current_level=start_level):
+        if len(points) <= max_points:
+            if len(points) > 0:
+                points = gpd.GeoDataFrame(points, crs="EPSG:4326")
+                points = points.set_geometry("geometry").to_crs(original_crs).drop(columns=["centroid"])
+                points["s2_cell_id"] = cell_id
+                points["s2_cell_level"] = current_level
+                result_groups.append(gpd.GeoDataFrame(points))
+        else:
+            children = s2sphere.CellId(cell_id).children()
+            child_cells = {child.id(): [] for child in children}
+
+            for point in points:
+                child_cell_id = _get_s2cell_id(point.centroid, current_level + 1)
+                child_cells[child_cell_id].append(point)
+
+            for child_cell_id, child_points in child_cells.items():
+                split_s2cell(child_cell_id, child_points, current_level + 1)
+
+    # Split cells that contain more points than max_points
+    for cell_id, points in cell_dict.items():
+        split_s2cell(cell_id, points)
+
+    return result_groups
+
+def _get_s2cell_id(point, level):
+    lat, lon = point.y, point.x
+    cell_id = s2sphere.CellId.from_lat_lng(s2sphere.LatLng.from_degrees(lat, lon)).parent(level)
+    return cell_id.id()
