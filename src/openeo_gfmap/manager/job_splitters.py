@@ -40,6 +40,38 @@ def load_s2_grid(web_mercator: bool = False) -> gpd.GeoDataFrame:
     return gpd.read_parquet(gdf_path)
 
 
+def load_s2_grid_centroids(web_mercator: bool = False) -> gpd.GeoDataFrame:
+    """Returns a geo data frame from the S2 grid centroids."""
+    # Builds the path where the geodataframe should be
+    if not web_mercator:
+        gdf_path = (
+            Path.home() / ".openeo-gfmap" / "s2grid_bounds_4326_centroids.geoparquet"
+        )
+        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds_4326_centroids.geoparquet"
+    else:
+        gdf_path = (
+            Path.home() / ".openeo-gfmap" / "s2grid_bounds_3857_centroids.geoparquet"
+        )
+        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds_3857_centroids.geoparquet"
+
+    if not gdf_path.exists():
+        _log.info("S2 grid centroids not found, downloading it from artifactory.")
+        # Downloads the file from the artifactory URL
+        gdf_path.parent.mkdir(exist_ok=True)
+        response = requests.get(
+            url,
+            timeout=180,  # 3mins
+        )
+        if response.status_code != 200:
+            raise ValueError(
+                "Failed to download the S2 grid centroids from the artifactory. "
+                f"Status code: {response.status_code}"
+            )
+        with open(gdf_path, "wb") as f:
+            f.write(response.content)
+    return gpd.read_parquet(gdf_path)
+
+
 def _resplit_group(
     polygons: gpd.GeoDataFrame, max_points: int
 ) -> List[gpd.GeoDataFrame]:
@@ -79,9 +111,8 @@ def split_job_s2grid(
 
     polygons["centroid"] = polygons.geometry.centroid
 
-    # Dataset containing all the S2 tiles, find the nearest S2 tile for each point
-    s2_grid = load_s2_grid(web_mercator)
-    s2_grid["geometry"] = s2_grid.geometry.centroid
+    # Dataset containing all the S2 tile centroids, find the nearest S2 tile for each point
+    s2_grid = load_s2_grid_centroids(web_mercator)
 
     s2_grid = s2_grid[s2_grid.cdse_valid]
 
