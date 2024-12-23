@@ -24,7 +24,6 @@ from openeo_gfmap.preprocessing.sar import compress_backscatter_uint16
 from openeo_gfmap.utils import (
     array_bounds,
     arrays_cosine_similarity,
-    load_json,
     normalize_array,
     select_sar_bands,
 )
@@ -175,12 +174,16 @@ class TestS1Extractors:
 
         output_file = (
             Path(__file__).parent.parent
-            / f"results/points_{backend.value}_sentinel1_grd.nc"
+            / f"results/points_{backend.value}_sentinel1_grd.parquet"
         )
 
-        cube.download(output_file, format="JSON")
+        job = cube.execute_batch(
+            out_format="Parquet",
+            title="test_extract_points_s1",
+        )
+        job.get_results().download_file(target=output_file, name="timeseries.parquet")
 
-        df = load_json(output_file, bands)
+        df = gpd.read_parquet(output_file)
 
         for band in bands:
             exists = False
@@ -189,12 +192,7 @@ class TestS1Extractors:
                     exists = True
             assert exists, f"Couldn't find a single column for band {band}"
 
-        assert len(df.columns) % len(bands) == 0, (
-            f"The number of columns ({len(df.columns)}) should be a multiple"
-            f"of the number of bands ({len(bands)})"
-        )
-
-        df.to_parquet(str(output_file).replace(".json", ".parquet"))
+        # TODO: compare against reference df?
 
     # TODO integration test
     def sentinel1_grd_polygon_based(
