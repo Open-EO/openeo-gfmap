@@ -226,10 +226,18 @@ def split_job_s2sphere(
 
     if gdf.crs is None:
         raise ValueError("The GeoDataFrame must contain a CRS")
+
+    # Store the original CRS of the GeoDataFrame and reproject to EPSG:3857
     original_crs = gdf.crs
+    gdf = gdf.to_crs(epsg=3857)
 
     # Add a centroid column to the GeoDataFrame and convert it to EPSG:4326
     gdf["centroid"] = gdf.geometry.centroid
+
+    # Reproject the GeoDataFrame to its orginial CRS
+    gdf = gdf.to_crs(original_crs)
+
+    # Set the GeoDataFrame's geometry to the centroid column and reproject to EPSG:4326
     gdf = gdf.set_geometry("centroid")
     gdf = gdf.to_crs(epsg=4326)
 
