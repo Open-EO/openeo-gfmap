@@ -199,14 +199,16 @@ def split_job_hex(
     return split_datasets
 
 
-def split_job_s2sphere(gdf: gpd.GeoDataFrame, max_points=500, start_level=8)-> List[gpd.GeoDataFrame]:
+def split_job_s2sphere(
+    gdf: gpd.GeoDataFrame, max_points=500, start_level=8
+) -> List[gpd.GeoDataFrame]:
     """
     EXPERIMENTAL
-    Split a GeoDataFrame into multiple groups based on the S2geometry cell ID of each geometry. 
-    
-    S2geometry is a library that provides a way to index and query spatial data. This function splits 
-    the GeoDataFrame into groups based on the S2 cell ID of each geometry, based on it's centroid. 
-    
+    Split a GeoDataFrame into multiple groups based on the S2geometry cell ID of each geometry.
+
+    S2geometry is a library that provides a way to index and query spatial data. This function splits
+    the GeoDataFrame into groups based on the S2 cell ID of each geometry, based on it's centroid.
+
     If a cell contains more points than max_points, it will be recursively split into
     smaller cells until each cell contains at most max_points points.
 
@@ -216,19 +218,19 @@ def split_job_s2sphere(gdf: gpd.GeoDataFrame, max_points=500, start_level=8)-> L
     :param gdf: GeoDataFrame containing points to split
     :param max_points: Maximum number of points per group
     :param start_level: Starting S2 cell level
-    :return: List of GeoDataFrames containing the split groups  
+    :return: List of GeoDataFrames containing the split groups
     """
     if "geometry" not in gdf.columns:
         raise ValueError("The GeoDataFrame must contain a 'geometry' column.")
 
     if gdf.crs is None:
         raise ValueError("The GeoDataFrame must contain a CRS")
-
     original_crs = gdf.crs
 
-    gdf = gdf.to_crs(epsg=4326)
-
+    # Add a centroid column to the GeoDataFrame and convert it to EPSG:4326
     gdf["centroid"] = gdf.geometry.centroid
+    gdf = gdf.set_geometry("centroid")
+    gdf = gdf.to_crs(epsg=4326)
 
     # Create a dictionary to store points by their S2 cell ID
     cell_dict = {}
@@ -249,8 +251,9 @@ def split_job_s2sphere(gdf: gpd.GeoDataFrame, max_points=500, start_level=8)-> L
     def _split_s2cell(cell_id, points, current_level=start_level):
         if len(points) <= max_points:
             if len(points) > 0:
-                points = gpd.GeoDataFrame(points, crs="EPSG:4326")
-                points = points.set_geometry("geometry").to_crs(original_crs).drop(columns=["centroid"])
+                points = gpd.GeoDataFrame(
+                    points, crs=original_crs, geometry="geometry"
+                ).drop(columns=["centroid"])
                 points["s2sphere_cell_id"] = cell_id
                 points["s2sphere_cell_level"] = current_level
                 result_groups.append(gpd.GeoDataFrame(points))
@@ -271,7 +274,10 @@ def split_job_s2sphere(gdf: gpd.GeoDataFrame, max_points=500, start_level=8)-> L
 
     return result_groups
 
+
 def _get_s2cell_id(point, level):
     lat, lon = point.y, point.x
-    cell_id = s2sphere.CellId.from_lat_lng(s2sphere.LatLng.from_degrees(lat, lon)).parent(level)
+    cell_id = s2sphere.CellId.from_lat_lng(
+        s2sphere.LatLng.from_degrees(lat, lon)
+    ).parent(level)
     return cell_id.id()
