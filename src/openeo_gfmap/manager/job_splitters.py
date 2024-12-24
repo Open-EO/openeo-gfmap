@@ -220,6 +220,7 @@ def split_job_s2sphere(
     :param start_level: Starting S2 cell level
     :return: List of GeoDataFrames containing the split groups
     """
+
     if "geometry" not in gdf.columns:
         raise ValueError("The GeoDataFrame must contain a 'geometry' column.")
 

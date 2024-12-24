@@ -3,7 +3,11 @@
 import geopandas as gpd
 from shapely.geometry import Point, Polygon
 
-from openeo_gfmap.manager.job_splitters import split_job_hex, split_job_s2grid, split_job_s2sphere
+from openeo_gfmap.manager.job_splitters import (
+    split_job_hex,
+    split_job_s2grid,
+    split_job_s2sphere,
+)
 
 
 def test_split_job_s2grid():
@@ -92,6 +96,7 @@ def test_split_job_hex():
             len(result[0]) == 3
         ), "The number of geometries in the first split should be 3."
 
+
 def test_split_job_s2sphere():
     # Create a mock GeoDataFrame with points
     # The points are located in two different S2 tiles
@@ -135,5 +140,9 @@ def test_split_job_s2sphere():
         assert gdf.crs == 4326, "The original CRS should be preserved."
         for _, geom in gdf.iterrows():
             geom_type = geom.geometry.geom_type
-            original_type = polygons[polygons.id == geom.id].geometry.geom_type.values[0]
-            assert geom_type == original_type, "Original geometries should be preserved."
+            original_type = polygons[polygons.id == geom.id].geometry.geom_type.values[
+                0
+            ]
+            assert (
+                geom_type == original_type
+            ), "Original geometries should be preserved."
