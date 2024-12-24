@@ -199,7 +199,7 @@ def split_job_hex(
     return split_datasets
 
 
-def split_job_s2geo(gdf: gpd.GeoDataFrame, max_points=500, start_level=8)-> List[gpd.GeoDataFrame]:
+def split_job_s2sphere(gdf: gpd.GeoDataFrame, max_points=500, start_level=8)-> List[gpd.GeoDataFrame]:
     """
     EXPERIMENTAL
     Split a GeoDataFrame into multiple groups based on the S2geometry cell ID of each geometry. 
@@ -246,13 +246,13 @@ def split_job_s2geo(gdf: gpd.GeoDataFrame, max_points=500, start_level=8)-> List
     result_groups = []
 
     # Function to recursively split cells if they contain more points than max_points
-    def split_s2cell(cell_id, points, current_level=start_level):
+    def _split_s2cell(cell_id, points, current_level=start_level):
         if len(points) <= max_points:
             if len(points) > 0:
                 points = gpd.GeoDataFrame(points, crs="EPSG:4326")
                 points = points.set_geometry("geometry").to_crs(original_crs).drop(columns=["centroid"])
-                points["s2_cell_id"] = cell_id
-                points["s2_cell_level"] = current_level
+                points["s2sphere_cell_id"] = cell_id
+                points["s2sphere_cell_level"] = current_level
                 result_groups.append(gpd.GeoDataFrame(points))
         else:
             children = s2sphere.CellId(cell_id).children()
@@ -263,11 +263,11 @@ def split_job_s2geo(gdf: gpd.GeoDataFrame, max_points=500, start_level=8)-> List
                 child_cells[child_cell_id].append(point)
 
             for child_cell_id, child_points in child_cells.items():
-                split_s2cell(child_cell_id, child_points, current_level + 1)
+                _split_s2cell(child_cell_id, child_points, current_level + 1)
 
     # Split cells that contain more points than max_points
     for cell_id, points in cell_dict.items():
-        split_s2cell(cell_id, points)
+        _split_s2cell(cell_id, points)
 
     return result_groups
 

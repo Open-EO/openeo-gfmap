@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
+- `split_job_s2sphere` function to split jobs into S2cells of the s2sphere package. More info: http://s2geometry.io/. This job splitter recursively splits cells until the number of points in each cell is less than a given threshold.
 ### Changed
 - `ouput_path_generator` in `GFMapJobManager.on_job_done` now requires `asset_id` as a keyword argument
 ### Removed
