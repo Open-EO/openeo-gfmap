@@ -42,6 +42,7 @@ dependencies = [
     "netCDF4",
     "scipy",
     "rasterio",
+    "s2sphere==0.2.*",
 ]
 
 [project.urls]
