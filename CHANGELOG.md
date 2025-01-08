@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+ 
+## [0.3.0] - 2025-01-08
+
+### Added
 - `split_job_s2sphere` function to split jobs into S2cells of the s2sphere package. More info: http://s2geometry.io/. This job splitter recursively splits cells until the number of points in each cell is less than a given threshold.
 
 ### Changed
