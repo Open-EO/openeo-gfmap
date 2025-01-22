@@ -17,10 +17,10 @@ def load_s2_grid(web_mercator: bool = False) -> gpd.GeoDataFrame:
     """Returns a geo data frame from the S2 grid."""
     # Builds the path where the geodataframe should be
     if not web_mercator:
-        gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_voronoi_4326.parquet.parquet"
+        gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_voronoi_4326.parquet"
         url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_voronoi_4326.parquet"
     else:
-        gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_voronoi_3857parquet"
+        gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_voronoi_3857.parquet"
         url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_voronoi_3857.parquet"
 
     if not gdf_path.exists():
