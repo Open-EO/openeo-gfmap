@@ -17,11 +17,11 @@ def load_s2_grid(web_mercator: bool = False) -> gpd.GeoDataFrame:
     """Returns a geo data frame from the S2 grid."""
     # Builds the path where the geodataframe should be
     if not web_mercator:
-        gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_bounds_4326_v2.geoparquet"
-        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds_4326_v2.geoparquet"
+        gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_voronoi_4326.parquet"
+        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_voronoi_4326.parquet"
     else:
-        gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_bounds_3857_v2.geoparquet"
-        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds_3857_v2.geoparquet"
+        gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_voronoi_3857.parquet"
+        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_voronoi_3857.parquet"
 
     if not gdf_path.exists():
         _log.info("S2 grid not found, downloading it from artifactory.")
@@ -112,13 +112,12 @@ def split_job_s2grid(
 
     polygons["centroid"] = polygons.geometry.centroid
 
-    # Dataset containing all the S2 tile centroids, find the nearest S2 tile for each point
-    s2_grid = load_s2_grid_centroids(web_mercator)
+    s2_grid = load_s2_grid(web_mercator)
 
-    s2_grid = s2_grid[s2_grid.cdse_valid]
-
-    polygons = gpd.sjoin_nearest(
-        polygons.set_geometry("centroid"), s2_grid[["tile", "geometry"]]
+    polygons = gpd.sjoin(
+        polygons.set_geometry("centroid"),
+        s2_grid[["tile", "geometry"]],
+        predicate="intersects",
     ).drop(columns=["index_right", "centroid"])
 
     polygons = polygons.set_geometry("geometry").to_crs(original_crs)

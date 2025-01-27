@@ -18,9 +18,9 @@ def test_split_job_s2grid():
         "geometry": [
             Point(60.02, 4.57),
             Point(59.6, 5.04),
-            Point(59.92, 3.37),
+            Point(59.46, 3.71),
             Point(59.07, 4.11),
-            Point(58.77, 4.87),
+            Point(59.1, 3.61),
         ],
     }
     polygons = gpd.GeoDataFrame(data, crs="EPSG:4326")
@@ -32,7 +32,7 @@ def test_split_job_s2grid():
     result = split_job_s2grid(polygons, max_points)
 
     assert (
-        len(result) == 3
+        len(result) == 4
     ), "The number of GeoDataFrames returned should match the number of splits needed."
 
     # Check if the geometries are preserved
