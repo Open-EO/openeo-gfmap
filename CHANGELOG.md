@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Fixed
+
+## [0.4.0] - 2025-01-31
+
+### Added
+
+### Changed
+- `split_job_s2grid` now uses a non-overlapping S2 grid to determine the S2 tile ID of a geometry
+### Removed
+
+### Fixed
  
 ## [0.3.0] - 2025-01-08
 
