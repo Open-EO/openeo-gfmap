@@ -109,7 +109,7 @@ def fed_connection() -> openeo.Connection:
     """Performs a connection to the OpenEO federated backend using the oidc
     authentication."""
     return _create_connection(
-        url="http://openeofed.dataspace.copernicus.eu/",
+        url="openeofed.dataspace.copernicus.eu/",
         env_var_suffix="FED",
     )
 
