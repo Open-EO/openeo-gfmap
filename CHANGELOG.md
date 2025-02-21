@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.4.1] - 2025-02-21
+
+### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+Corrected openeofed backend URL.
+
 ## [0.4.0] - 2025-01-31
 
 ### Added
