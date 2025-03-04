@@ -108,7 +108,6 @@ def _load_collection_hybrid(
     return cube
 
 
-# TODO; deprecated?
 def _load_collection(
     connection: openeo.Connection,
     bands: list,
@@ -145,16 +144,21 @@ def _load_collection(
             properties=load_collection_parameters,
         )
     elif fetch_type == FetchType.POINT:
-        assert isinstance(
-            spatial_extent, GeoJSON
-        ), "Please provide only a GeoJSON FeatureCollection for point based fetching."
-        assert (
-            spatial_extent["type"] == "FeatureCollection"
-        ), "Please provide a FeatureCollection type of GeoJSON"
+        if isinstance(spatial_extent, GeoJSON):
+            assert (
+                spatial_extent["type"] == "FeatureCollection"
+            ), "Please provide a FeatureCollection type of GeoJSON"
+        elif isinstance(spatial_extent, str):
+            assert spatial_extent.startswith("https://") or spatial_extent.startswith(
+                "http://"
+            ), "Please provide a valid URL or a path to a GeoJSON file."
+        else:
+            raise ValueError(
+                "Please provide a valid URL to a GeoParquet or GeoJSON file."
+            )
         cube = load_collection_method(
             connection=connection,
             bands=bands,
-            spatial_extent=spatial_extent,
             temporal_extent=temporal_extent,
             properties=load_collection_parameters,
         )
