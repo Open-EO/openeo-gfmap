@@ -21,3 +21,20 @@ The Frameworks provides assistance in extraction of training data as well as inf
 3. <b>Easy and Collaborative</b>: Pre-implementing common preprocessing/postprocessing routines. Many operations, such a compositing or linear interpolation, are very common within Remote Sensing applications and should be already implemented in the framework. This will avoid code duplication among the personal code of the framework’s users and encourage collaboration for improvement and optimization of existing techniques.
 
 4.	<b>Performant</b>: Leverage OpenEO processes as much as possible for preprocessing. In the cropclass and worldcereal projects, preprocessing is performed with a combination of OpenEO processes (masking, compositing, linear interpolation) and the implementation of a Feature Extractor within an UDF (computing indices, percentiles). Ideally, OpenEO features should be used as much as possible, while the features extractor should be as simple as possible, only implementing what is currently not possible within OpenEO.
+
+## Development
+
+### Small Bug Fixes
+Bug fixes for the `0.4.x` maintenance series of `openeo-gfmap` should be made to the `maintenance/0.4.x` branch via pull request. Follow these steps:
+
+```bash
+git pull  # Pull latest changes
+git checkout maintenance/0.4.x  # Switch to maintenance/0.4.x branch
+git checkout -b <bug-fix-branch>  # Create a feature branch from the maintenance branch
+git push -u origin <small-bug-fix-branch>  # Push the feature branch to the remote repository
+```
+
+When needed, a new `0.4.x` release can be created from the latest `HEAD` of `maintenance/0.4.x`
+
+### Main Development
+For the `1.x.x` development  series of `openeo-gfmap`, contributions should be made to the `main` branch via pull request. New `1.x.x` releases can be created from the latest `HEAD` of `main`. 
