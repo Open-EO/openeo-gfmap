@@ -52,6 +52,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=7.4.0",
+  "requests-mock>=1.8.0",
   "matplotlib>=3.3.0",
   "xarray>=2022.3.0",
   "rioxarray>=0.13.0",

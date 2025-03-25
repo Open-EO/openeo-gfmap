@@ -41,3 +41,34 @@ def compress_backscatter_uint16(
 
     # Change the data type to uint16 for optimization purposes
     return cube.linear_scale_range(1, 65534, 1, 65534)
+
+
+def decompress_backscatter_uint16(
+    backend_context: BackendContext, cube: openeo.DataCube
+) -> openeo.DataCube:
+    """
+    Decompresing the bands from uint16 to their original float32 values.
+
+    Parameters
+    ----------
+    backend_context : BackendContext
+        The backend context to fetch the backend name.
+    cube : openeo.DataCube
+                The datacube to decompress the backscatter values.
+    Returns
+    -------
+    openeo.DataCube
+        The datacube with the backscatter values in their original float32 values.
+    """
+
+    cube = cube.apply_dimension(
+        dimension="bands",
+        process=lambda x: array_create(
+            [
+                power(base=10, p=(20.0 * x[0].log(base=10) - 83.0) / 10.0),
+                power(base=10, p=(20.0 * x[1].log(base=10) - 83.0) / 10.0),
+            ]
+        ),
+    )
+
+    return cube
