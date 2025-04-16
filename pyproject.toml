@@ -17,6 +17,7 @@ version = "1.0.0a1"
 authors = [
   { name="Darius Couchard" },
   { name="Vincent Verelst" },
+  { name="Victor Verhaert" },
   { name="Kristof Van Tricht" },
   { name="Stefaan Lippens" },
   { name="Jeroen Degerickx" },

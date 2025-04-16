@@ -5,43 +5,72 @@ Defines on which backend the pipeline is being currently used.
 
 import logging
 import os
-from dataclasses import dataclass
-from enum import Enum
-from typing import Callable, Dict, Optional
+from typing import Optional
 
 import openeo
+from openeo.extra.job_management import MultiBackendJobManager
 
 _log = logging.getLogger(__name__)
 
-
-class Backend(Enum):
-    """Enumerating the backends supported by the Mapping Framework."""
-
-    TERRASCOPE = "terrascope"
-    EODC = "eodc"  # Dask implementation. Do not test on this yet.
-    CDSE = "cdse"  # Terrascope implementation (pyspark) #URL: openeo.dataspace.copernicus.eu (need to register)
-    CDSE_STAGING = "cdse-staging"
-    LOCAL = "local"  # Based on the same components of EODc
-    FED = "fed"  # Federation backend
+BACKEND_URLS = {
+    "CDSE": "openeo.dataspace.copernicus.eu",
+    "CDSE-STAGING": "openeo-staging.dataspace.copernicus.eu",
+    "TERRASCOPE": "openeo.vito.be",
+    "TERRASCOPE-DEV": "openeo-dev.vito.be",
+    "OPENEO-CLOUD": "openeo.cloud",
+    "OTC": "https://openeo.prod.amsterdam.openeo.dataspace.copernicus.eu/",  # only available on vito VPN
+}
 
 
-@dataclass
-class BackendContext:
-    """Backend context and information.
-
-    Containing backend related information useful for the framework to
-    adapt the process graph.
+def get_connection(backend: str) -> openeo.Connection:
     """
+    Get the connection to a backend.
 
-    backend: Backend
+    :param backend: The backend to connect to.
+    :return: The connection to the backend.
+    """
+    if backend not in BACKEND_URLS:
+        raise ValueError(
+            f"Unknown backend: {backend}. Supported backends are: {BACKEND_URLS.keys()}"
+        )
+    url = BACKEND_URLS[backend]
+    connection = _create_connection(url, env_var_suffix=backend)
+    return connection
+
+
+def add_backend_to_jobmanager(
+    job_manager: MultiBackendJobManager,
+    backend: str,
+    parallel_jobs: Optional[int] = None,
+) -> None:
+    """
+    Add a backend to the job_manager.
+
+    :param job_manager: The job_manager to add the backend to.
+    :param backend: The backend to add.
+    :param parallel_jobs: The number of parallel jobs to allow on this backend.
+    :return: None
+    """
+    connection = get_connection(backend)
+    if parallel_jobs is not None:
+        job_manager.add_backend(
+            name=backend, connection=connection, parallel_jobs=parallel_jobs
+        )
+    else:
+        job_manager.add_backend(name=backend, connection=connection)
 
 
 def _create_connection(
     url: str, *, env_var_suffix: str, connect_kwargs: Optional[dict] = None
-):
+) -> openeo.Connection:
     """
     Generic helper to create an openEO connection
     with support for multiple client credential configurations from environment variables
+
+    :param url: The URL of the backend to connect to.
+    :param env_var_suffix: The suffix to use for the environment variables.
+    :param connect_kwargs: Additional keyword arguments to pass to the connection.
+    :return: The connection to the backend.
     """
     connection = openeo.connect(url, **(connect_kwargs or {}))
 
@@ -71,52 +100,3 @@ def _create_connection(
         )
         connection.authenticate_oidc(max_poll_time=max_poll_time)
     return connection
-
-
-def vito_connection() -> openeo.Connection:
-    """Performs a connection to the VITO backend using the oidc authentication."""
-    return _create_connection(
-        url="openeo.vito.be",
-        env_var_suffix="VITO",
-    )
-
-
-def cdse_connection() -> openeo.Connection:
-    """Performs a connection to the CDSE backend using oidc authentication."""
-    return _create_connection(
-        url="openeo.dataspace.copernicus.eu",
-        env_var_suffix="CDSE",
-    )
-
-
-def cdse_staging_connection() -> openeo.Connection:
-    """Performs a connection to the CDSE backend using oidc authentication."""
-    return _create_connection(
-        url="openeo-staging.dataspace.copernicus.eu",
-        env_var_suffix="CDSE_STAGING",
-    )
-
-
-def eodc_connection() -> openeo.Connection:
-    """Perfroms a connection to the EODC backend using the oidc authentication."""
-    return _create_connection(
-        url="https://openeo.eodc.eu/openeo/1.1.0",
-        env_var_suffix="EODC",
-    )
-
-
-def fed_connection() -> openeo.Connection:
-    """Performs a connection to the OpenEO federated backend using the oidc
-    authentication."""
-    return _create_connection(
-        url="http://openeofed.dataspace.copernicus.eu/",
-        env_var_suffix="FED",
-    )
-
-
-BACKEND_CONNECTIONS: Dict[Backend, Callable] = {
-    Backend.TERRASCOPE: vito_connection,
-    Backend.CDSE: cdse_connection,
-    Backend.CDSE_STAGING: cdse_staging_connection,
-    Backend.FED: fed_connection,
-}
