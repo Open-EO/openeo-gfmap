@@ -132,7 +132,12 @@ def _load_collection(
         temporal_extent = [temporal_extent.start_date, temporal_extent.end_date]
 
     if fetch_type == FetchType.TILE:
-        spatial_extent = dict(spatial_extent) if spatial_extent else None
+        if isinstance(spatial_extent, BoundingBoxExtent):
+            spatial_extent = dict(spatial_extent)
+        elif spatial_extent is not None:
+            raise ValueError(
+                "`spatial_extent` should be either None or an instance of BoundingBoxExtent for tile-based fetching."
+            )
         cube = load_collection_method(
             connection=connection,
             bands=bands,
@@ -140,30 +145,8 @@ def _load_collection(
             temporal_extent=temporal_extent,
             properties=load_collection_parameters,
         )
-    elif fetch_type == FetchType.POINT:
-        if isinstance(spatial_extent, GeoJSON):
-            assert spatial_extent["type"] == "FeatureCollection", (
-                "Please provide a FeatureCollection type of GeoJSON"
-            )
-        elif isinstance(spatial_extent, str):
-            assert spatial_extent.startswith("https://") or spatial_extent.startswith(
-                "http://"
-            ), "Please provide a valid URL or a path to a GeoJSON file."
-        cube = load_collection_method(
-            connection=connection,
-            bands=bands,
-            temporal_extent=temporal_extent,
-            properties=load_collection_parameters,
-        )
-    elif fetch_type == FetchType.POLYGON:
-        if isinstance(spatial_extent, GeoJSON):
-            assert spatial_extent["type"] == "FeatureCollection", (
-                "Please provide a FeatureCollection type of GeoJSON"
-            )
-        elif isinstance(spatial_extent, str):
-            assert spatial_extent.startswith("https://") or spatial_extent.startswith(
-                "http://"
-            ), "Please provide a valid URL or a path to a GeoJSON file."
+    elif fetch_type == FetchType.POINT or fetch_type == FetchType.POLYGON:
+        # For these fetch types, spatial extent is not used for collection loading
         cube = load_collection_method(
             connection=connection,
             bands=bands,
