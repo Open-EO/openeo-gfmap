@@ -146,7 +146,6 @@ def _load_collection(
             properties=load_collection_parameters,
         )
     elif fetch_type == FetchType.POINT or fetch_type == FetchType.POLYGON:
-        # For these fetch types, spatial extent is not used for collection loading
         cube = load_collection_method(
             connection=connection,
             bands=bands,
