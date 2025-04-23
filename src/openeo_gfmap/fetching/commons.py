@@ -177,7 +177,7 @@ def _load_collection(
             pre_merge_cube = pre_merge_cube.mask(pre_mask)
         cube = cube.merge_cubes(pre_merge_cube)
 
-    if fetch_type == FetchType.POLYGON:
+    if fetch_type == FetchType.POLYGON and spatial_extent is not None:
         if isinstance(spatial_extent, str):
             geometry = connection.load_url(
                 spatial_extent,
