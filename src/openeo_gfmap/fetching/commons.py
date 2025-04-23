@@ -57,7 +57,7 @@ def resample_reproject(
             CRS.from_epsg(int(epsg_code))
         except (CRSError, ValueError) as exc:
             raise ValueError(
-                f"Specified target_crs: {epsg_code} is not a valid " "EPSG code."
+                f"Specified target_crs: {epsg_code} is not a valid EPSG code."
             ) from exc
         return datacube.resample_spatial(
             resolution=resolution, projection=epsg_code, method=method
@@ -132,10 +132,7 @@ def _load_collection(
         temporal_extent = [temporal_extent.start_date, temporal_extent.end_date]
 
     if fetch_type == FetchType.TILE:
-        assert isinstance(
-            spatial_extent, BoundingBoxExtent
-        ), "Please provide only a bounding box for tile based fetching."
-        spatial_extent = dict(spatial_extent)
+        spatial_extent = dict(spatial_extent) if spatial_extent else None
         cube = load_collection_method(
             connection=connection,
             bands=bands,
@@ -145,17 +142,13 @@ def _load_collection(
         )
     elif fetch_type == FetchType.POINT:
         if isinstance(spatial_extent, GeoJSON):
-            assert (
-                spatial_extent["type"] == "FeatureCollection"
-            ), "Please provide a FeatureCollection type of GeoJSON"
+            assert spatial_extent["type"] == "FeatureCollection", (
+                "Please provide a FeatureCollection type of GeoJSON"
+            )
         elif isinstance(spatial_extent, str):
             assert spatial_extent.startswith("https://") or spatial_extent.startswith(
                 "http://"
             ), "Please provide a valid URL or a path to a GeoJSON file."
-        else:
-            raise ValueError(
-                "Please provide a valid URL to a GeoParquet or GeoJSON file."
-            )
         cube = load_collection_method(
             connection=connection,
             bands=bands,
@@ -164,17 +157,13 @@ def _load_collection(
         )
     elif fetch_type == FetchType.POLYGON:
         if isinstance(spatial_extent, GeoJSON):
-            assert (
-                spatial_extent["type"] == "FeatureCollection"
-            ), "Please provide a FeatureCollection type of GeoJSON"
+            assert spatial_extent["type"] == "FeatureCollection", (
+                "Please provide a FeatureCollection type of GeoJSON"
+            )
         elif isinstance(spatial_extent, str):
             assert spatial_extent.startswith("https://") or spatial_extent.startswith(
                 "http://"
             ), "Please provide a valid URL or a path to a GeoJSON file."
-        else:
-            raise ValueError(
-                "Please provide a valid URL to a GeoParquet or GeoJSON file."
-            )
         cube = load_collection_method(
             connection=connection,
             bands=bands,
@@ -190,7 +179,7 @@ def _load_collection(
     pre_mask = params.get("pre_mask", None)
     if pre_mask is not None:
         assert isinstance(pre_mask, openeo.DataCube), (
-            f"The 'pre_mask' parameter must be an openeo datacube, " f"got {pre_mask}."
+            f"The 'pre_mask' parameter must be an openeo datacube, got {pre_mask}."
         )
         cube = cube.mask(pre_mask)
 
