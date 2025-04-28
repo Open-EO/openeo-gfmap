@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.4.4] - 2025-04-28
+
+### Added
+- `FetchType.POINT` and `FetchType.POLYGON` no longer require a spatial_extent
+### Changed
+
+### Removed
+
+### Fixed
+
 ## [0.4.3] - 2025-03-26
 
 ### Added
