@@ -1,63 +1,108 @@
-"""Backend Contct.
-
-Defines on which backend the pipeline is being currently used.
+"""
+This module provides a set of predefined backends and helper functions to create connections to them or add them to a job manager.
 """
 
 import logging
 import os
-from typing import Optional
+from dataclasses import dataclass
+from enum import Enum
+from typing import Optional, Union
 
 import openeo
 from openeo.extra.job_management import MultiBackendJobManager
 
 _log = logging.getLogger(__name__)
 
-BACKEND_URLS = {
-    "CDSE": "openeo.dataspace.copernicus.eu",
-    "CDSE-STAGING": "openeo-staging.dataspace.copernicus.eu",
-    "TERRASCOPE": "openeo.vito.be",
-    "TERRASCOPE-DEV": "openeo-dev.vito.be",
-    "OPENEO-CLOUD": "openeo.cloud",
-    "OTC": "https://openeo.prod.amsterdam.openeo.dataspace.copernicus.eu/",  # only available on vito VPN
-}
 
-
-def get_connection(backend: str) -> openeo.Connection:
+@dataclass
+class BackendInfo:
     """
-    Get the connection to a backend.
+    Dataclass that holds information about a backend
+    Can be expanded with new fields if needed.
 
-    :param backend: The backend to connect to.
-    :return: The connection to the backend.
+    This class should only be used internally in this module. Getting the backend name and url should be done through the Backend Enum.
     """
-    if backend not in BACKEND_URLS:
-        raise ValueError(
-            f"Unknown backend: {backend}. Supported backends are: {BACKEND_URLS.keys()}"
-        )
-    url = BACKEND_URLS[backend]
-    connection = _create_connection(url, env_var_suffix=backend)
-    return connection
+
+    name: str
+    url: str
 
 
-def add_backend_to_jobmanager(
+class Backend(Enum):
+    """
+    Class that holds the backend names and urls. Can be used to get information about specific backends.
+    """
+
+    CDSE = BackendInfo(name="CDSE", url="openeo.dataspace.copernicus.eu")
+    CDSE_STAGING = BackendInfo(
+        name="CDSE-STAGING", url="openeo-staging.dataspace.copernicus.eu"
+    )
+    TERRASCOPE = BackendInfo(name="TERRASCOPE", url="openeo.vito.be")
+    TERRASCOPE_DEV = BackendInfo(name="TERRASCOPE-DEV", url="openeo-dev.vito.be")
+    OPENEO_CLOUD = BackendInfo(name="OPENEO-CLOUD", url="openeo.cloud")
+    OTC = BackendInfo(
+        name="OTC", url="https://openeo.prod.amsterdam.openeo.dataspace.copernicus.eu/"
+    )  # only available on vito VPN
+
+    @property
+    def name(self) -> str:
+        """Get the name of the backend."""
+        return self.value.name
+
+    @property
+    def url(self) -> str:
+        """Get the URL of the backend."""
+        return self.value.url
+
+    @staticmethod
+    def from_backend_name(backend_name: str) -> "Backend":
+        """
+        Get the backend from the backend name.
+
+        :param backend_name: The name of the backend.
+        :return: The Backend object.
+        """
+        for backend in Backend:
+            if backend.name == backend_name:
+                return backend
+        raise ValueError(f"Unknown backend name: {backend_name}")
+
+
+def add_backend_to_job_manager(
     job_manager: MultiBackendJobManager,
-    backend: str,
+    backend: Union[Backend, str],
     parallel_jobs: Optional[int] = None,
 ) -> None:
     """
     Add a backend to the job_manager.
 
     :param job_manager: The job_manager to add the backend to.
-    :param backend: The backend to add.
+    :param backend: The backend to add. Can be a Backend object or a string with the backend name.
     :param parallel_jobs: The number of parallel jobs to allow on this backend.
     :return: None
     """
+    if isinstance(backend, str):
+        backend = Backend.from_backend_name(backend)
     connection = get_connection(backend)
     if parallel_jobs is not None:
         job_manager.add_backend(
-            name=backend, connection=connection, parallel_jobs=parallel_jobs
+            name=backend.name, connection=connection, parallel_jobs=parallel_jobs
         )
     else:
-        job_manager.add_backend(name=backend, connection=connection)
+        job_manager.add_backend(name=backend.name, connection=connection)
+
+
+def get_connection(backend: Union[Backend, str]) -> openeo.Connection:
+    """
+    Get the connection to a backend.
+
+    :param backend: The backend to connect to. Can be a Backend object or a string with the backend name.
+    :return: The connection to the backend.
+    """
+    if isinstance(backend, str):
+        backend = Backend.from_backend_name(backend)
+
+    url = backend.url
+    return _create_connection(url, env_var_suffix=backend)
 
 
 def _create_connection(
