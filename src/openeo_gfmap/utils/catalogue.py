@@ -11,9 +11,8 @@ from requests import adapters
 from shapely.geometry import Point, box, shape
 from shapely.ops import unary_union
 
-from openeo_gfmap import (
+from openeo_gfmap import (  # BackendContext,
     Backend,
-    BackendContext,
     BoundingBoxExtent,
     SpatialContext,
     TemporalContext,
@@ -175,7 +174,7 @@ def _compute_max_gap_days(
 
 
 def s1_area_per_orbitstate_vvvh(
-    backend: BackendContext,
+    backend,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
 ) -> dict:
@@ -290,7 +289,7 @@ def s1_area_per_orbitstate_vvvh(
 
 
 def select_s1_orbitstate_vvvh(
-    backend: BackendContext,
+    backend,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
     max_temporal_gap: int = 60,

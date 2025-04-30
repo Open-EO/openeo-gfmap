@@ -7,7 +7,7 @@ from typing import Callable
 import openeo
 from geojson import GeoJSON
 
-from openeo_gfmap.backend import Backend, BackendContext
+from openeo_gfmap.backend import Backend  # , BackendContext
 from openeo_gfmap.metadata import FakeMetadata
 from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
 from openeo_gfmap.temporal import TemporalContext
@@ -224,7 +224,7 @@ SENTINEL2_L2A_BACKEND_MAP = {
 
 
 def build_sentinel2_l2a_extractor(
-    backend_context: BackendContext, bands: list, fetch_type: FetchType, **params
+    backend_context, bands: list, fetch_type: FetchType, **params
 ) -> CollectionFetcher:
     """Creates a S2 L2A extractor adapted to the given backend."""
     backend_functions = SENTINEL2_L2A_BACKEND_MAP.get(backend_context.backend)

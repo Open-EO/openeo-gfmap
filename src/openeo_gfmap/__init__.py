@@ -6,7 +6,7 @@ by leveraging the power of OpenEO (http://openeo.org/).
 More information available in the README.md file.
 """
 
-from .backend import Backend, BackendContext
+from .backend import Backend  # , BackendContext
 from .fetching import FetchType
 from .metadata import FakeMetadata
 from .spatial import BoundingBoxExtent, SpatialContext
@@ -14,7 +14,7 @@ from .temporal import TemporalContext
 
 __all__ = [
     "Backend",
-    "BackendContext",
+    # "BackendContext",
     "SpatialContext",
     "BoundingBoxExtent",
     "TemporalContext",

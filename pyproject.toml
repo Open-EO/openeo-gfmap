@@ -24,7 +24,7 @@ authors = [
 ]
 description = "OpenEO General Framework for Mapping"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -58,6 +58,7 @@ dev = [
   "rioxarray>=0.13.0",
   "pytest-depends",
   "pytest-timeout>=2.2.0",
+  "requests-mock",
   "pre-commit",
 ]
 

@@ -6,7 +6,7 @@ from typing import Callable, Optional
 import openeo
 from openeo.rest import OpenEoApiError
 
-from openeo_gfmap.backend import Backend, BackendContext
+from openeo_gfmap.backend import Backend  # , BackendContext
 from openeo_gfmap.fetching import CollectionFetcher, FetchType, _log
 from openeo_gfmap.fetching.commons import (
     _load_collection,
@@ -140,7 +140,7 @@ def _get_generic_processor(
 
 
 def build_generic_extractor(
-    backend_context: BackendContext,
+    backend_context,
     bands: list,
     fetch_type: FetchType,
     collection_name: str,
@@ -158,7 +158,7 @@ def build_generic_extractor(
 
 
 def build_generic_extractor_stac(
-    backend_context: BackendContext,
+    backend_context,
     bands: list,
     fetch_type: FetchType,
     collection_url: str,

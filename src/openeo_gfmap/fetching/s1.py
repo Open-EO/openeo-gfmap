@@ -7,7 +7,7 @@ from typing import Callable
 import openeo
 from geojson import GeoJSON
 
-from openeo_gfmap.backend import Backend, BackendContext
+from openeo_gfmap.backend import Backend  # , BackendContext
 from openeo_gfmap.spatial import SpatialContext
 from openeo_gfmap.temporal import TemporalContext
 
@@ -180,7 +180,7 @@ SENTINEL1_GRD_BACKEND_MAP = {
 
 
 def build_sentinel1_grd_extractor(
-    backend_context: BackendContext, bands: list, fetch_type: FetchType, **params
+    backend_context, bands: list, fetch_type: FetchType, **params
 ) -> CollectionFetcher:
     """Creates a S1 GRD collection extractor for the given backend."""
     backend_functions = SENTINEL1_GRD_BACKEND_MAP.get(backend_context.backend)

@@ -15,7 +15,7 @@ _log = logging.getLogger(__name__)
 
 
 @dataclass
-class BackendInfo:
+class _BackendInfo:
     """
     Dataclass that holds information about a backend
     Can be expanded with new fields if needed.
@@ -32,16 +32,21 @@ class Backend(Enum):
     Class that holds the backend names and urls. Can be used to get information about specific backends.
     """
 
-    CDSE = BackendInfo(name="CDSE", url="openeo.dataspace.copernicus.eu")
-    CDSE_STAGING = BackendInfo(
+    CDSE = _BackendInfo(name="CDSE", url="openeo.dataspace.copernicus.eu")
+    CDSE_STAGING = _BackendInfo(
         name="CDSE-STAGING", url="openeo-staging.dataspace.copernicus.eu"
     )
-    TERRASCOPE = BackendInfo(name="TERRASCOPE", url="openeo.vito.be")
-    TERRASCOPE_DEV = BackendInfo(name="TERRASCOPE-DEV", url="openeo-dev.vito.be")
-    OPENEO_CLOUD = BackendInfo(name="OPENEO-CLOUD", url="openeo.cloud")
-    OTC = BackendInfo(
-        name="OTC", url="https://openeo.prod.amsterdam.openeo.dataspace.copernicus.eu/"
+    CDSE_OTC = _BackendInfo(
+        name="CDSE-OTC",
+        url="https://openeo.prod.amsterdam.openeo.dataspace.copernicus.eu/",
     )  # only available on vito VPN
+    TERRASCOPE = _BackendInfo(name="TERRASCOPE", url="openeo.vito.be")
+    TERRASCOPE_DEV = _BackendInfo(name="TERRASCOPE-DEV", url="openeo-dev.vito.be")
+    OPENEO_CLOUD = _BackendInfo(name="OPENEO-CLOUD", url="openeo.cloud")
+    FED = _BackendInfo(name="FED", url="https://openeofed.dataspace.copernicus.eu/")
+    TEST = _BackendInfo(
+        name="TEST", url="https://oeo.test/"
+    )  # only for testing purposes
 
     @property
     def name(self) -> str:
@@ -66,6 +71,18 @@ class Backend(Enum):
                 return backend
         raise ValueError(f"Unknown backend name: {backend_name}")
 
+    @staticmethod
+    def _resolve_backend(backend: Union[str, "Backend"]) -> "Backend":
+        """
+        Resolve the backend from a string or Backend object.
+
+        :param backend: The backend to resolve.
+        :return: The resolved Backend object.
+        """
+        if isinstance(backend, str):
+            return Backend.from_backend_name(backend)
+        return backend
+
 
 def add_backend_to_job_manager(
     job_manager: MultiBackendJobManager,
@@ -80,8 +97,8 @@ def add_backend_to_job_manager(
     :param parallel_jobs: The number of parallel jobs to allow on this backend.
     :return: None
     """
-    if isinstance(backend, str):
-        backend = Backend.from_backend_name(backend)
+    backend = Backend._resolve_backend(backend)
+
     connection = get_connection(backend)
     if parallel_jobs is not None:
         job_manager.add_backend(
@@ -98,15 +115,14 @@ def get_connection(backend: Union[Backend, str]) -> openeo.Connection:
     :param backend: The backend to connect to. Can be a Backend object or a string with the backend name.
     :return: The connection to the backend.
     """
-    if isinstance(backend, str):
-        backend = Backend.from_backend_name(backend)
+    backend = Backend._resolve_backend(backend)
 
     url = backend.url
-    return _create_connection(url, env_var_suffix=backend)
+    return _create_connection(url, env_var_suffix=backend.name)
 
 
 def _create_connection(
-    url: str, *, env_var_suffix: str, connect_kwargs: Optional[dict] = None
+    url: str, *, env_var_suffix: str, connect_kwargs: dict = {}
 ) -> openeo.Connection:
     """
     Generic helper to create an openEO connection
