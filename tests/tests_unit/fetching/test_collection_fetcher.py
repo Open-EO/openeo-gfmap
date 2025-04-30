@@ -4,14 +4,14 @@ import pytest
 import xarray as xr
 
 from openeo_gfmap import BoundingBoxExtent, TemporalContext
-from openeo_gfmap.backend import BackendContext
+from openeo_gfmap.backend import Backend
 from openeo_gfmap.fetching import CollectionFetcher
 
 
 @pytest.fixture
-def mock_backend_context():
+def mock_backend():
     """Fixture to create a mock backend context."""
-    return MagicMock(spec=BackendContext)
+    return MagicMock(spec=Backend)
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ def test_collection_fetcher(
     mock_connection,
     mock_spatial_extent,
     mock_temporal_context,
-    mock_backend_context,
+    mock_backend,
     mock_collection_fetch,
     mock_collection_preprocessing,
 ):
@@ -62,7 +62,7 @@ def test_collection_fetcher(
 
     # Create the CollectionFetcher with the mock functions
     fetcher = CollectionFetcher(
-        backend_context=mock_backend_context,
+        backend=mock_backend,
         bands=["B01", "B02", "B03"],
         collection_fetch=mock_collection_fetch,  # Use the mock collection fetch function
         collection_preprocessing=mock_collection_preprocessing,  # Use the mock preprocessing function
@@ -89,7 +89,7 @@ def test_collection_fetcher_get_cube(
     mock_connection,
     mock_spatial_extent,
     mock_temporal_context,
-    mock_backend_context,
+    mock_backend,
     mock_collection_fetch,
     mock_collection_preprocessing,
 ):
@@ -99,7 +99,7 @@ def test_collection_fetcher_get_cube(
 
     # Create the CollectionFetcher with the mock functions
     fetcher = CollectionFetcher(
-        backend_context=mock_backend_context,
+        backend=mock_backend,
         bands=bands,
         collection_fetch=mock_collection_fetch,  # Use the mock collection fetch function
         collection_preprocessing=mock_collection_preprocessing,  # Use the mock preprocessing function
@@ -127,12 +127,12 @@ def test_collection_fetcher_get_cube(
 
 
 def test_collection_fetcher_with_empty_bands(
-    mock_backend_context, mock_connection, mock_spatial_extent, mock_temporal_context
+    mock_backend, mock_connection, mock_spatial_extent, mock_temporal_context
 ):
     """Test that CollectionFetcher raises an error with empty bands."""
     bands = []
     fetcher = CollectionFetcher(
-        backend_context=mock_backend_context,
+        backend=mock_backend,
         bands=bands,
         collection_fetch=MagicMock(),  # No need to mock fetch here
         collection_preprocessing=MagicMock(),

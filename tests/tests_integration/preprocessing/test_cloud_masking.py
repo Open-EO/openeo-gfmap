@@ -1,8 +1,9 @@
+import os
 from pathlib import Path
 
 import pytest
 
-from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
+from openeo_gfmap.backend import Backend, get_connection
 from openeo_gfmap.fetching import FetchType, build_sentinel2_l2a_extractor
 from openeo_gfmap.preprocessing import (
     bap_masking,
@@ -34,9 +35,11 @@ temporal_extent = TemporalContext(start_date="2022-11-01", end_date="2023-02-28"
 # we should include an assert functionality to measure regression.
 # unit test with dummy cube?
 @pytest.mark.parametrize("backend", backends)
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
 def test_bap_score(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
-    backend_context = BackendContext(backend=backend)
+    connection = get_connection(backend=backend)
 
     # Additional parameters
     fetching_parameters = {"fetching_resolution": 10.0}
@@ -45,7 +48,7 @@ def test_bap_score(backend: Backend):
 
     # Fetch the datacube
     s2_extractor = build_sentinel2_l2a_extractor(
-        backend_context=backend_context,
+        backend=backend,
         bands=["S2-L2A-B04", "S2-L2A-B08", "S2-L2A-SCL"],
         fetch_type=FetchType.TILE,
         **fetching_parameters,
@@ -79,17 +82,19 @@ def test_bap_score(backend: Backend):
 # where do we want the official BAP implementation to end up?
 # we should include an assert functionality to measure regression.
 # unit test with dummy cube?
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
 @pytest.mark.parametrize("backend", backends)
 def test_bap_masking(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
-    backend_context = BackendContext(backend=backend)
+    connection = get_connection(backend=backend)
 
     # Additional parameters
     fetching_parameters = {"fetching_resolution": 10.0}
 
     # Fetch the datacube
     s2_extractor = build_sentinel2_l2a_extractor(
-        backend_context=backend_context,
+        backend=backend,
         bands=["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02", "S2-L2A-SCL"],
         fetch_type=FetchType.TILE,
         **fetching_parameters,
@@ -130,10 +135,12 @@ def test_bap_masking(backend: Backend):
 # TODO; A convoluted test which contains a unit test for the intervals,
 # followed with a integration test on BAP masking.
 # unclear why the post-processing is included?
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
 @pytest.mark.parametrize("backend", backends)
 def test_bap_quintad(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
-    backend_context = BackendContext(backend=backend)
+    connection = get_connection(backend=backend)
 
     # Additional parameters
     fetching_parameters = {"fetching_resolution": 10.0}
@@ -141,7 +148,7 @@ def test_bap_quintad(backend: Backend):
 
     # Fetch the datacube
     s2_extractor = build_sentinel2_l2a_extractor(
-        backend_context=backend_context,
+        backend=backend,
         bands=["S2-L2A-B04", "S2-L2A-SCL"],
         fetch_type=FetchType.TILE,
         **fetching_parameters,
@@ -191,7 +198,7 @@ def test_bap_quintad(backend: Backend):
     }
 
     s2_extractor = build_sentinel2_l2a_extractor(
-        backend_context=backend_context,
+        backend=backend,
         bands=["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02", "S2-L2A-B08", "S2-L2A-SCL"],
         fetch_type=FetchType.TILE,
         **fetching_parameters,

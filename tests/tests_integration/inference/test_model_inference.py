@@ -1,19 +1,15 @@
 """Test on model inference implementations, both local and remote."""
 
+import os
 from pathlib import Path
 
 import numpy as np
+import pytest
 import rasterio
 from openeo.udf import XarrayDataCube
 
-from openeo_gfmap import (
-    Backend,
-    BackendContext,
-    BoundingBoxExtent,
-    FetchType,
-    TemporalContext,
-)
-from openeo_gfmap.backend import cdse_connection
+from openeo_gfmap import BoundingBoxExtent, FetchType, TemporalContext
+from openeo_gfmap.backend import Backend, get_connection
 from openeo_gfmap.fetching.s2 import build_sentinel2_l2a_extractor
 from openeo_gfmap.inference.model_inference import (
     ONNXModelInference,
@@ -36,7 +32,10 @@ dependency_url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/ope
 
 
 # TODO; as an addition we could include an assert on the output values, however this edges towards MLOPS
-def test_onnx_inference_local():
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
+def test_onnx_inference_local(tmp_path):
     """Test the ONNX Model inference locally"""
     inds = load_dataarray_url(resources_file)
 
@@ -60,15 +59,18 @@ def test_onnx_inference_local():
     assert output.shape == (1, 256, 256)
     assert len(np.unique(output.values)) == 3
 
-    output_path = Path(__file__).parent.parent / "results/test_onnx_inference_local.nc"
+    output_path = tmp_path / "results/test_onnx_inference_local.nc"
     print(output_path)
     output.to_netcdf(output_path)
 
 
 # TODO; integration test of +- full pipeline
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
 def test_onnx_inference():
     """Simple test on the ONNX Model Inference class"""
-    connection = cdse_connection()
+    connection = get_connection(Backend.CDSE)
 
     bands = [
         "S2-L2A-B04",
@@ -79,7 +81,7 @@ def test_onnx_inference():
     ]
 
     fetcher = build_sentinel2_l2a_extractor(
-        backend_context=BackendContext(Backend.CDSE_STAGING),
+        backend=Backend.CDSE,
         bands=bands,
         fetch_type=FetchType.TILE,
     )

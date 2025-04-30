@@ -174,7 +174,7 @@ def _compute_max_gap_days(
 
 
 def s1_area_per_orbitstate_vvvh(
-    backend,
+    backend: Backend,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
 ) -> dict:
@@ -184,7 +184,7 @@ def s1_area_per_orbitstate_vvvh(
 
     Parameters
     ----------
-    backend : BackendContext
+    backend : Backend
         The backend to be within, as each backend might use different catalogues. Only the CDSE,
         CDSE_STAGING and FED backends are supported.
     spatial_extent : SpatialContext
@@ -229,7 +229,7 @@ def s1_area_per_orbitstate_vvvh(
         bounds = transform_bounds(CRS.from_epsg(epsg), CRS.from_epsg(4326), *bounds)
 
     # Queries the products in the catalogues
-    if backend.backend in [Backend.CDSE, Backend.CDSE_STAGING, Backend.FED]:
+    if backend in [Backend.CDSE, Backend.CDSE_STAGING, Backend.FED]:
         ascending_products, ascending_timestamps = _parse_cdse_products(
             _query_cdse_catalogue(
                 "Sentinel1",
@@ -250,7 +250,7 @@ def s1_area_per_orbitstate_vvvh(
         )
     else:
         raise NotImplementedError(
-            f"This feature is not supported for backend: {backend.backend}."
+            f"This feature is not supported for backend: {backend}."
         )
 
     # Builds the shape of the spatial extent and computes the area
@@ -289,7 +289,7 @@ def s1_area_per_orbitstate_vvvh(
 
 
 def select_s1_orbitstate_vvvh(
-    backend,
+    backend: Backend,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
     max_temporal_gap: int = 60,
@@ -304,7 +304,7 @@ def select_s1_orbitstate_vvvh(
 
     Parameters
     ----------
-    backend : BackendContext
+    backend : Backend
         The backend to be within, as each backend might use different catalogues. Only the CDSE,
         CDSE_STAGING and FED backends are supported.
     spatial_extent : SpatialContext

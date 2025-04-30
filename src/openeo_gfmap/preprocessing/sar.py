@@ -3,12 +3,8 @@
 import openeo
 from openeo.processes import array_create, power
 
-# from openeo_gfmap import BackendContext
 
-
-def compress_backscatter_uint16(
-    backend_context, cube: openeo.DataCube
-) -> openeo.DataCube:
+def compress_backscatter_uint16(cube: openeo.DataCube) -> openeo.DataCube:
     """
     Scaling the bands from float32 power values to uint16 for memory optimization. The scaling
     casts the values from power to decibels and applies a linear scaling from 0 to 65534.
@@ -18,8 +14,6 @@ def compress_backscatter_uint16(
 
     Parameters
     ----------
-    backend_context : BackendContext
-        The backend context to fetch the backend name.
     cube : openeo.DataCube
         The datacube to compress the backscatter values.
     Returns

@@ -1,12 +1,13 @@
 """Test on feature extractors implementations, both local and remote."""
 
+import os
 from pathlib import Path
 
 import pytest
 import xarray as xr
 
 from openeo_gfmap import BoundingBoxExtent, FetchType, TemporalContext
-from openeo_gfmap.backend import BACKEND_CONNECTIONS, Backend, BackendContext
+from openeo_gfmap.backend import Backend, get_connection
 from openeo_gfmap.features import (
     PatchFeatureExtractor,
     apply_feature_extractor,
@@ -92,9 +93,11 @@ class LatLonExtractor(PatchFeatureExtractor):
 # Then we can adapt this test to an integration/regression test
 # Is the idea to test the extractor? We want to catch data unavailibility?
 @pytest.mark.parametrize("backend", backends)
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
 def test_patch_feature_udf(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
-    backend_context = BackendContext(backend=backend)
+    connection = get_connection(backend=backend)
 
     output_path = (
         Path(__file__).parent.parent / f"results/patch_features_{backend.value}.nc/"
@@ -103,9 +106,7 @@ def test_patch_feature_udf(backend: Backend):
     bands_to_extract = ["S2-L2A-B04", "S2-L2A-B03", "S2-L2A-B02"]
 
     # Setup the RGB cube extraction
-    extractor = build_sentinel2_l2a_extractor(
-        backend_context, bands_to_extract, FetchType.TILE
-    )
+    extractor = build_sentinel2_l2a_extractor(backend, bands_to_extract, FetchType.TILE)
 
     rgb_cube = extractor.get_cube(connection, SPATIAL_CONTEXT, TEMPORAL_EXTENT)
 
@@ -137,10 +138,12 @@ def test_patch_feature_udf(backend: Backend):
 
 
 # TODO Similar as above, but for S1
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
 @pytest.mark.parametrize("backend", backends)
 def test_s1_rescale(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
-    backend_context = BackendContext(backend=backend)
+    connection = get_connection(backend=backend)
     output_path = (
         Path(__file__).parent.parent
         / f"results/s1_rescaled_features_{backend.value}.nc"
@@ -152,13 +155,11 @@ def test_s1_rescale(backend: Backend):
 
     bands_to_extract = ["S1-SIGMA0-VH", "S1-SIGMA0-VV"]
 
-    extractor = build_sentinel1_grd_extractor(
-        backend_context, bands_to_extract, FetchType.TILE
-    )
+    extractor = build_sentinel1_grd_extractor(backend, bands_to_extract, FetchType.TILE)
 
     cube = extractor.get_cube(connection, SPATIAL_CONTEXT, REDUCED_TEMPORAL_CONTEXT)
 
-    cube = compress_backscatter_uint16(backend_context, cube)
+    cube = compress_backscatter_uint16(cube)
 
     features = apply_feature_extractor(
         DummyS1PassthroughExtractor,
@@ -182,10 +183,12 @@ def test_s1_rescale(backend: Backend):
 
 
 # TODO Replace by unit test on the functionalities defined in PatchFeatureExtractor/PointFeatureExtractor
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
 @pytest.mark.parametrize("backend", backends)
 def test_latlon_extractor(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
-    backend_context = BackendContext(backend=backend)
+    connection = get_connection(backend=backend)
     output_path = (
         Path(__file__).parent.parent / f"results/latlon_features_{backend.value}.nc"
     )
@@ -196,9 +199,7 @@ def test_latlon_extractor(backend: Backend):
 
     bands_to_extract = ["S2-L2A-B04"]
 
-    extractor = build_sentinel2_l2a_extractor(
-        backend_context, bands_to_extract, FetchType.TILE
-    )
+    extractor = build_sentinel2_l2a_extractor(backend, bands_to_extract, FetchType.TILE)
 
     cube = extractor.get_cube(connection, SPATIAL_CONTEXT, REDUCED_TEMPORAL_CONTEXT)
 
