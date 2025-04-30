@@ -15,23 +15,55 @@ def test_backend_unique_names():
     ), "Backend names are not unique."
 
 
+def test_backend_unique_urls():
+    """
+    Test that all backends have unique URLs.
+    """
+
+    backend_urls = [backend.url for backend in Backend]
+
+    for url in backend_urls:
+        assert url.startswith(
+            "https://"
+        ), f"Backend URL {url} does not start with https://"
+        assert url.endswith(
+            "/"
+        ), f"Backend URL {url} ends with /, which is not allowed."
+        assert url.islower(), f"Backend URL {url} is not lowercase."
+
+    assert len(backend_urls) == len(set(backend_urls)), "Backend URLs are not unique."
+
+
+def test_backend_list_backends():
+    """
+    Test that the list of backends is correct.
+    """
+    backend_names = Backend.list_backends()
+    assert len(backend_names) == len(
+        Backend
+    ), f"Expected {len(Backend)} backends, got {len(backend_names)}"
+    assert set(backend_names) == set(
+        [backend.name for backend in Backend]
+    ), f"Expected backends {Backend}, got {backend_names}"
+
+
 @pytest.mark.parametrize(
     "backend, expected_name, expected_url",
     [
-        (Backend.CDSE, "CDSE", "openeo.dataspace.copernicus.eu"),
+        (Backend.CDSE, "CDSE", "https://openeo.dataspace.copernicus.eu/"),
         (
             Backend.CDSE_STAGING,
             "CDSE-STAGING",
-            "openeo-staging.dataspace.copernicus.eu",
+            "https://openeo-staging.dataspace.copernicus.eu/",
         ),
         (
             Backend.CDSE_OTC,
             "CDSE-OTC",
             "https://openeo.prod.amsterdam.openeo.dataspace.copernicus.eu/",
         ),
-        (Backend.TERRASCOPE, "TERRASCOPE", "openeo.vito.be"),
-        (Backend.TERRASCOPE_DEV, "TERRASCOPE-DEV", "openeo-dev.vito.be"),
-        (Backend.OPENEO_CLOUD, "OPENEO-CLOUD", "openeo.cloud"),
+        (Backend.TERRASCOPE, "TERRASCOPE", "https://openeo.vito.be/"),
+        (Backend.TERRASCOPE_DEV, "TERRASCOPE-DEV", "https://openeo-dev.vito.be/"),
+        (Backend.OPENEO_CLOUD, "OPENEO-CLOUD", "https://openeo.cloud/"),
     ],
 )
 def test_backend_properties(backend, expected_name, expected_url):
@@ -65,6 +97,16 @@ def test_backend_from_backend_name_invalid():
 
     with pytest.raises(ValueError, match=f"Unknown backend name: {backend_name}"):
         Backend.from_backend_name(backend_name)
+
+
+def test_backend_from_openeo_connection(con):
+    """
+    Test that the backend can be created from an openeo connection.
+    """
+    backend = Backend.from_openeo_connection(con)
+
+    assert isinstance(backend, Backend), f"Expected Backend, got {type(backend)}"
+    assert backend == Backend.TEST, f"Expected backend {Backend.CDSE}, got {backend}"
 
 
 def test_add_backend_to_job_manager(con_client_creds, tmp_path):

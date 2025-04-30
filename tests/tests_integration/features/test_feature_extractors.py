@@ -229,6 +229,9 @@ def test_latlon_extractor(backend: Backend):
     assert set(output_cube.keys()) == set(["red", "lat", "lon", "crs"])
 
 
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
 # TODO; will local processing be part of the API?
 def test_patch_feature_local():
     input_path = Path(__file__).parent.parent / "resources/test_optical_cube.nc"

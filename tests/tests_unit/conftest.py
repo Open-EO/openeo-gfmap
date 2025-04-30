@@ -22,7 +22,7 @@ def api_capabilities() -> dict:
 
 
 @pytest.fixture
-def con_client_creds(requests_mock, api_capabilities):
+def con(requests_mock, api_capabilities):
     """
     Fixture to create a connection to the dummy backend using openeo 1.2.0.
 
@@ -30,16 +30,6 @@ def con_client_creds(requests_mock, api_capabilities):
 
     Inspired by the tests in https://github.com/Open-EO/openeo-python-client.
     """
-    client_id = "test_client_id"
-    client_secret = "test_client_secret"
-    issuer_name = "fauth"
-    issuer_link = "https://fauth.test"
-
-    os.environ["OPENEO_AUTH_CLIENT_ID_TEST"] = client_id
-    os.environ["OPENEO_AUTH_CLIENT_SECRET_TEST"] = client_secret
-    os.environ["OPENEO_AUTH_PROVIDER_ID_TEST"] = issuer_name
-    os.environ["OPENEO_AUTH_METHOD"] = "client_credentials"
-
     requests_mock.get(
         API_URL, json=build_capabilities(api_version="1.2.0", **api_capabilities)
     )
@@ -53,6 +43,25 @@ def con_client_creds(requests_mock, api_capabilities):
             },
         },
     )
+    con = Connection(API_URL)
+    return con
+
+
+@pytest.fixture
+def con_client_creds(requests_mock, con):
+    """
+    Fixture to create a connection to the dummy backend using openeo 1.2.0.
+    """
+    client_id = "test_client_id"
+    client_secret = "test_client_secret"
+    issuer_name = "fauth"
+    issuer_link = "https://fauth.test"
+
+    os.environ["OPENEO_AUTH_CLIENT_ID_TEST"] = client_id
+    os.environ["OPENEO_AUTH_CLIENT_SECRET_TEST"] = client_secret
+    os.environ["OPENEO_AUTH_PROVIDER_ID_TEST"] = issuer_name
+    os.environ["OPENEO_AUTH_METHOD"] = "client_credentials"
+
     requests_mock.get(
         API_URL + "credentials/oidc",
         json={

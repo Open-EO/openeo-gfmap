@@ -1,6 +1,7 @@
 """
 This module provides a set of predefined backends and helper functions to create connections to them or add them to a job manager.
 """
+from __future__ import annotations
 
 import logging
 import os
@@ -32,17 +33,19 @@ class Backend(Enum):
     Class that holds the backend names and urls. Can be used to get information about specific backends.
     """
 
-    CDSE = _BackendInfo(name="CDSE", url="openeo.dataspace.copernicus.eu")
+    CDSE = _BackendInfo(name="CDSE", url="https://openeo.dataspace.copernicus.eu/")
     CDSE_STAGING = _BackendInfo(
-        name="CDSE-STAGING", url="openeo-staging.dataspace.copernicus.eu"
+        name="CDSE-STAGING", url="https://openeo-staging.dataspace.copernicus.eu/"
     )
     CDSE_OTC = _BackendInfo(
         name="CDSE-OTC",
         url="https://openeo.prod.amsterdam.openeo.dataspace.copernicus.eu/",
     )  # only available on vito VPN
-    TERRASCOPE = _BackendInfo(name="TERRASCOPE", url="openeo.vito.be")
-    TERRASCOPE_DEV = _BackendInfo(name="TERRASCOPE-DEV", url="openeo-dev.vito.be")
-    OPENEO_CLOUD = _BackendInfo(name="OPENEO-CLOUD", url="openeo.cloud")
+    TERRASCOPE = _BackendInfo(name="TERRASCOPE", url="https://openeo.vito.be/")
+    TERRASCOPE_DEV = _BackendInfo(
+        name="TERRASCOPE-DEV", url="https://openeo-dev.vito.be/"
+    )
+    OPENEO_CLOUD = _BackendInfo(name="OPENEO-CLOUD", url="https://openeo.cloud/")
     FED = _BackendInfo(name="FED", url="https://openeofed.dataspace.copernicus.eu/")
     TEST = _BackendInfo(
         name="TEST", url="https://oeo.test/"
@@ -58,18 +61,44 @@ class Backend(Enum):
         """Get the URL of the backend."""
         return self.value.url
 
-    @staticmethod
-    def from_backend_name(backend_name: str) -> "Backend":
+    @classmethod
+    def list_backends(cls) -> list[str]:
+        """
+        Get a list of all backend names.
+
+        :return: A list of backend names.
+        """
+        return [backend.name for backend in cls]
+
+    @classmethod
+    def from_backend_name(cls, backend_name: str) -> Backend:
         """
         Get the backend from the backend name.
 
         :param backend_name: The name of the backend.
         :return: The Backend object.
         """
-        for backend in Backend:
+        for backend in cls:
             if backend.name == backend_name:
                 return backend
         raise ValueError(f"Unknown backend name: {backend_name}")
+
+    @classmethod
+    def from_openeo_connection(cls, connection: openeo.Connection) -> Backend:
+        """
+        Get the backend from an openeo connection.
+
+        :param connection: The openeo connection.
+        :return: The Backend object.
+        """
+        connection_url = str(connection._orig_url).lower()
+        if not connection_url.endswith("/"):
+            connection_url += "/"
+
+        for backend in cls:
+            if backend.url == connection._orig_url:
+                return backend
+        raise ValueError(f"Unknown backend URL: {connection._orig_url}")
 
     @staticmethod
     def _resolve_backend(backend: Union[str, "Backend"]) -> "Backend":
