@@ -2,6 +2,7 @@
 of inference models on an UDF.
 """
 
+import copy
 import functools
 import inspect
 import logging
@@ -16,6 +17,7 @@ import numpy as np
 import openeo
 import requests
 import xarray as xr
+from openeo.metadata import CollectionMetadata
 from openeo.udf import XarrayDataCube
 from openeo.udf import inspect as udf_inspect
 from openeo.udf.udf_data import UdfData
@@ -123,6 +125,16 @@ class ModelInference(ABC):
         arr = self.execute(arr).transpose("bands", "y", "x")
         return XarrayDataCube(arr)
 
+    def _apply_metadata(
+        self, metadata: CollectionMetadata, parameters: dict
+    ) -> CollectionMetadata:
+        """Apply metadata to the output data. This method will be executed at the very end of the
+        process.
+        """
+        self._parameters = parameters
+
+        return metadata.rename_labels(dimension="bands", target=self.output_labels())
+
     @property
     def epsg(self) -> int:
         """EPSG code of the input data."""
@@ -211,14 +223,14 @@ class ONNXModelInference(ModelInference):
         )
 
 
-def apply_udf_data(udf_data: UdfData) -> XarrayDataCube:
+def apply_udf_data(udf_data: UdfData) -> UdfData:
     model_inference_class = "<model_inference_class>"
 
     model_inference = model_inference_class()
 
     # User-defined, model inference class initialized here
     cube = udf_data.datacube_list[0]
-    parameters = udf_data.user_context
+    parameters = copy.deepcopy(udf_data.user_context)
 
     proj = udf_data.proj
     if proj is not None:
@@ -231,6 +243,14 @@ def apply_udf_data(udf_data: UdfData) -> XarrayDataCube:
     udf_data.datacube_list = [cube]
 
     return udf_data
+
+
+def apply_metadata(metadata: CollectionMetadata, context: dict) -> CollectionMetadata:
+    model_inference_class = "<model_inference_class>"
+
+    model_inference = model_inference_class()
+
+    return model_inference._apply_metadata(metadata, parameters=copy.deepcopy(context))
 
 
 def _get_imports() -> str:
@@ -255,6 +275,13 @@ def _get_imports() -> str:
 
 def _get_apply_udf_data(model_inference: ModelInference) -> str:
     source_lines = inspect.getsource(apply_udf_data)
+    source = "".join(source_lines)
+    # replace in the source function the `model_inference_class`
+    return source.replace('"<model_inference_class>"', model_inference.__name__)
+
+
+def _get_apply_metadata(model_inference: ModelInference) -> str:
+    source_lines = inspect.getsource(apply_metadata)
     source = "".join(source_lines)
     # replace in the source function the `model_inference_class`
     return source.replace('"<model_inference_class>"', model_inference.__name__)
@@ -286,7 +313,9 @@ def _generate_udf_code(
     udf_code += _get_imports() + "\n\n"
     udf_code += f"{inspect.getsource(ModelInference)}\n\n"
     udf_code += f"{inspect.getsource(model_inference_class)}\n\n"
-    udf_code += _get_apply_udf_data(model_inference_class)
+    udf_code += f"{_get_apply_udf_data(model_inference_class)}\n\n"
+    udf_code += _get_apply_metadata(model_inference_class)
+
     return udf_code
 
 
@@ -304,15 +333,13 @@ def apply_model_inference(
     """
     model_inference = model_inference_class()
     model_inference._parameters = parameters
-    output_labels = model_inference.output_labels()
     dependencies = model_inference.dependencies()
 
     udf_code = _generate_udf_code(model_inference_class, dependencies)
 
     udf = openeo.UDF(code=udf_code, context=parameters)
 
-    cube = cube.apply_neighborhood(process=udf, size=size, overlap=overlap)
-    return cube.rename_labels(dimension="bands", target=output_labels)
+    return cube.apply_neighborhood(process=udf, size=size, overlap=overlap)
 
 
 def apply_model_inference_local(
