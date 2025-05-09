@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.4.5] - 2025-05-09
+
+### Added
+
+### Changed
+- `apply_model_inference` now uses `apply_metadata` inside the inference UDF, instead of `rename_labels` to change the band names
+### Removed
+
+### Fixed
+
 ## [0.4.4] - 2025-04-28
 
 ### Added
