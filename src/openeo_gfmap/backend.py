@@ -78,8 +78,9 @@ class Backend(Enum):
         :param backend_name: The name of the backend.
         :return: The Backend object.
         """
+        normalized_name = backend_name.replace("_", "-").upper()
         for backend in cls:
-            if backend.name == backend_name:
+            if backend.name == normalized_name:
                 return backend
         raise ValueError(f"Unknown backend name: {backend_name}")
 

@@ -13,6 +13,10 @@ def test_backend_unique_names():
     assert len(backend_names) == len(
         set(backend_names)
     ), "Backend names are not unique."
+    for name in backend_names:
+        assert name.isupper(), f"Backend name {name} is not uppercase."
+        assert "_" not in name, f"Backend name {name} contains underscores."
+        assert len(name) > 0, "Backend name is empty."
 
 
 def test_backend_unique_urls():
@@ -78,15 +82,25 @@ def test_backend_properties(backend, expected_name, expected_url):
     ), f"Expected url {expected_url}, got {backend.url}"
 
 
-def test_backend_from_backend_name():
+@pytest.mark.parametrize(
+    "backend_name, expected_backend",
+    [
+        ("CDSE", Backend.CDSE),
+        ("cdse", Backend.CDSE),
+        ("CDSE_STAGING", Backend.CDSE_STAGING),
+        ("CDSE-staging", Backend.CDSE_STAGING),
+    ],
+)
+def test_backend_from_backend_name(backend_name, expected_backend):
     """
-    Test that the backend can be created from the backend name.
+    Test that the backend can be created from the backend name (case and dash/underscore insensitive).
     """
-    backend_name = "CDSE"
     backend = Backend.from_backend_name(backend_name)
 
     assert isinstance(backend, Backend), f"Expected Backend, got {type(backend)}"
-    assert backend == Backend.CDSE, f"Expected backend {Backend.CDSE}, got {backend}"
+    assert (
+        backend == expected_backend
+    ), f"Expected backend {expected_backend}, got {backend}"
 
 
 def test_backend_from_backend_name_invalid():
