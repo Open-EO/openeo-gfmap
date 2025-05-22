@@ -7,10 +7,9 @@ import logging
 import os
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Union
+from typing import Union
 
 import openeo
-from openeo.extra.job_management import MultiBackendJobManager
 
 _log = logging.getLogger(__name__)
 
@@ -112,30 +111,6 @@ class Backend(Enum):
         if isinstance(backend, str):
             return Backend.from_backend_name(backend)
         return backend
-
-
-def add_backend_to_job_manager(
-    job_manager: MultiBackendJobManager,
-    backend: Union[Backend, str],
-    parallel_jobs: Optional[int] = None,
-) -> None:
-    """
-    Add a backend to the job_manager.
-
-    :param job_manager: The job_manager to add the backend to.
-    :param backend: The backend to add. Can be a Backend object or a string with the backend name.
-    :param parallel_jobs: The number of parallel jobs to allow on this backend.
-    :return: None
-    """
-    backend = Backend._resolve_backend(backend)
-
-    connection = get_connection(backend)
-    if parallel_jobs is not None:
-        job_manager.add_backend(
-            name=backend.name, connection=connection, parallel_jobs=parallel_jobs
-        )
-    else:
-        job_manager.add_backend(name=backend.name, connection=connection)
 
 
 def get_connection(backend: Union[Backend, str]) -> openeo.Connection:

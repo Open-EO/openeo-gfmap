@@ -1,7 +1,6 @@
 import pytest
-from openeo.extra.job_management import MultiBackendJobManager
 
-from openeo_gfmap.backend import Backend, add_backend_to_job_manager
+from openeo_gfmap.backend import Backend
 
 
 def test_backend_unique_names():
@@ -121,16 +120,3 @@ def test_backend_from_openeo_connection(con):
 
     assert isinstance(backend, Backend), f"Expected Backend, got {type(backend)}"
     assert backend == Backend.TEST, f"Expected backend {Backend.CDSE}, got {backend}"
-
-
-def test_add_backend_to_job_manager(con_client_creds, tmp_path):
-    """
-    Test that the backend can be added to a job manager.
-    """
-    job_manager = MultiBackendJobManager(root_dir=tmp_path)
-
-    add_backend_to_job_manager(job_manager=job_manager, backend=Backend.TEST)
-
-    assert job_manager.backends.keys() == {
-        Backend.TEST.name
-    }, f"Expected backend {Backend.TEST.name}, got {job_manager.backends.keys()}"
