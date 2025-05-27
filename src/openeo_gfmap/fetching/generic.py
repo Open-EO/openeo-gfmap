@@ -6,7 +6,7 @@ from typing import Callable, Optional
 import openeo
 from openeo.rest import OpenEoApiError
 
-from openeo_gfmap.backend import Backend
+from openeo_gfmap.backend import _BackendType
 from openeo_gfmap.fetching import CollectionFetcher, FetchType, _log
 from openeo_gfmap.fetching.commons import (
     _load_collection,
@@ -44,7 +44,7 @@ AGERA5_TERRASCOPE_STAC = "https://stac.openeo.vito.be/collections/agera5_daily"
 
 
 def _get_generic_fetcher(
-    collection_name: str, fetch_type: FetchType, backend: Backend, is_stac: bool
+    collection_name: str, fetch_type: FetchType, backend: _BackendType, is_stac: bool
 ) -> Callable:
     band_mapping: Optional[dict] = None
 

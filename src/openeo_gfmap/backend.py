@@ -1,13 +1,13 @@
 """
-This module provides a set of predefined backends and helper functions to create connections to them or add them to a job manager.
+This module provides a set of predefined backend types and helper functions to create connections to them.
 """
 from __future__ import annotations
 
 import logging
-import os
 from dataclasses import dataclass
 from enum import Enum
 from typing import Union
+from urllib.parse import urlparse
 
 import openeo
 
@@ -24,57 +24,59 @@ class _BackendInfo:
     """
 
     name: str
-    url: str
+    default_full_url: str
+    url_domain: str
 
 
-class Backend(Enum):
+class _BackendType(Enum):
     """
-    Class that holds the backend names and urls. Can be used to get information about specific backends.
+    Class that holds the backend types, default url's and url domains. Can be used to get information about specific backends.
     """
 
-    CDSE = _BackendInfo(name="CDSE", url="https://openeo.dataspace.copernicus.eu/")
-    CDSE_STAGING = _BackendInfo(
-        name="CDSE-STAGING", url="https://openeo-staging.dataspace.copernicus.eu/"
+    CDSE = _BackendInfo(
+        name="CDSE",
+        default_full_url="https://openeo.dataspace.copernicus.eu/",
+        url_domain="dataspace.copernicus.eu",
     )
-    CDSE_OTC = _BackendInfo(
-        name="CDSE-OTC",
-        url="https://openeo.prod.amsterdam.openeo.dataspace.copernicus.eu/",
-    )  # only available on vito VPN
-    TERRASCOPE = _BackendInfo(name="TERRASCOPE", url="https://openeo.vito.be/")
-    TERRASCOPE_DEV = _BackendInfo(
-        name="TERRASCOPE-DEV", url="https://openeo-dev.vito.be/"
+    TERRASCOPE = _BackendInfo(
+        name="TERRASCOPE",
+        default_full_url="https://openeo.vito.be/",
+        url_domain="vito.be",
     )
-    OPENEO_CLOUD = _BackendInfo(name="OPENEO-CLOUD", url="https://openeo.cloud/")
-    FED = _BackendInfo(name="FED", url="https://openeofed.dataspace.copernicus.eu/")
+    OPENEO_CLOUD = _BackendInfo(
+        name="OPENEO-CLOUD",
+        default_full_url="https://openeo.cloud/",
+        url_domain="openeo.cloud",
+    )
     TEST = _BackendInfo(
-        name="TEST", url="https://oeo.test/"
+        name="TEST", default_full_url="https://oeo.test/", url_domain="oeo.test"
     )  # only for testing purposes
 
     @property
     def name(self) -> str:
-        """Get the name of the backend."""
+        """Get the name of the backend type."""
         return self.value.name
 
     @property
-    def url(self) -> str:
+    def default_url(self) -> str:
         """Get the URL of the backend."""
-        return self.value.url
+        return self.value.default_full_url
 
     @classmethod
     def list_backends(cls) -> list[str]:
         """
-        Get a list of all backend names.
+        Get a list of all backend types.
 
-        :return: A list of backend names.
+        :return: A list of backend types.
         """
         return [backend.name for backend in cls]
 
     @classmethod
-    def from_backend_name(cls, backend_name: str) -> Backend:
+    def from_backend_name(cls, backend_name: str) -> _BackendType:
         """
-        Get the backend from the backend name.
+        Get the backend type from the backend name.
 
-        :param backend_name: The name of the backend.
+        :param backend_name: The name of the backend type.
         :return: The Backend object.
         """
         normalized_name = backend_name.replace("_", "-").upper()
@@ -84,24 +86,22 @@ class Backend(Enum):
         raise ValueError(f"Unknown backend name: {backend_name}")
 
     @classmethod
-    def from_openeo_connection(cls, connection: openeo.Connection) -> Backend:
+    def from_openeo_connection(cls, connection: openeo.Connection) -> _BackendType:
         """
-        Get the backend from an openeo connection.
+        Get the backend type from an openeo connection.
 
         :param connection: The openeo connection.
         :return: The Backend object.
         """
-        connection_url = str(connection._orig_url).lower()
-        if not connection_url.endswith("/"):
-            connection_url += "/"
-
         for backend in cls:
-            if backend.url == connection._orig_url:
+            parsed_url = urlparse(connection._orig_url)
+            domain = parsed_url.hostname or ""
+            if domain.endswith(backend.value.url_domain):
                 return backend
-        raise ValueError(f"Unknown backend URL: {connection._orig_url}")
+        raise ValueError(f"Unknown backend URL domain: {connection._orig_url}")
 
     @staticmethod
-    def _resolve_backend(backend: Union[str, "Backend"]) -> "Backend":
+    def _resolve_backend(backend: Union[str, _BackendType]) -> _BackendType:
         """
         Resolve the backend from a string or Backend object.
 
@@ -109,60 +109,5 @@ class Backend(Enum):
         :return: The resolved Backend object.
         """
         if isinstance(backend, str):
-            return Backend.from_backend_name(backend)
+            return _BackendType.from_backend_name(backend)
         return backend
-
-
-def get_connection(backend: Union[Backend, str]) -> openeo.Connection:
-    """
-    Get the connection to a backend.
-
-    :param backend: The backend to connect to. Can be a Backend object or a string with the backend name.
-    :return: The connection to the backend.
-    """
-    backend = Backend._resolve_backend(backend)
-
-    url = backend.url
-    return _create_connection(url, env_var_suffix=backend.name)
-
-
-def _create_connection(
-    url: str, *, env_var_suffix: str, connect_kwargs: dict = {}
-) -> openeo.Connection:
-    """
-    Generic helper to create an openEO connection
-    with support for multiple client credential configurations from environment variables
-
-    :param url: The URL of the backend to connect to.
-    :param env_var_suffix: The suffix to use for the environment variables.
-    :param connect_kwargs: Additional keyword arguments to pass to the connection.
-    :return: The connection to the backend.
-    """
-    connection = openeo.connect(url, **(connect_kwargs or {}))
-
-    if (
-        os.environ.get("OPENEO_AUTH_METHOD") == "client_credentials"
-        and f"OPENEO_AUTH_CLIENT_ID_{env_var_suffix}" in os.environ
-    ):
-        # Support for multiple client credentials configs from env vars
-        client_id = os.environ[f"OPENEO_AUTH_CLIENT_ID_{env_var_suffix}"]
-        client_secret = os.environ[f"OPENEO_AUTH_CLIENT_SECRET_{env_var_suffix}"]
-        provider_id = os.environ.get(f"OPENEO_AUTH_PROVIDER_ID_{env_var_suffix}")
-        _log.info(
-            f"Doing client credentials from env var with {env_var_suffix=} {provider_id} {client_id=} {len(client_secret)=} "
-        )
-
-        connection.authenticate_oidc_client_credentials(
-            client_id=client_id, client_secret=client_secret, provider_id=provider_id
-        )
-    else:
-        # Standard authenticate_oidc procedure: refresh token, device code or default env var handling
-        # See https://open-eo.github.io/openeo-python-client/auth.html#oidc-authentication-dynamic-method-selection
-
-        # Use a shorter max poll time by default to alleviate the default impression that the test seem to hang
-        # because of the OIDC device code poll loop.
-        max_poll_time = int(
-            os.environ.get("OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME") or 30
-        )
-        connection.authenticate_oidc(max_poll_time=max_poll_time)
-    return connection

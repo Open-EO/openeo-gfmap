@@ -4,7 +4,7 @@ import openeo
 import pytest
 
 from openeo_gfmap import BoundingBoxExtent, TemporalContext
-from openeo_gfmap.backend import Backend
+from openeo_gfmap.backend import _BackendType
 from openeo_gfmap.fetching import (
     CollectionFetcher,
     FetchType,
@@ -206,7 +206,7 @@ def test_build_sentinel2_l2a_extractor():
     """Test that build_sentinel2_l2a_extractor returns a CollectionFetcher."""
     bands = ["S2-L2A-B01", "S2-L2A-B02"]
     extractor = build_sentinel2_l2a_extractor(
-        backend=Backend.CDSE, bands=bands, fetch_type=FetchType.TILE
+        backend=_BackendType.CDSE, bands=bands, fetch_type=FetchType.TILE
     )
 
     assert isinstance(extractor, CollectionFetcher)

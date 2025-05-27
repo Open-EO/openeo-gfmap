@@ -11,11 +11,11 @@ from requests import adapters
 from shapely.geometry import Point, box, shape
 from shapely.ops import unary_union
 
-from openeo_gfmap import (  # BackendContext,
-    Backend,
+from openeo_gfmap import (
     BoundingBoxExtent,
     SpatialContext,
     TemporalContext,
+    _BackendType,
 )
 from openeo_gfmap.utils import _log
 
@@ -174,7 +174,7 @@ def _compute_max_gap_days(
 
 
 def s1_area_per_orbitstate_vvvh(
-    backend: Backend,
+    backend: _BackendType,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
 ) -> dict:
@@ -185,8 +185,7 @@ def s1_area_per_orbitstate_vvvh(
     Parameters
     ----------
     backend : Backend
-        The backend to be within, as each backend might use different catalogues. Only the CDSE,
-        CDSE_STAGING and FED backends are supported.
+        The backend to be within, as each backend might use different catalogues. Only the CDSE backends are supported.
     spatial_extent : SpatialContext
         The spatial extent to be checked, it will check within its bounding box.
     temporal_extent : TemporalContext
@@ -229,7 +228,7 @@ def s1_area_per_orbitstate_vvvh(
         bounds = transform_bounds(CRS.from_epsg(epsg), CRS.from_epsg(4326), *bounds)
 
     # Queries the products in the catalogues
-    if backend in [Backend.CDSE, Backend.CDSE_STAGING, Backend.FED]:
+    if backend in [_BackendType.CDSE]:
         ascending_products, ascending_timestamps = _parse_cdse_products(
             _query_cdse_catalogue(
                 "Sentinel1",
@@ -289,7 +288,7 @@ def s1_area_per_orbitstate_vvvh(
 
 
 def select_s1_orbitstate_vvvh(
-    backend: Backend,
+    backend: _BackendType,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
     max_temporal_gap: int = 60,
@@ -305,8 +304,7 @@ def select_s1_orbitstate_vvvh(
     Parameters
     ----------
     backend : Backend
-        The backend to be within, as each backend might use different catalogues. Only the CDSE,
-        CDSE_STAGING and FED backends are supported.
+        The backend to be within, as each backend might use different catalogues. Only the CDSE backends are supported.
     spatial_extent : SpatialContext
         The spatial extent to be checked, it will check within its bounding box.
     temporal_extent : TemporalContext

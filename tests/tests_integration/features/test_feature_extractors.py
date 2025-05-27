@@ -3,11 +3,12 @@
 import os
 from pathlib import Path
 
+import openeo
 import pytest
 import xarray as xr
 
 from openeo_gfmap import BoundingBoxExtent, FetchType, TemporalContext
-from openeo_gfmap.backend import Backend, get_connection
+from openeo_gfmap.backend import _BackendType
 from openeo_gfmap.features import (
     PatchFeatureExtractor,
     apply_feature_extractor,
@@ -28,7 +29,7 @@ SPATIAL_CONTEXT = BoundingBoxExtent(
 )
 TEMPORAL_EXTENT = TemporalContext("2023-10-01", "2024-01-01")
 
-backends = [Backend.CDSE]
+backends = [_BackendType.CDSE]
 
 
 class DummyPatchExtractor(PatchFeatureExtractor):
@@ -96,8 +97,8 @@ class LatLonExtractor(PatchFeatureExtractor):
 @pytest.mark.skipif(
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
-def test_patch_feature_udf(backend: Backend):
-    connection = get_connection(backend=backend)
+def test_patch_feature_udf(backend: _BackendType):
+    connection = openeo.connect(backend.default_url).authenticate_oidc()
 
     output_path = (
         Path(__file__).parent.parent / f"results/patch_features_{backend.value}.nc/"
@@ -142,8 +143,8 @@ def test_patch_feature_udf(backend: Backend):
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
 @pytest.mark.parametrize("backend", backends)
-def test_s1_rescale(backend: Backend):
-    connection = get_connection(backend=backend)
+def test_s1_rescale(backend: _BackendType):
+    connection = openeo.connect(backend.default_url).authenticate_oidc()
     output_path = (
         Path(__file__).parent.parent
         / f"results/s1_rescaled_features_{backend.value}.nc"
@@ -187,8 +188,8 @@ def test_s1_rescale(backend: Backend):
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
 @pytest.mark.parametrize("backend", backends)
-def test_latlon_extractor(backend: Backend):
-    connection = get_connection(backend=backend)
+def test_latlon_extractor(backend: _BackendType):
+    connection = openeo.connect(backend.default_url).authenticate_oidc()
     output_path = (
         Path(__file__).parent.parent / f"results/latlon_features_{backend.value}.nc"
     )

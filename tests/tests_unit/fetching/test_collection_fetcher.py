@@ -4,14 +4,14 @@ import pytest
 import xarray as xr
 
 from openeo_gfmap import BoundingBoxExtent, TemporalContext
-from openeo_gfmap.backend import Backend
+from openeo_gfmap.backend import _BackendType
 from openeo_gfmap.fetching import CollectionFetcher
 
 
 @pytest.fixture
 def mock_backend():
     """Fixture to create a mock backend context."""
-    return MagicMock(spec=Backend)
+    return MagicMock(spec=_BackendType)
 
 
 @pytest.fixture

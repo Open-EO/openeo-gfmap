@@ -1,13 +1,9 @@
-import os
-
 import pytest
-from openeo.rest._testing import DummyBackend, build_capabilities
-from openeo.rest.auth.testing import OidcMock
-from openeo.rest.connection import Connection
+from openeo.rest._testing import DummyBackend
 
-from openeo_gfmap.backend import Backend
+from openeo_gfmap.backend import _BackendType
 
-API_URL = Backend.TEST.url
+API_URL = _BackendType.TEST.default_url
 
 
 @pytest.fixture
@@ -21,70 +17,44 @@ def api_capabilities() -> dict:
     return {}
 
 
-@pytest.fixture
-def con(requests_mock, api_capabilities):
-    """
-    Fixture to create a connection to the dummy backend using openeo 1.2.0.
+# @pytest.fixture
+# def con_client_creds(requests_mock):
+#     """
+#     Fixture to create a connection to the dummy backend using openeo 1.2.0.
+#     """
+#     client_id = "test_client_id"
+#     client_secret = "test_client_secret"
+#     issuer_name = "fauth"
+#     issuer_link = "https://fauth.test"
 
-    This is used for testing the job manager with a dummy backend.
+#     os.environ["OPENEO_AUTH_CLIENT_ID_TEST"] = client_id
+#     os.environ["OPENEO_AUTH_CLIENT_SECRET_TEST"] = client_secret
+#     os.environ["OPENEO_AUTH_PROVIDER_ID_TEST"] = issuer_name
+#     os.environ["OPENEO_AUTH_METHOD"] = "client_credentials"
 
-    Inspired by the tests in https://github.com/Open-EO/openeo-python-client.
-    """
-    requests_mock.get(
-        API_URL, json=build_capabilities(api_version="1.2.0", **api_capabilities)
-    )
-    requests_mock.get(
-        API_URL + "udf_runtimes",
-        json={
-            "Python": {
-                "type": "language",
-                "default": "3",
-                "versions": {"3": {"libraries": {}}},
-            },
-        },
-    )
-    con = Connection(API_URL)
-    return con
+#     requests_mock.get(
+#         API_URL + "credentials/oidc",
+#         json={
+#             "providers": [
+#                 {
+#                     "id": issuer_name,
+#                     "issuer": issuer_link,
+#                     "title": "Foo Auth",
+#                     "scopes": ["openid", "im"],
+#                 }
+#             ]
+#         },
+#     )
+#     OidcMock(
+#         requests_mock=requests_mock,
+#         expected_grant_type="client_credentials",
+#         expected_client_id=client_id,
+#         expected_fields={"client_secret": client_secret, "scope": "openid"},
+#         oidc_issuer=issuer_link,
+#     )
 
-
-@pytest.fixture
-def con_client_creds(requests_mock, con):
-    """
-    Fixture to create a connection to the dummy backend using openeo 1.2.0.
-    """
-    client_id = "test_client_id"
-    client_secret = "test_client_secret"
-    issuer_name = "fauth"
-    issuer_link = "https://fauth.test"
-
-    os.environ["OPENEO_AUTH_CLIENT_ID_TEST"] = client_id
-    os.environ["OPENEO_AUTH_CLIENT_SECRET_TEST"] = client_secret
-    os.environ["OPENEO_AUTH_PROVIDER_ID_TEST"] = issuer_name
-    os.environ["OPENEO_AUTH_METHOD"] = "client_credentials"
-
-    requests_mock.get(
-        API_URL + "credentials/oidc",
-        json={
-            "providers": [
-                {
-                    "id": issuer_name,
-                    "issuer": issuer_link,
-                    "title": "Foo Auth",
-                    "scopes": ["openid", "im"],
-                }
-            ]
-        },
-    )
-    OidcMock(
-        requests_mock=requests_mock,
-        expected_grant_type="client_credentials",
-        expected_client_id=client_id,
-        expected_fields={"client_secret": client_secret, "scope": "openid"},
-        oidc_issuer=issuer_link,
-    )
-
-    con = Connection(API_URL)
-    return con
+#     con = Connection(API_URL)
+#     return con
 
 
 @pytest.fixture

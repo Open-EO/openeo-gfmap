@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- BackendContext and Backend have been replaced by a new _BackendType enum, which is used to determine the backend type in the GFMapJobManager. It should now only be used by gfmap and not by the user. Users should simply use openeo connections and gfmap will handle the backend context internally.
 
 ### Removed
 

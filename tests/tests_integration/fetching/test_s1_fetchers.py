@@ -15,7 +15,7 @@ import xarray as xr
 from test_s2_fetchers import POINT_EXTRACTION_DF, test_backends, test_configurations
 
 from openeo_gfmap import SpatialContext, TemporalContext
-from openeo_gfmap.backend import Backend, get_connection
+from openeo_gfmap.backend import _BackendType
 from openeo_gfmap.fetching import (
     CollectionFetcher,
     FetchType,
@@ -39,7 +39,7 @@ class TestS1Extractors:
     def sentinel1_grd(
         spatial_extent: SpatialContext,
         temporal_extent: TemporalContext,
-        backend: Backend,
+        backend: _BackendType,
         connection=openeo.Connection,
     ):
         bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
@@ -140,7 +140,7 @@ class TestS1Extractors:
     def sentinel1_grd_point_based(
         spatial_context: SpatialContext,
         temporal_context: TemporalContext,
-        backend: Backend,
+        backend: _BackendType,
         connection: openeo.Connection,
     ):
         """Test the point based extraction from the spatial aggregation of the
@@ -197,7 +197,7 @@ class TestS1Extractors:
     def sentinel1_grd_polygon_based(
         spatial_context: SpatialContext,
         temporal_context: TemporalContext,
-        backend: Backend,
+        backend: _BackendType,
         connection: openeo.Connection,
     ):
         bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
@@ -253,9 +253,11 @@ class TestS1Extractors:
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
 def test_sentinel1_grd(
-    spatial_context: SpatialContext, temporal_context: TemporalContext, backend: Backend
+    spatial_context: SpatialContext,
+    temporal_context: TemporalContext,
+    backend: _BackendType,
 ):
-    connection = get_connection(backend=backend)
+    connection = openeo.connect(backend.default_url).authenticate_oidc()
     TestS1Extractors.sentinel1_grd(
         spatial_context, temporal_context, backend, connection
     )
@@ -273,8 +275,8 @@ def test_compare_sentinel1_tiles():
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
 @pytest.mark.parametrize("backend", test_backends)
-def test_sentinel1_grd_point_based(backend: Backend):
-    connection = get_connection(backend=backend)
+def test_sentinel1_grd_point_based(backend: _BackendType):
+    connection = openeo.connect(backend.default_url).authenticate_oidc()
 
     extraction_df = gpd.read_file(POINT_EXTRACTION_DF)
 
