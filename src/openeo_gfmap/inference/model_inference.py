@@ -22,7 +22,7 @@ from openeo.udf import XarrayDataCube
 from openeo.udf import inspect as udf_inspect
 from openeo.udf.udf_data import UdfData
 
-sys.path.insert(0, "onnx_deps")
+sys.path.append("onnx_deps")
 import onnxruntime as ort  # noqa: E402
 
 EPSG_HARMONIZED_NAME = "GEO-EPSG"

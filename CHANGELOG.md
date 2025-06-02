@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
+- Users can now specify UDF dependencies for the `FeatureExtractor` class via job options, using the `feature_deps` name.
 ### Changed
 
 ### Removed

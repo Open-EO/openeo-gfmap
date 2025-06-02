@@ -7,6 +7,7 @@ import inspect
 import logging
 import re
 import shutil
+import sys
 import urllib.request
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -18,6 +19,8 @@ from openeo.udf import XarrayDataCube
 from openeo.udf.udf_data import UdfData
 from pyproj import Transformer
 from pyproj.crs import CRS
+
+sys.path.append("feature_deps")
 
 LAT_HARMONIZED_NAME = "GEO-LAT"
 LON_HARMONIZED_NAME = "GEO-LON"
@@ -284,10 +287,10 @@ def _get_imports() -> str:
     static_globals = []
 
     for line in lines:
-        if line.strip().startswith(("import ", "from ")):
+        if line.strip().startswith(
+            ("import ", "from ", "sys.path.insert(", "sys.path.append(")
+        ):
             imports.append(line)
-        # All the global variables with the style
-        # UPPER_CASE_GLOBAL_VARIABLE = "constant"
         elif re.match("^[A-Z_0-9]+\s*=.*$", line):
             static_globals.append(line)
 
