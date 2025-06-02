@@ -296,8 +296,6 @@ def _get_imports() -> str:
 
     return "\n".join(imports) + "\n\n" + "\n".join(static_globals)
 
-    return "\n".join(imports) + "\n\n" + "\n".join(static_globals)
-
 
 def _get_apply_udf_data(feature_extractor: FeatureExtractor) -> str:
     source_lines = inspect.getsource(apply_udf_data)
