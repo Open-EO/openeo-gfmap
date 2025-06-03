@@ -210,6 +210,10 @@ def s1_area_per_orbitstate_vvvh(
         else:
             geometry = unary_union(shapely_geometries)
             bounds = geometry.bounds
+        if bounds[0] == bounds[2]:
+            bounds = (bounds[0], bounds[1], bounds[2] + 0.0001, bounds[3])
+        if bounds[1] == bounds[3]:
+            bounds = (bounds[0], bounds[1], bounds[2], bounds[3] + 0.0001)
         epsg = 4326
     elif isinstance(spatial_extent, BoundingBoxExtent):
         bounds = [
