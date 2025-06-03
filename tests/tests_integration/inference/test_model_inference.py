@@ -10,7 +10,7 @@ import rasterio
 from openeo.udf import XarrayDataCube
 
 from openeo_gfmap import BoundingBoxExtent, FetchType, TemporalContext
-from openeo_gfmap.backend import _BackendType
+from openeo_gfmap.backend import _BackendGroup
 from openeo_gfmap.fetching.s2 import build_sentinel2_l2a_extractor
 from openeo_gfmap.inference.model_inference import (
     ONNXModelInference,
@@ -71,7 +71,7 @@ def test_onnx_inference_local(tmp_path):
 )
 def test_onnx_inference():
     """Simple test on the ONNX Model Inference class"""
-    connection = openeo.connect(_BackendType.CDSE.default_url).authenticate_oidc()
+    connection = openeo.connect(_BackendGroup.CDSE.default_url).authenticate_oidc()
 
     bands = [
         "S2-L2A-B04",
@@ -82,7 +82,7 @@ def test_onnx_inference():
     ]
 
     fetcher = build_sentinel2_l2a_extractor(
-        backend=_BackendType.CDSE,
+        backend=_BackendGroup.CDSE,
         bands=bands,
         fetch_type=FetchType.TILE,
     )

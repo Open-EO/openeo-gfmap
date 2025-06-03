@@ -7,7 +7,7 @@ from typing import Callable
 import openeo
 from geojson import GeoJSON
 
-from openeo_gfmap.backend import _BackendType
+from openeo_gfmap.backend import _BackendGroup
 from openeo_gfmap.metadata import FakeMetadata
 from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
 from openeo_gfmap.temporal import TemporalContext
@@ -196,13 +196,13 @@ def _get_s2_l2a_default_processor(
 
 
 SENTINEL2_L2A_BACKEND_MAP = {
-    _BackendType.TERRASCOPE: {
+    _BackendGroup.TERRASCOPE: {
         "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
         "preprocessor": partial(
             _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
         ),
     },
-    _BackendType.CDSE: {
+    _BackendGroup.CDSE: {
         "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
         "preprocessor": partial(
             _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"

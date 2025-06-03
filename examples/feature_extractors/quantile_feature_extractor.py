@@ -12,7 +12,7 @@ import xarray as xr
 from openeo_gfmap import BoundingBoxExtent, TemporalContext
 
 # Backend and context
-from openeo_gfmap.backend import _BackendType
+from openeo_gfmap.backend import _BackendGroup
 from openeo_gfmap.features import PatchFeatureExtractor
 from openeo_gfmap.features.feature_extractor import apply_feature_extractor
 
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     temporal_extent = TemporalContext(start_date="2022-06-21", end_date="2022-09-23")
 
     # Define your backend
-    backend_context = _BackendType.from_backend_name("TERRASCOPE")
+    backend_context = _BackendGroup.from_backend_name("TERRASCOPE")
 
     # Prepare your S2_L2A extractor
 

@@ -8,7 +8,7 @@ import pytest
 import xarray as xr
 
 from openeo_gfmap import BoundingBoxExtent, FetchType, TemporalContext
-from openeo_gfmap.backend import _BackendType
+from openeo_gfmap.backend import _BackendGroup
 from openeo_gfmap.features import (
     PatchFeatureExtractor,
     apply_feature_extractor,
@@ -29,7 +29,7 @@ SPATIAL_CONTEXT = BoundingBoxExtent(
 )
 TEMPORAL_EXTENT = TemporalContext("2023-10-01", "2024-01-01")
 
-backends = [_BackendType.CDSE]
+backends = [_BackendGroup.CDSE]
 
 
 class DummyPatchExtractor(PatchFeatureExtractor):
@@ -97,7 +97,7 @@ class LatLonExtractor(PatchFeatureExtractor):
 @pytest.mark.skipif(
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
-def test_patch_feature_udf(backend: _BackendType):
+def test_patch_feature_udf(backend: _BackendGroup):
     connection = openeo.connect(backend.default_url).authenticate_oidc()
 
     output_path = (
@@ -143,7 +143,7 @@ def test_patch_feature_udf(backend: _BackendType):
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
 @pytest.mark.parametrize("backend", backends)
-def test_s1_rescale(backend: _BackendType):
+def test_s1_rescale(backend: _BackendGroup):
     connection = openeo.connect(backend.default_url).authenticate_oidc()
     output_path = (
         Path(__file__).parent.parent
@@ -188,7 +188,7 @@ def test_s1_rescale(backend: _BackendType):
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
 @pytest.mark.parametrize("backend", backends)
-def test_latlon_extractor(backend: _BackendType):
+def test_latlon_extractor(backend: _BackendGroup):
     connection = openeo.connect(backend.default_url).authenticate_oidc()
     output_path = (
         Path(__file__).parent.parent / f"results/latlon_features_{backend.value}.nc"

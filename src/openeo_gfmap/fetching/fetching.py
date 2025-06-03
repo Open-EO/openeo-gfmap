@@ -6,7 +6,7 @@ from typing import Callable
 
 import openeo
 
-from openeo_gfmap import _BackendType
+from openeo_gfmap import _BackendGroup
 from openeo_gfmap.spatial import SpatialContext
 from openeo_gfmap.temporal import TemporalContext
 
@@ -56,7 +56,7 @@ class CollectionFetcher:
 
     def __init__(
         self,
-        backend: _BackendType,
+        backend: _BackendGroup,
         bands: list,
         collection_fetch: Callable,
         collection_preprocessing: Callable,

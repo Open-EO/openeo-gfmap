@@ -1,9 +1,9 @@
 import pytest
 from openeo.rest._testing import DummyBackend
 
-from openeo_gfmap.backend import _BackendType
+from openeo_gfmap.backend import _BackendGroup
 
-API_URL = _BackendType.TEST.default_url
+API_URL = _BackendGroup.TEST.default_url
 
 
 @pytest.fixture

@@ -15,7 +15,7 @@ from openeo_gfmap import (
     BoundingBoxExtent,
     SpatialContext,
     TemporalContext,
-    _BackendType,
+    _BackendGroup,
 )
 from openeo_gfmap.utils import _log
 
@@ -174,7 +174,7 @@ def _compute_max_gap_days(
 
 
 def s1_area_per_orbitstate_vvvh(
-    backend: _BackendType,
+    backend: _BackendGroup,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
 ) -> dict:
@@ -228,7 +228,7 @@ def s1_area_per_orbitstate_vvvh(
         bounds = transform_bounds(CRS.from_epsg(epsg), CRS.from_epsg(4326), *bounds)
 
     # Queries the products in the catalogues
-    if backend in [_BackendType.CDSE]:
+    if backend in [_BackendGroup.CDSE]:
         ascending_products, ascending_timestamps = _parse_cdse_products(
             _query_cdse_catalogue(
                 "Sentinel1",
@@ -288,7 +288,7 @@ def s1_area_per_orbitstate_vvvh(
 
 
 def select_s1_orbitstate_vvvh(
-    backend: _BackendType,
+    backend: _BackendGroup,
     spatial_extent: SpatialContext,
     temporal_extent: TemporalContext,
     max_temporal_gap: int = 60,

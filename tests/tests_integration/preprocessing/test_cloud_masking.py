@@ -4,7 +4,7 @@ from pathlib import Path
 import openeo
 import pytest
 
-from openeo_gfmap.backend import _BackendType
+from openeo_gfmap.backend import _BackendGroup
 from openeo_gfmap.fetching import FetchType, build_sentinel2_l2a_extractor
 from openeo_gfmap.preprocessing import (
     bap_masking,
@@ -16,7 +16,7 @@ from openeo_gfmap.spatial import BoundingBoxExtent
 from openeo_gfmap.temporal import TemporalContext
 from openeo_gfmap.utils import quintad_intervals
 
-backends = [_BackendType.CDSE]
+backends = [_BackendGroup.CDSE]
 
 # Few fields around Mol, Belgium
 spatial_extent = BoundingBoxExtent(
@@ -39,7 +39,7 @@ temporal_extent = TemporalContext(start_date="2022-11-01", end_date="2023-02-28"
 @pytest.mark.skipif(
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
-def test_bap_score(backend: _BackendType):
+def test_bap_score(backend: _BackendGroup):
     connection = openeo.connect(backend.default_url).authenticate_oidc()
 
     # Additional parameters
@@ -87,7 +87,7 @@ def test_bap_score(backend: _BackendType):
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
 @pytest.mark.parametrize("backend", backends)
-def test_bap_masking(backend: _BackendType):
+def test_bap_masking(backend: _BackendGroup):
     connection = openeo.connect(backend.default_url).authenticate_oidc()
 
     # Additional parameters
@@ -140,7 +140,7 @@ def test_bap_masking(backend: _BackendType):
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
 @pytest.mark.parametrize("backend", backends)
-def test_bap_quintad(backend: _BackendType):
+def test_bap_quintad(backend: _BackendGroup):
     connection = openeo.connect(backend.default_url).authenticate_oidc()
 
     # Additional parameters

@@ -11,7 +11,7 @@ import rioxarray
 import xarray as xr
 
 from openeo_gfmap import BoundingBoxExtent, SpatialContext, TemporalContext
-from openeo_gfmap.backend import _BackendType
+from openeo_gfmap.backend import _BackendGroup
 from openeo_gfmap.fetching import (
     CollectionFetcher,
     FetchType,
@@ -48,7 +48,7 @@ POLYGON_EXTRACTION_DF = (
 )
 
 # test_backends = [Backend.TERRASCOPE, Backend.CDSE]
-test_backends = [_BackendType.CDSE]
+test_backends = [_BackendGroup.CDSE]
 
 test_spatio_temporal_extents = [
     (SPATIAL_EXTENT, TEMPORAL_CONTEXT),
@@ -69,7 +69,7 @@ class TestS2Extractors:
     def sentinel2_l2a(
         spatial_extent: SpatialContext,
         temporal_extent: TemporalContext,
-        backend: _BackendType,
+        backend: _BackendGroup,
         connection: openeo.Connection,
     ):
         """For a given backend"""
@@ -124,7 +124,7 @@ class TestS2Extractors:
 
         loaded_tiles = []
         for backend in backend_types:
-            if backend == _BackendType.EODC:  # TODO fix EDOC backend first
+            if backend == _BackendGroup.EODC:  # TODO fix EDOC backend first
                 continue
             tile_path = (
                 Path(__file__).parent.parent
@@ -167,7 +167,7 @@ class TestS2Extractors:
     def sentinel2_l2a_point_based(
         spatial_context: SpatialContext,
         temporal_context: TemporalContext,
-        backend: _BackendType,
+        backend: _BackendGroup,
         connection: openeo.Connection,
     ):
         """Test the point based extractions from the spatial aggregation of
@@ -216,7 +216,7 @@ class TestS2Extractors:
     def sentinel2_l2a_polygon_based(
         spatial_context: SpatialContext,
         temporal_context: TemporalContext,
-        backend: _BackendType,
+        backend: _BackendGroup,
         connection: openeo.Connection,
     ):
         bands = ["S2-L2A-B02", "S2-L2A-B03", "S2-L2A-B04"]
@@ -264,7 +264,7 @@ class TestS2Extractors:
 def test_sentinel2_l2a(
     spatial_context: SpatialContext,
     temporal_context: TemporalContext,
-    backend: _BackendType,
+    backend: _BackendGroup,
 ):
     connection = openeo.connect(backend.default_url).authenticate_oidc()
     TestS2Extractors.sentinel2_l2a(
@@ -284,7 +284,7 @@ def test_compare_sentinel2_tiles():
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
 @pytest.mark.parametrize("backend", test_backends)
-def test_sentinel2_l2a_point_based(backend: _BackendType):
+def test_sentinel2_l2a_point_based(backend: _BackendGroup):
     connection = openeo.connect(backend.default_url).authenticate_oidc()
 
     extraction_df = gpd.read_file(POINT_EXTRACTION_DF)
@@ -310,7 +310,7 @@ def test_sentinel2_l2a_point_based(backend: _BackendType):
 @pytest.mark.skipif(
     os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
 )
-def test_sentinel2_l2a_polygon_based(backend: _BackendType):
+def test_sentinel2_l2a_polygon_based(backend: _BackendGroup):
     connection = openeo.connect(backend.default_url).authenticate_oidc()
 
     extraction_df = gpd.read_file(POLYGON_EXTRACTION_DF)
