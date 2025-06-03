@@ -138,6 +138,8 @@ def append_h3_index(
     """Append the H3 index to the polygons."""
 
     # Project to Web mercator to calculate centroids
+    original_crs = polygons.crs
+
     polygons = polygons.to_crs(epsg=3857)
     geom_col = polygons.geometry.centroid
     # Project to lat lon to calculate the h3 index
@@ -146,6 +148,8 @@ def append_h3_index(
     polygons["h3index"] = geom_col.apply(
         lambda pt: h3.latlng_to_cell(pt.y, pt.x, grid_resolution)
     )
+    polygons.to_crs(original_crs)
+    
     return polygons
 
 
