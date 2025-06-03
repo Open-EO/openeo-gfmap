@@ -6,7 +6,7 @@ from typing import Callable, Optional
 import openeo
 from openeo.rest import OpenEoApiError
 
-from openeo_gfmap.backend import Backend, BackendContext
+from openeo_gfmap.backend import _BackendGroup
 from openeo_gfmap.fetching import CollectionFetcher, FetchType, _log
 from openeo_gfmap.fetching.commons import (
     _load_collection,
@@ -44,7 +44,7 @@ AGERA5_TERRASCOPE_STAC = "https://stac.openeo.vito.be/collections/agera5_daily"
 
 
 def _get_generic_fetcher(
-    collection_name: str, fetch_type: FetchType, backend: Backend, is_stac: bool
+    collection_name: str, fetch_type: FetchType, backend: _BackendGroup, is_stac: bool
 ) -> Callable:
     band_mapping: Optional[dict] = None
 
@@ -140,7 +140,7 @@ def _get_generic_processor(
 
 
 def build_generic_extractor(
-    backend_context: BackendContext,
+    backend,
     bands: list,
     fetch_type: FetchType,
     collection_name: str,
@@ -149,25 +149,21 @@ def build_generic_extractor(
     """Creates a generic extractor adapted to the given backend. Provides band mappings for known
     collections, such as AGERA5 available on Terrascope/FED and Copernicus 30m DEM in all backends.
     """
-    fetcher = _get_generic_fetcher(
-        collection_name, fetch_type, backend_context.backend, False
-    )
+    fetcher = _get_generic_fetcher(collection_name, fetch_type, backend, False)
     preprocessor = _get_generic_processor(collection_name, fetch_type, False)
 
-    return CollectionFetcher(backend_context, bands, fetcher, preprocessor, **params)
+    return CollectionFetcher(backend, bands, fetcher, preprocessor, **params)
 
 
 def build_generic_extractor_stac(
-    backend_context: BackendContext,
+    backend,
     bands: list,
     fetch_type: FetchType,
     collection_url: str,
     **params,
 ) -> CollectionFetcher:
     """Creates a generic extractor adapted to the given backend. Currently only tested with VITO backend"""
-    fetcher = _get_generic_fetcher(
-        collection_url, fetch_type, backend_context.backend, True
-    )
+    fetcher = _get_generic_fetcher(collection_url, fetch_type, backend, True)
     preprocessor = _get_generic_processor(collection_url, fetch_type, True)
 
-    return CollectionFetcher(backend_context, bands, fetcher, preprocessor, **params)
+    return CollectionFetcher(backend, bands, fetcher, preprocessor, **params)

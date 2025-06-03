@@ -4,7 +4,7 @@ import openeo
 import pytest
 
 from openeo_gfmap import BoundingBoxExtent, TemporalContext
-from openeo_gfmap.backend import Backend, BackendContext
+from openeo_gfmap.backend import _BackendGroup
 from openeo_gfmap.fetching import (
     CollectionFetcher,
     FetchType,
@@ -21,14 +21,6 @@ from tests.utils.helpers import create_test_datacube
 BANDS = ["S2-L2A-B01", "S2-L2A-B02"]
 COLLECTION_NAME = "SENTINEL2_L2A"
 FETCH_TYPE = FetchType.TILE
-
-
-@pytest.fixture
-def mock_backend_context():
-    """Fixture to create a mock backend context."""
-    backend_context = MagicMock(spec=BackendContext)
-    backend_context.backend = Backend.CDSE
-    return backend_context
 
 
 @pytest.fixture
@@ -210,11 +202,11 @@ def test_processor_changes_datatype_to_uint16(mock_rename_bands, mock_datacube):
 
 
 # test the extractor
-def test_build_sentinel2_l2a_extractor(mock_backend_context):
+def test_build_sentinel2_l2a_extractor():
     """Test that build_sentinel2_l2a_extractor returns a CollectionFetcher."""
     bands = ["S2-L2A-B01", "S2-L2A-B02"]
     extractor = build_sentinel2_l2a_extractor(
-        backend_context=mock_backend_context, bands=bands, fetch_type=FetchType.TILE
+        backend=_BackendGroup.CDSE, bands=bands, fetch_type=FetchType.TILE
     )
 
     assert isinstance(extractor, CollectionFetcher)

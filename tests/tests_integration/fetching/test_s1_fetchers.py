@@ -1,5 +1,6 @@
 """ Test the data extractors for Sentinel1 data. """
 
+import os
 from pathlib import Path
 
 import geojson
@@ -13,8 +14,8 @@ import xarray as xr
 # Retrieve the test parameters from the s2 fetcher tests
 from test_s2_fetchers import POINT_EXTRACTION_DF, test_backends, test_configurations
 
-from openeo_gfmap import Backend, BackendContext, SpatialContext, TemporalContext
-from openeo_gfmap.backend import BACKEND_CONNECTIONS
+from openeo_gfmap import SpatialContext, TemporalContext
+from openeo_gfmap.backend import _BackendGroup
 from openeo_gfmap.fetching import (
     CollectionFetcher,
     FetchType,
@@ -38,10 +39,9 @@ class TestS1Extractors:
     def sentinel1_grd(
         spatial_extent: SpatialContext,
         temporal_extent: TemporalContext,
-        backend: Backend,
+        backend: _BackendGroup,
         connection=openeo.Connection,
     ):
-        context = BackendContext(backend)
         bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
         expected_harmonized_bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
 
@@ -55,7 +55,7 @@ class TestS1Extractors:
         }
 
         extractor: CollectionFetcher = build_sentinel1_grd_extractor(
-            context, bands, FetchType.TILE, **fetching_parameters
+            backend, bands, FetchType.TILE, **fetching_parameters
         )
 
         temporal_extent = TemporalContext(
@@ -63,7 +63,7 @@ class TestS1Extractors:
         )
 
         cube = extractor.get_cube(connection, spatial_extent, temporal_extent)
-        cube = compress_backscatter_uint16(context, cube)
+        cube = compress_backscatter_uint16(cube)
 
         output_file = (
             Path(__file__).parent.parent / f"results/{backend.value}_sentinel1_grd.nc"
@@ -140,13 +140,12 @@ class TestS1Extractors:
     def sentinel1_grd_point_based(
         spatial_context: SpatialContext,
         temporal_context: TemporalContext,
-        backend: Backend,
+        backend: _BackendGroup,
         connection: openeo.Connection,
     ):
         """Test the point based extraction from the spatial aggregation of the
         given polygons.
         """
-        context = BackendContext(backend)
         bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
 
         # Because it is tested in malawi, and this is the EPSG code for
@@ -161,14 +160,14 @@ class TestS1Extractors:
             },
         }
         extractor = build_sentinel1_grd_extractor(
-            backend_context=context,
+            backend=backend,
             bands=bands,
             fetch_type=FetchType.POINT,
             **fetching_parameters,
         )
 
         cube = extractor.get_cube(connection, spatial_context, temporal_context)
-        cube = compress_backscatter_uint16(context, cube)
+        cube = compress_backscatter_uint16(cube)
 
         cube = cube.aggregate_spatial(spatial_context, reducer="mean")
 
@@ -198,10 +197,9 @@ class TestS1Extractors:
     def sentinel1_grd_polygon_based(
         spatial_context: SpatialContext,
         temporal_context: TemporalContext,
-        backend: Backend,
+        backend: _BackendGroup,
         connection: openeo.Connection,
     ):
-        context = BackendContext(backend)
         bands = ["S1-SIGMA0-VV", "S1-SIGMA0-VH"]
 
         fetching_parameters = {
@@ -215,14 +213,14 @@ class TestS1Extractors:
         }
 
         extractor = build_sentinel1_grd_extractor(
-            backend_context=context,
+            backend=backend,
             bands=bands,
             fetch_type=FetchType.POLYGON,
             **fetching_parameters,
         )
 
         cube = extractor.get_cube(connection, spatial_context, temporal_context)
-        cube = compress_backscatter_uint16(context, cube)
+        cube = compress_backscatter_uint16(cube)
 
         output_folder = (
             Path(__file__).parent.parent / f"results/polygons_s1_{backend.value}/"
@@ -251,23 +249,34 @@ class TestS1Extractors:
 @pytest.mark.parametrize(
     "spatial_context, temporal_context, backend", test_configurations
 )
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
 def test_sentinel1_grd(
-    spatial_context: SpatialContext, temporal_context: TemporalContext, backend: Backend
+    spatial_context: SpatialContext,
+    temporal_context: TemporalContext,
+    backend: _BackendGroup,
 ):
-    connection = BACKEND_CONNECTIONS[backend]()
+    connection = openeo.connect(backend.default_url).authenticate_oidc()
     TestS1Extractors.sentinel1_grd(
         spatial_context, temporal_context, backend, connection
     )
 
 
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
 @pytest.mark.depends(on=["test_sentinel1_grd"])
 def test_compare_sentinel1_tiles():
     TestS1Extractors.compare_sentinel1_tiles()
 
 
+@pytest.mark.skipif(
+    os.environ.get("SKIP_INTEGRATION_TESTS") == "1", reason="Skip integration tests"
+)
 @pytest.mark.parametrize("backend", test_backends)
-def test_sentinel1_grd_point_based(backend: Backend):
-    connection = BACKEND_CONNECTIONS[backend]()
+def test_sentinel1_grd_point_based(backend: _BackendGroup):
+    connection = openeo.connect(backend.default_url).authenticate_oidc()
 
     extraction_df = gpd.read_file(POINT_EXTRACTION_DF)
 

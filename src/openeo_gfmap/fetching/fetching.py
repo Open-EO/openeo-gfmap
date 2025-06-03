@@ -6,7 +6,7 @@ from typing import Callable
 
 import openeo
 
-from openeo_gfmap import BackendContext
+from openeo_gfmap import _BackendGroup
 from openeo_gfmap.spatial import SpatialContext
 from openeo_gfmap.temporal import TemporalContext
 
@@ -35,8 +35,8 @@ class CollectionFetcher:
 
     Parameters
     ----------
-    backend_context: BackendContext
-        Information about the backend in use, useful in certain cases.
+    backend: Backend
+        The backend in use, useful in certain cases.
     bands: list
         List of band names to load from that collection.
     collection_fetch: Callable
@@ -56,13 +56,13 @@ class CollectionFetcher:
 
     def __init__(
         self,
-        backend_context: BackendContext,
+        backend: _BackendGroup,
         bands: list,
         collection_fetch: Callable,
         collection_preprocessing: Callable,
         **collection_params,
     ):
-        self.backend_contect = backend_context
+        self.backend = backend
         self.bands = bands
         self.fetcher = collection_fetch
         self.processing = collection_preprocessing

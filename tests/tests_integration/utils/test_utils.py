@@ -10,7 +10,7 @@ import pystac
 import pytest
 from netCDF4 import Dataset
 
-from openeo_gfmap import Backend, BackendContext, BoundingBoxExtent, TemporalContext
+from openeo_gfmap import BoundingBoxExtent, TemporalContext, _BackendGroup
 from openeo_gfmap.utils import split_collection_by_epsg, update_nc_attributes
 from openeo_gfmap.utils.catalogue import (
     _compute_max_gap_days,
@@ -57,10 +57,8 @@ def mock_query_cdse_catalogue(
 
 @patch("openeo_gfmap.utils.catalogue._query_cdse_catalogue", mock_query_cdse_catalogue)
 def test_query_cdse_catalogue():
-    backend_context = BackendContext(Backend.CDSE)
-
     response = s1_area_per_orbitstate_vvvh(
-        backend=backend_context,
+        backend=_BackendGroup.CDSE,
         spatial_extent=SPATIAL_CONTEXT,
         temporal_extent=TEMPORAL_CONTEXT,
     )
@@ -84,7 +82,7 @@ def test_query_cdse_catalogue():
 
     # Testing the decision maker, it should return DESCENDING
     decision = select_s1_orbitstate_vvvh(
-        backend=backend_context,
+        backend=_BackendGroup.CDSE,
         spatial_extent=SPATIAL_CONTEXT,
         temporal_extent=TEMPORAL_CONTEXT,
     )
@@ -97,7 +95,6 @@ def test_query_cdse_catalogue_with_s1_gap():
     """This example has a large S1 gap in ASCENDING,
     so the decision should be DESCENDING
     """
-    backend_context = BackendContext(Backend.CDSE)
 
     spatial_extent = geojson.loads(
         (
@@ -110,7 +107,7 @@ def test_query_cdse_catalogue_with_s1_gap():
     temporal_extent = TemporalContext("2019-01-30", "2019-08-31")
 
     decision = select_s1_orbitstate_vvvh(
-        backend_context, spatial_extent, temporal_extent
+        _BackendGroup.CDSE, spatial_extent, temporal_extent
     )
 
     assert decision == "DESCENDING"

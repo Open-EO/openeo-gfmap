@@ -7,7 +7,7 @@ from typing import Callable
 import openeo
 from geojson import GeoJSON
 
-from openeo_gfmap.backend import Backend, BackendContext
+from openeo_gfmap.backend import _BackendGroup
 from openeo_gfmap.metadata import FakeMetadata
 from openeo_gfmap.spatial import BoundingBoxExtent, SpatialContext
 from openeo_gfmap.temporal import TemporalContext
@@ -196,42 +196,42 @@ def _get_s2_l2a_default_processor(
 
 
 SENTINEL2_L2A_BACKEND_MAP = {
-    Backend.TERRASCOPE: {
+    _BackendGroup.TERRASCOPE: {
         "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
         "preprocessor": partial(
             _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
         ),
     },
-    Backend.CDSE: {
+    _BackendGroup.CDSE: {
         "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
         "preprocessor": partial(
             _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
         ),
     },
-    Backend.CDSE_STAGING: {
-        "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
-        "preprocessor": partial(
-            _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
-        ),
-    },
-    Backend.FED: {
-        "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
-        "preprocessor": partial(
-            _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
-        ),
-    },
+    # Backend.CDSE_STAGING: {
+    #     "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
+    #     "preprocessor": partial(
+    #         _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
+    #     ),
+    # },
+    # Backend.FED: {
+    #     "fetch": partial(_get_s2_l2a_default_fetcher, collection_name="SENTINEL2_L2A"),
+    #     "preprocessor": partial(
+    #         _get_s2_l2a_default_processor, collection_name="SENTINEL2_L2A"
+    #     ),
+    # },
 }
 
 
 def build_sentinel2_l2a_extractor(
-    backend_context: BackendContext, bands: list, fetch_type: FetchType, **params
+    backend, bands: list, fetch_type: FetchType, **params
 ) -> CollectionFetcher:
     """Creates a S2 L2A extractor adapted to the given backend."""
-    backend_functions = SENTINEL2_L2A_BACKEND_MAP.get(backend_context.backend)
+    backend_functions = SENTINEL2_L2A_BACKEND_MAP.get(backend)
 
     fetcher, preprocessor = (
         backend_functions["fetch"](fetch_type=fetch_type),
         backend_functions["preprocessor"](fetch_type=fetch_type),
     )
 
-    return CollectionFetcher(backend_context, bands, fetcher, preprocessor, **params)
+    return CollectionFetcher(backend, bands, fetcher, preprocessor, **params)

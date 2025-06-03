@@ -1,122 +1,113 @@
-"""Backend Contct.
-
-Defines on which backend the pipeline is being currently used.
 """
+This module provides a set of predefined backend Groups.
+"""
+from __future__ import annotations
 
 import logging
-import os
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Dict, Optional
+from typing import Union
+from urllib.parse import urlparse
 
 import openeo
 
 _log = logging.getLogger(__name__)
 
 
-class Backend(Enum):
-    """Enumerating the backends supported by the Mapping Framework."""
-
-    TERRASCOPE = "terrascope"
-    EODC = "eodc"  # Dask implementation. Do not test on this yet.
-    CDSE = "cdse"  # Terrascope implementation (pyspark) #URL: openeo.dataspace.copernicus.eu (need to register)
-    CDSE_STAGING = "cdse-staging"
-    LOCAL = "local"  # Based on the same components of EODc
-    FED = "fed"  # Federation backend
-
-
 @dataclass
-class BackendContext:
-    """Backend context and information.
+class _BackendInfo:
+    """
+    Dataclass that holds information about a backend
+    Can be expanded with new fields if needed.
 
-    Containing backend related information useful for the framework to
-    adapt the process graph.
+    This class should only be used internally in this module. Getting the backend name and url should be done through the _BackendGroup Enum.
     """
 
-    backend: Backend
+    name: str
+    default_full_url: str
+    url_domain: str
 
 
-def _create_connection(
-    url: str, *, env_var_suffix: str, connect_kwargs: Optional[dict] = None
-):
+class _BackendGroup(Enum):
     """
-    Generic helper to create an openEO connection
-    with support for multiple client credential configurations from environment variables
+    Enum class that holds backend groups and their default url's and url domains. Can be used to make behavior dependent on the backend group.
     """
-    connection = openeo.connect(url, **(connect_kwargs or {}))
 
-    if (
-        os.environ.get("OPENEO_AUTH_METHOD") == "client_credentials"
-        and f"OPENEO_AUTH_CLIENT_ID_{env_var_suffix}" in os.environ
-    ):
-        # Support for multiple client credentials configs from env vars
-        client_id = os.environ[f"OPENEO_AUTH_CLIENT_ID_{env_var_suffix}"]
-        client_secret = os.environ[f"OPENEO_AUTH_CLIENT_SECRET_{env_var_suffix}"]
-        provider_id = os.environ.get(f"OPENEO_AUTH_PROVIDER_ID_{env_var_suffix}")
-        _log.info(
-            f"Doing client credentials from env var with {env_var_suffix=} {provider_id} {client_id=} {len(client_secret)=} "
-        )
-
-        connection.authenticate_oidc_client_credentials(
-            client_id=client_id, client_secret=client_secret, provider_id=provider_id
-        )
-    else:
-        # Standard authenticate_oidc procedure: refresh token, device code or default env var handling
-        # See https://open-eo.github.io/openeo-python-client/auth.html#oidc-authentication-dynamic-method-selection
-
-        # Use a shorter max poll time by default to alleviate the default impression that the test seem to hang
-        # because of the OIDC device code poll loop.
-        max_poll_time = int(
-            os.environ.get("OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME") or 30
-        )
-        connection.authenticate_oidc(max_poll_time=max_poll_time)
-    return connection
-
-
-def vito_connection() -> openeo.Connection:
-    """Performs a connection to the VITO backend using the oidc authentication."""
-    return _create_connection(
-        url="openeo.vito.be",
-        env_var_suffix="VITO",
+    CDSE = _BackendInfo(
+        name="CDSE",
+        default_full_url="https://openeo.dataspace.copernicus.eu/",
+        url_domain="dataspace.copernicus.eu",
     )
-
-
-def cdse_connection() -> openeo.Connection:
-    """Performs a connection to the CDSE backend using oidc authentication."""
-    return _create_connection(
-        url="openeo.dataspace.copernicus.eu",
-        env_var_suffix="CDSE",
+    TERRASCOPE = _BackendInfo(
+        name="TERRASCOPE",
+        default_full_url="https://openeo.vito.be/",
+        url_domain="vito.be",
     )
-
-
-def cdse_staging_connection() -> openeo.Connection:
-    """Performs a connection to the CDSE backend using oidc authentication."""
-    return _create_connection(
-        url="openeo-staging.dataspace.copernicus.eu",
-        env_var_suffix="CDSE_STAGING",
+    OPENEO_CLOUD = _BackendInfo(
+        name="OPENEO-CLOUD",
+        default_full_url="https://openeo.cloud/",
+        url_domain="openeo.cloud",
     )
+    TEST = _BackendInfo(
+        name="TEST", default_full_url="https://oeo.test/", url_domain="oeo.test"
+    )  # only for testing purposes
 
+    @property
+    def name(self) -> str:
+        """Get the name of the backend group."""
+        return self.value.name
 
-def eodc_connection() -> openeo.Connection:
-    """Perfroms a connection to the EODC backend using the oidc authentication."""
-    return _create_connection(
-        url="https://openeo.eodc.eu/openeo/1.1.0",
-        env_var_suffix="EODC",
-    )
+    @property
+    def default_url(self) -> str:
+        """Get the URL of the backend."""
+        return self.value.default_full_url
 
+    @classmethod
+    def list_backends(cls) -> list[str]:
+        """
+        Get a list of all backend groups.
 
-def fed_connection() -> openeo.Connection:
-    """Performs a connection to the OpenEO federated backend using the oidc
-    authentication."""
-    return _create_connection(
-        url="http://openeofed.dataspace.copernicus.eu/",
-        env_var_suffix="FED",
-    )
+        :return: A list of backend groups.
+        """
+        return [backend.name for backend in cls]
 
+    @classmethod
+    def from_backend_name(cls, backend_name: str) -> _BackendGroup:
+        """
+        Get the backend group from the backend name.
 
-BACKEND_CONNECTIONS: Dict[Backend, Callable] = {
-    Backend.TERRASCOPE: vito_connection,
-    Backend.CDSE: cdse_connection,
-    Backend.CDSE_STAGING: cdse_staging_connection,
-    Backend.FED: fed_connection,
-}
+        :param backend_name: The name of the backend group.
+        :return: The _BackendGroup object.
+        """
+        normalized_name = backend_name.replace("_", "-").upper()
+        for backend in cls:
+            if backend.name == normalized_name:
+                return backend
+        raise ValueError(f"Unknown backend name: {backend_name}")
+
+    @classmethod
+    def from_openeo_connection(cls, connection: openeo.Connection) -> _BackendGroup:
+        """
+        Get the backend group from an openeo connection.
+
+        :param connection: The openeo connection.
+        :return: The _BackendGroup object.
+        """
+        for backend in cls:
+            parsed_url = urlparse(connection._orig_url)
+            domain = parsed_url.hostname or ""
+            if domain.endswith(backend.value.url_domain):
+                return backend
+        raise ValueError(f"Unknown backend URL domain: {connection._orig_url}")
+
+    @staticmethod
+    def _resolve_backend(backend: Union[str, _BackendGroup]) -> _BackendGroup:
+        """
+        Resolve the backend from a string or Backend object.
+
+        :param backend: The backend to resolve.
+        :return: The resolved _BackendGroup object.
+        """
+        if isinstance(backend, str):
+            return _BackendGroup.from_backend_name(backend)
+        return backend

@@ -7,7 +7,7 @@ from typing import Callable
 import openeo
 from geojson import GeoJSON
 
-from openeo_gfmap.backend import Backend, BackendContext
+from openeo_gfmap.backend import _BackendGroup
 from openeo_gfmap.spatial import SpatialContext
 from openeo_gfmap.temporal import TemporalContext
 
@@ -86,7 +86,7 @@ def _get_s1_grd_default_fetcher(
 
 
 def _get_s1_grd_default_processor(
-    collection_name: str, fetch_type: FetchType, backend: Backend
+    collection_name: str, fetch_type: FetchType, backend: _BackendGroup
 ) -> Callable:
     """Builds the preprocessing function from the collection name as it is stored
     in the target backend.
@@ -136,58 +136,58 @@ def _get_s1_grd_default_processor(
 
 
 SENTINEL1_GRD_BACKEND_MAP = {
-    Backend.TERRASCOPE: {
+    _BackendGroup.TERRASCOPE: {
         "default": partial(
             _get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
         ),
         "preprocessor": partial(
             _get_s1_grd_default_processor,
             collection_name="SENTINEL1_GRD",
-            backend=Backend.TERRASCOPE,
+            backend=_BackendGroup.TERRASCOPE,
         ),
     },
-    Backend.CDSE: {
+    _BackendGroup.CDSE: {
         "default": partial(
             _get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
         ),
         "preprocessor": partial(
             _get_s1_grd_default_processor,
             collection_name="SENTINEL1_GRD",
-            backend=Backend.CDSE,
+            backend=_BackendGroup.CDSE,
         ),
     },
-    Backend.CDSE_STAGING: {
-        "default": partial(
-            _get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
-        ),
-        "preprocessor": partial(
-            _get_s1_grd_default_processor,
-            collection_name="SENTINEL1_GRD",
-            backend=Backend.CDSE_STAGING,
-        ),
-    },
-    Backend.FED: {
-        "default": partial(
-            _get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
-        ),
-        "preprocessor": partial(
-            _get_s1_grd_default_processor,
-            collection_name="SENTINEL1_GRD",
-            backend=Backend.FED,
-        ),
-    },
+    # Backend.CDSE_STAGING: {
+    #     "default": partial(
+    #         _get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
+    #     ),
+    #     "preprocessor": partial(
+    #         _get_s1_grd_default_processor,
+    #         collection_name="SENTINEL1_GRD",
+    #         backend=Backend.CDSE_STAGING,
+    #     ),
+    # },
+    # Backend.FED: {
+    #     "default": partial(
+    #         _get_s1_grd_default_fetcher, collection_name="SENTINEL1_GRD"
+    #     ),
+    #     "preprocessor": partial(
+    #         _get_s1_grd_default_processor,
+    #         collection_name="SENTINEL1_GRD",
+    #         backend=Backend.FED,
+    #     ),
+    # },
 }
 
 
 def build_sentinel1_grd_extractor(
-    backend_context: BackendContext, bands: list, fetch_type: FetchType, **params
+    backend, bands: list, fetch_type: FetchType, **params
 ) -> CollectionFetcher:
     """Creates a S1 GRD collection extractor for the given backend."""
-    backend_functions = SENTINEL1_GRD_BACKEND_MAP.get(backend_context.backend)
+    backend_functions = SENTINEL1_GRD_BACKEND_MAP.get(backend)
 
     fetcher, preprocessor = (
         backend_functions["default"](fetch_type=fetch_type),
         backend_functions["preprocessor"](fetch_type=fetch_type),
     )
 
-    return CollectionFetcher(backend_context, bands, fetcher, preprocessor, **params)
+    return CollectionFetcher(backend, bands, fetcher, preprocessor, **params)
