@@ -489,9 +489,8 @@ class GFMAPJobManager(MultiBackendJobManager):
             _log.debug("Calling post job action for job %s...", job.job_id)
             job_items = self._post_job_action(job_items, row)
 
-        _log.info("Adding %s items to the STAC collection...", len(job_items))
-
         if self.stac_enabled:
+            _log.info("Adding %s items to the STAC collection...", len(job_items))
             with self.lock:
                 self._update_stac(job.job_id, job_items)
 
