@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.4.7] - 2025-08-04
+
+### Added
+
+### Changed
+
+### Removed
+
+### Fixed
+- Fix S1 CDSE catalog query
 ## [0.4.6] - 2025-06-02
 
 ### Added
