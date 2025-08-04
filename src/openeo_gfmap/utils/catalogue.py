@@ -238,6 +238,7 @@ def s1_area_per_orbitstate_vvvh(
                 temporal_extent,
                 orbitDirection="ASCENDING",
                 polarisation="VV%26VH",
+                productType="IW_GRDH_1S-COG",
             )
         )
         descending_products, descending_timestamps = _parse_cdse_products(
@@ -247,6 +248,7 @@ def s1_area_per_orbitstate_vvvh(
                 temporal_extent,
                 orbitDirection="DESCENDING",
                 polarisation="VV%26VH",
+                productType="IW_GRDH_1S-COG",
             )
         )
     else:
