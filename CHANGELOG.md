@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.4.8] - 2026-01-27
+
+### Added
+
+### Changed
+
+### Removed
+- `GFMapJobManager` has been removed.
+### Fixed
+
 ## [0.4.7] - 2025-08-04
 
 ### Added
