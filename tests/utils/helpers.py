@@ -7,7 +7,7 @@ import numpy as np
 import openeo
 import requests
 import xarray as xr
-from openeo.metadata import Band, BandDimension, CollectionMetadata
+from openeo.metadata import Band, BandDimension, CollectionMetadata, SpatialDimension
 
 from openeo_gfmap.fetching.s2 import BASE_SENTINEL2_L2A_MAPPING
 
@@ -29,9 +29,11 @@ def create_test_datacube(bands=None):
     # Create new metadata to reflect the current bands
     band_objects = [Band(name=band_name) for band_name in bands]
     band_dimension = BandDimension(name="bands", bands=band_objects)
+    x_dimension = SpatialDimension(name="x", extent=np.arange(100), resolution=10)
+    y_dimension = SpatialDimension(name="y", extent=np.arange(100), resolution=10)
     metadata = CollectionMetadata(
         metadata={"id": "sentinel2_l2a", "title": "Sentinel-2 L2A"},
-        dimensions=[band_dimension],
+        dimensions=[band_dimension, x_dimension, y_dimension],
     )
 
     # Wrap this DataArray into an OpenEO DataCube
