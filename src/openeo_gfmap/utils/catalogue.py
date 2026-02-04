@@ -46,12 +46,16 @@ def _parse_cdse_products(response: dict):
     """Parses the geometry and timestamps of products from the CDSE catalogue."""
     geometries = []
     timestamps = []
-    products = response["features"]
+    products = response.get("features", [])
 
     for product in products:
-        if "geometry" in product and "startDate" in product["properties"]:
-            geometries.append(shape(product["geometry"]))
-            timestamps.append(pd.to_datetime(product["properties"]["startDate"]))
+        geom = product.get("geometry")
+        properties = product.get("properties", {})
+        dt = properties.get("datetime") or properties.get("start_datetime")
+
+        if geom is not None and dt is not None:
+            geometries.append(shape(geom))
+            timestamps.append(pd.to_datetime(dt, utc=True))
         else:
             _log.warning(
                 "Cannot parse product %s does not have a geometry or timestamp.",
@@ -79,68 +83,64 @@ def _query_cdse_catalogue(
     # The date format should be YYYY-MM-DD
     start_date = f"{temporal_extent.start_date}T00:00:00Z"
     end_date = f"{temporal_extent.end_date}T00:00:00Z"
+    datetime_interval = f"{start_date}/{end_date}"
 
-    url = (
-        f"https://catalogue.dataspace.copernicus.eu/resto/api/collections/"
-        f"{collection}/search.json?box={minx},{miny},{maxx},{maxy}"
-        f"&sortParam=startDate&maxRecords=1000&dataset=ESA-DATASET"
-        f"&startDate={start_date}&completionDate={end_date}"
-    )
+    url = "https://stac.dataspace.copernicus.eu/v1/search"
+
+    body = {
+        "collections": [collection],
+        "bbox": [minx, miny, maxx, maxy],
+        "datetime": datetime_interval,
+        "limit": 1000,
+    }
+
+    # Build a CQL2 JSON filter (AND of provided constraints)
+    filter_args = []
     for key, value in additional_parameters.items():
-        url += f"&{key}={value}"
+        if value is not None:
+            filter_args.append({"op": "=", "args": [{"property": key}, value]})
+    # orbit_dir = additional_parameters.get("sat_orbit_state")
+    # if orbit_dir:
+    #     filter_args.append(
+    #         {
+    #             "op": "=",
+    #             "args": [{"property": "sat:orbit_state"}, orbit_dir.lower()],
+    #         }
+    #     )
+
+    # pols = additional_parameters.get("sar_polarizations")
+    # if pols:
+    #     filter_args.append(
+    #         {"op": "=", "args": [{"property": "sar:polarizations"}, pols]}
+    #     )
+
+    # product_type = additional_parameters.get("product_type")
+    # if product_type:
+    #     filter_args.append(
+    #         {
+    #             "op": "=",
+    #             "args": [{"property": "product:type"}, product_type],
+    #         }
+    #     )
+
+    if filter_args:
+        body["filter-lang"] = "cql2-json"
+        body["filter"] = (
+            {"op": "and", "args": filter_args}
+            if len(filter_args) > 1
+            else filter_args[0]
+        )
 
     session = _request_session()
-    response = session.get(url, timeout=60)
+    response = session.post(url, json=body, timeout=60)
 
     if response.status_code != 200:
         raise Exception(
-            f"Cannot check S1 catalogue on CDSE: Request to {url} failed with "
+            f"Cannot check S1 catalogue on CDSE: Request to {url} with body {body} failed with "
             f"status code {response.status_code}"
         )
 
     return response.json()
-
-
-def _check_cdse_catalogue(
-    collection: str,
-    bounds: list,
-    temporal_extent: TemporalContext,
-    **additional_parameters: dict,
-) -> bool:
-    """Checks if there is at least one product available in the
-    given spatio-temporal context for a collection in the CDSE catalogue,
-    as there might be issues in the API that sometimes returns empty results
-    for a valid query.
-
-    Parameters
-    ----------
-    collection : str
-        The collection name to be checked. (For example: Sentinel1 or Sentinel2)
-    spatial_extent : SpatialContext
-        The spatial extent to be checked, it will check within its bounding box.
-    temporal_extent : TemporalContext
-        The temporal period to be checked.
-    additional_parameters : Optional[dict], optional
-        Additional parameters to be passed to the catalogue, by default empty.
-        Parameters (key, value) will be passed as "&key=value" in the query,
-        for example: {"sortOrder": "ascending"} will be passed as "&ascendingOrder=True"
-
-    Returns
-    -------
-    True if there is at least one product, False otherwise.
-    """
-    body = _query_cdse_catalogue(
-        collection, bounds, temporal_extent, **additional_parameters
-    )
-
-    grd_tiles = list(
-        filter(
-            lambda feature: feature["properties"]["productType"].contains("GRD"),
-            body["features"],
-        )
-    )
-
-    return len(grd_tiles) > 0
 
 
 def _compute_max_gap_days(
@@ -229,26 +229,28 @@ def s1_area_per_orbitstate_vvvh(
     if epsg != 4326:
         bounds = transform_bounds(CRS.from_epsg(epsg), CRS.from_epsg(4326), *bounds)
 
+    ascending_filters = {
+        "sat:orbit_state": "ascending",
+        "sar:polarizations": ["VV", "VH"],
+        # "processing:level": "L1"
+    }
+
+    descending_filters = {
+        "sat:orbit_state": "descending",
+        "sar:polarizations": ["VV", "VH"],
+        # "processing:level": "L1"
+    }
+
     # Queries the products in the catalogues
     if backend.backend in [Backend.CDSE, Backend.CDSE_STAGING, Backend.FED]:
         ascending_products, ascending_timestamps = _parse_cdse_products(
             _query_cdse_catalogue(
-                "Sentinel1",
-                bounds,
-                temporal_extent,
-                orbitDirection="ASCENDING",
-                polarisation="VV%26VH",
-                productType="IW_GRDH_1S-COG",
+                "sentinel-1-grd", bounds, temporal_extent, **ascending_filters
             )
         )
         descending_products, descending_timestamps = _parse_cdse_products(
             _query_cdse_catalogue(
-                "Sentinel1",
-                bounds,
-                temporal_extent,
-                orbitDirection="DESCENDING",
-                polarisation="VV%26VH",
-                productType="IW_GRDH_1S-COG",
+                "sentinel-1-grd", bounds, temporal_extent, **descending_filters
             )
         )
     else:
