@@ -1,15 +1,16 @@
 """Functionalities to interract with product catalogues."""
 
-from typing import Optional
+import json
 
 import geojson
 import pandas as pd
-import requests
+import urllib3
 from pyproj.crs import CRS
 from rasterio.warp import transform_bounds
-from requests import adapters
 from shapely.geometry import Point, box, shape
 from shapely.ops import unary_union
+from urllib3.exceptions import HTTPError, MaxRetryError
+from urllib3.util.retry import Retry
 
 from openeo_gfmap import (
     Backend,
@@ -20,19 +21,16 @@ from openeo_gfmap import (
 )
 from openeo_gfmap.utils import _log
 
-request_sessions: Optional[requests.Session] = None
-
-
-def _request_session() -> requests.Session:
-    global request_sessions
-
-    if request_sessions is None:
-        request_sessions = requests.Session()
-        retries = adapters.Retry(
-            total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504]
-        )
-        request_sessions.mount("https://", adapters.HTTPAdapter(max_retries=retries))
-    return request_sessions
+DEFAULT_OPENEO_SENTINEL1_PROPERTY_FILTERS = [
+    {
+        "op": "in",
+        "args": [
+            {"property": "properties.product:type"},
+            ["IW_GRDH_1S", "IW_GRDH_1S_B", "IW_GRDH_1S_C"],
+        ],
+    },
+    {"op": "=", "args": [{"property": "properties.processing:level"}, "L1"]},
+]
 
 
 class UncoveredS1Exception(Exception):
@@ -91,37 +89,14 @@ def _query_cdse_catalogue(
         "collections": [collection],
         "bbox": [minx, miny, maxx, maxy],
         "datetime": datetime_interval,
-        "limit": 1000,
+        "limit": 200,
     }
 
-    # Build a CQL2 JSON filter (AND of provided constraints)
-    filter_args = []
+    filter_args = DEFAULT_OPENEO_SENTINEL1_PROPERTY_FILTERS.copy()
+
     for key, value in additional_parameters.items():
         if value is not None:
             filter_args.append({"op": "=", "args": [{"property": key}, value]})
-    # orbit_dir = additional_parameters.get("sat_orbit_state")
-    # if orbit_dir:
-    #     filter_args.append(
-    #         {
-    #             "op": "=",
-    #             "args": [{"property": "sat:orbit_state"}, orbit_dir.lower()],
-    #         }
-    #     )
-
-    # pols = additional_parameters.get("sar_polarizations")
-    # if pols:
-    #     filter_args.append(
-    #         {"op": "=", "args": [{"property": "sar:polarizations"}, pols]}
-    #     )
-
-    # product_type = additional_parameters.get("product_type")
-    # if product_type:
-    #     filter_args.append(
-    #         {
-    #             "op": "=",
-    #             "args": [{"property": "product:type"}, product_type],
-    #         }
-    #     )
 
     if filter_args:
         body["filter-lang"] = "cql2-json"
@@ -131,16 +106,47 @@ def _query_cdse_catalogue(
             else filter_args[0]
         )
 
-    session = _request_session()
-    response = session.post(url, json=body, timeout=60)
+    retry = Retry(
+        total=7,
+        connect=7,
+        read=7,
+        status=7,
+        backoff_factor=1.0,
+        backoff_jitter=1.5,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset(["POST"]),
+        respect_retry_after_header=True,
+        raise_on_status=False,
+    )
 
-    if response.status_code != 200:
+    http = urllib3.PoolManager(retries=retry)
+
+    encoded_body = json.dumps(body).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        resp = http.request(
+            "POST",
+            url,
+            body=encoded_body,
+            headers=headers,
+            timeout=urllib3.Timeout(connect=10.0, read=180.0),
+            preload_content=True,
+        )
+    except (MaxRetryError, HTTPError) as e:
+        raise Exception(
+            f"Cannot check S1 catalogue on CDSE: Request to {url} failed after retries: {e}"
+        ) from e
+
+    if resp.status != 200:
+        # Include a small snippet of the response to make debugging possible
+        snippet = (resp.data or b"")[:2000].decode("utf-8", errors="replace")
         raise Exception(
             f"Cannot check S1 catalogue on CDSE: Request to {url} with body {body} failed with "
-            f"status code {response.status_code}"
+            f"status code {resp.status}. Response (first 2000 chars): {snippet}"
         )
 
-    return response.json()
+    return json.loads(resp.data.decode("utf-8"))
 
 
 def _compute_max_gap_days(
