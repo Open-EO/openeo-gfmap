@@ -62,20 +62,21 @@ def _parse_cdse_products(response: dict):
     return geometries, timestamps
 
 
-def _query_cdse_catalogue(
-    collection: str,
+def _query_cdse_catalogue_s1(
     bounds: list,
     temporal_extent: TemporalContext,
     **additional_parameters: dict,
 ) -> dict:
     """
-    Queries the CDSE catalogue for a given collection, spatio-temporal context and additional
-    parameters.
+    Queries the sentinel-1-grd CDSE catalogue for a given spatio-temporal context and additional
+    parameters. The property filters align with the openEO CDSE backend configuration.
 
     Params
     ------
 
     """
+    collection = "sentinel-1-grd"
+
     minx, miny, maxx, maxy = bounds
 
     # The date format should be YYYY-MM-DD
@@ -238,26 +239,20 @@ def s1_area_per_orbitstate_vvvh(
     ascending_filters = {
         "sat:orbit_state": "ascending",
         "sar:polarizations": ["VV", "VH"],
-        # "processing:level": "L1"
     }
 
     descending_filters = {
         "sat:orbit_state": "descending",
         "sar:polarizations": ["VV", "VH"],
-        # "processing:level": "L1"
     }
 
     # Queries the products in the catalogues
     if backend.backend in [Backend.CDSE, Backend.CDSE_STAGING, Backend.FED]:
         ascending_products, ascending_timestamps = _parse_cdse_products(
-            _query_cdse_catalogue(
-                "sentinel-1-grd", bounds, temporal_extent, **ascending_filters
-            )
+            _query_cdse_catalogue_s1(bounds, temporal_extent, **ascending_filters)
         )
         descending_products, descending_timestamps = _parse_cdse_products(
-            _query_cdse_catalogue(
-                "sentinel-1-grd", bounds, temporal_extent, **descending_filters
-            )
+            _query_cdse_catalogue_s1(bounds, temporal_extent, **descending_filters)
         )
     else:
         raise NotImplementedError(
