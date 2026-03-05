@@ -1,15 +1,18 @@
 """Functionalities to interract with product catalogues."""
 
-import json
+from typing import Iterator
 
 import geojson
 import pandas as pd
-import urllib3
+import pystac
+import requests
 from pyproj.crs import CRS
+from pystac_client import Client
+from pystac_client.stac_api_io import StacApiIO
 from rasterio.warp import transform_bounds
+from requests.adapters import HTTPAdapter
 from shapely.geometry import Point, box, shape
 from shapely.ops import unary_union
-from urllib3.exceptions import HTTPError, MaxRetryError
 from urllib3.util.retry import Retry
 
 from openeo_gfmap import (
@@ -33,6 +36,43 @@ DEFAULT_OPENEO_SENTINEL1_PROPERTY_FILTERS = [
 ]
 
 
+def _build_retry_session(
+    *,
+    total: int = 7,
+    backoff_factor: float = 1.0,
+    backoff_jitter: float = 1.5,
+    status_forcelist: tuple[int, ...] = (429, 500, 502, 503, 504),
+    allowed_methods: frozenset[str] = frozenset(["GET", "POST", "HEAD", "OPTIONS"]),
+    pool_connections: int = 10,
+    pool_maxsize: int = 10,
+) -> requests.Session:
+    """
+    Build a requests session that retries with exponential backoff + jitter.
+    """
+    retry = Retry(
+        total=total,
+        connect=total,
+        read=total,
+        status=total,
+        backoff_factor=backoff_factor,
+        backoff_jitter=backoff_jitter,
+        status_forcelist=status_forcelist,
+        allowed_methods=allowed_methods,
+        respect_retry_after_header=True,
+        raise_on_status=False,
+    )
+
+    session = requests.Session()
+    adapter = HTTPAdapter(
+        max_retries=retry,
+        pool_connections=pool_connections,
+        pool_maxsize=pool_maxsize,
+    )
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+
 class UncoveredS1Exception(Exception):
     """Exception raised when there is no product available to fully cover spatially a given
     spatio-temporal context for the Sentinel-1 collection."""
@@ -40,114 +80,117 @@ class UncoveredS1Exception(Exception):
     pass
 
 
-def _parse_cdse_products(response: dict):
-    """Parses the geometry and timestamps of products from the CDSE catalogue."""
+def _parse_cdse_products(response: Iterator[pystac.Item]):
+    """
+    Parses the geometry and timestamps of products from the CDSE catalogue.
+
+    Assumption: `response` is an iterator/iterable of pystac.Item objects
+    (e.g. returned by `pystac_client.Client.search(...).items()`).
+
+    Returns
+    -------
+    geometries : list[shapely.geometry.base.BaseGeometry]
+    timestamps : list[pandas.Timestamp]
+    """
     geometries = []
     timestamps = []
-    products = response.get("features", [])
 
-    for product in products:
-        geom = product.get("geometry")
-        properties = product.get("properties", {})
-        dt = properties.get("datetime") or properties.get("start_datetime")
+    for item in response:  # item is a pystac.Item
+        geom = item.geometry
+        props = item.properties or {}
+
+        dt = props.get("datetime") or props.get("start_datetime")
 
         if geom is not None and dt is not None:
             geometries.append(shape(geom))
             timestamps.append(pd.to_datetime(dt, utc=True))
         else:
             _log.warning(
-                "Cannot parse product %s does not have a geometry or timestamp.",
-                product["properties"]["id"],
+                "Cannot parse product %s: missing geometry or timestamp.",
+                getattr(item, "id", "<unknown>"),
             )
+
     return geometries, timestamps
 
 
 def _query_cdse_catalogue_s1(
     bounds: list,
-    temporal_extent: TemporalContext,
+    temporal_extent: "TemporalContext",
     **additional_parameters: dict,
-) -> dict:
+) -> Iterator[pystac.Item]:
     """
-    Queries the sentinel-1-grd CDSE catalogue for a given spatio-temporal context and additional
-    parameters. The property filters align with the openEO CDSE backend configuration.
+    Queries the sentinel-1-grd CDSE STAC catalogue for a given spatio-temporal context and
+    additional parameters, using pystac-client (auto-pagination) with jittered retries.
 
-    Params
-    ------
-
+    Returns a GeoJSON FeatureCollection-like dict (same top-level shape you get from STAC /search),
+    containing *all* matching features (up to any server-side hard limits).
     """
     collection = "sentinel-1-grd"
-
     minx, miny, maxx, maxy = bounds
 
-    # The date format should be YYYY-MM-DD
     start_date = f"{temporal_extent.start_date}T00:00:00Z"
     end_date = f"{temporal_extent.end_date}T00:00:00Z"
     datetime_interval = f"{start_date}/{end_date}"
 
-    url = "https://stac.dataspace.copernicus.eu/v1/search"
-
-    body = {
-        "collections": [collection],
-        "bbox": [minx, miny, maxx, maxy],
-        "datetime": datetime_interval,
-        "limit": 200,
-    }
-
-    filter_args = DEFAULT_OPENEO_SENTINEL1_PROPERTY_FILTERS.copy()
+    # Build CQL2 filter list
+    filter_args = list(DEFAULT_OPENEO_SENTINEL1_PROPERTY_FILTERS)
 
     for key, value in additional_parameters.items():
-        if value is not None:
+        if value is None:
+            continue
+
+        if isinstance(value, (list, tuple, set)):
+            for v in value:
+                if v is not None:
+                    filter_args.append({"op": "=", "args": [{"property": key}, v]})
+        else:
             filter_args.append({"op": "=", "args": [{"property": key}, value]})
 
+    cql_filter = None
     if filter_args:
-        body["filter-lang"] = "cql2-json"
-        body["filter"] = (
+        cql_filter = (
             {"op": "and", "args": filter_args}
             if len(filter_args) > 1
             else filter_args[0]
         )
 
-    retry = Retry(
-        total=7,
-        connect=7,
-        read=7,
-        status=7,
-        backoff_factor=1.0,
-        backoff_jitter=1.5,
-        status_forcelist=(429, 500, 502, 503, 504),
-        allowed_methods=frozenset(["POST"]),
-        respect_retry_after_header=True,
-        raise_on_status=False,
-    )
+    session = _build_retry_session()
 
-    http = urllib3.PoolManager(retries=retry)
-
-    encoded_body = json.dumps(body).encode("utf-8")
-    headers = {"Content-Type": "application/json"}
+    stac_io = StacApiIO(timeout=(10.0, 180.0))
+    stac_io.session = session
 
     try:
-        resp = http.request(
-            "POST",
-            url,
-            body=encoded_body,
-            headers=headers,
-            timeout=urllib3.Timeout(connect=10.0, read=180.0),
-            preload_content=True,
+        client = Client.open(
+            "https://stac.opensearch.dataspace.copernicus.eu/v1", stac_io=stac_io
         )
-    except (MaxRetryError, HTTPError) as e:
+
+        search_kwargs = {
+            "collections": [collection],
+            "bbox": [minx, miny, maxx, maxy],
+            "datetime": datetime_interval,
+            "limit": 200,  # page size
+        }
+
+        if cql_filter is not None:
+            search_kwargs["filter_lang"] = "cql2-json"
+            search_kwargs["filter"] = cql_filter
+            search_kwargs["method"] = "POST"
+            _log.debug("Querying CDSE catalogue with CQL2 filter: %s", cql_filter)
+
+        search = client.search(**search_kwargs)
+
+        return search.items()
+
+    except requests.RequestException as e:
         raise Exception(
-            f"Cannot check S1 catalogue on CDSE: Request to {url} failed after retries: {e}"
+            "Cannot check S1 catalogue on CDSE: request failed after retries "
+            f"(bbox={bounds}, datetime={datetime_interval}). Error: {e}"
         ) from e
-
-    if resp.status != 200:
-        # Include a small snippet of the response to make debugging possible
-        snippet = (resp.data or b"")[:2000].decode("utf-8", errors="replace")
+    except Exception as e:
         raise Exception(
-            f"Cannot check S1 catalogue on CDSE: Request to {url} with body {body} failed with "
-            f"status code {resp.status}. Response (first 2000 chars): {snippet}"
-        )
-
-    return json.loads(resp.data.decode("utf-8"))
+            "Cannot check S1 catalogue on CDSE: unexpected error "
+            f"(bbox={bounds}, datetime={datetime_interval}). Error: {e}"
+        ) from e
 
 
 def _compute_max_gap_days(
@@ -237,13 +280,13 @@ def s1_area_per_orbitstate_vvvh(
         bounds = transform_bounds(CRS.from_epsg(epsg), CRS.from_epsg(4326), *bounds)
 
     ascending_filters = {
-        "sat:orbit_state": "ascending",
-        "sar:polarizations": ["VV", "VH"],
+        "properties.sat:orbit_state": "ascending",
+        "properties.sar:polarizations": ["VV", "VH"],
     }
 
     descending_filters = {
-        "sat:orbit_state": "descending",
-        "sar:polarizations": ["VV", "VH"],
+        "properties.sat:orbit_state": "descending",
+        "properties.sar:polarizations": ["VV", "VH"],
     }
 
     # Queries the products in the catalogues
