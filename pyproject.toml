@@ -43,7 +43,7 @@ dependencies = [
     "scipy",
     "rasterio",
     "s2sphere==0.2.*",
-    "pystac==1.12.2",
+    "pystac>=1.0.0",
     "pystac-client>=0.8.0",
 ]
 
