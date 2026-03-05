@@ -121,9 +121,6 @@ def _query_cdse_catalogue_s1(
     """
     Queries the sentinel-1-grd CDSE STAC catalogue for a given spatio-temporal context and
     additional parameters, using pystac-client (auto-pagination) with jittered retries.
-
-    Returns a GeoJSON FeatureCollection-like dict (same top-level shape you get from STAC /search),
-    containing *all* matching features (up to any server-side hard limits).
     """
     collection = "sentinel-1-grd"
     minx, miny, maxx, maxy = bounds
