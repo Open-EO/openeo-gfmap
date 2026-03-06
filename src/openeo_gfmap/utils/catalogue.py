@@ -1,3 +1,5 @@
+#%%
+
 """Functionalities to interract with product catalogues."""
 
 from typing import Iterator
@@ -31,8 +33,7 @@ DEFAULT_OPENEO_SENTINEL1_PROPERTY_FILTERS = [
             {"property": "product:type"},
             ["IW_GRDH_1S", "IW_GRDH_1S_B", "IW_GRDH_1S_C"],
         ],
-    },
-    {"op": "=", "args": [{"property": "processing:level"}, "L1"]},
+    }
 ]
 
 
@@ -428,3 +429,7 @@ def select_s1_orbitstate_vvvh(
         _log.info(f"Selected orbit state: {orbit_choice}. Reason: {reason}")
         return orbit_choice
     raise UncoveredS1Exception("Failed to select suitable Sentinel-1 orbit.")
+
+# %%
+
+# %%
