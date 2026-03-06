@@ -1,3 +1,5 @@
+#%%
+
 """Functionalities to interract with product catalogues."""
 
 from typing import Iterator
@@ -28,11 +30,10 @@ DEFAULT_OPENEO_SENTINEL1_PROPERTY_FILTERS = [
     {
         "op": "in",
         "args": [
-            {"property": "properties.product:type"},
+            {"property": "product:type"},
             ["IW_GRDH_1S", "IW_GRDH_1S_B", "IW_GRDH_1S_C"],
         ],
-    },
-    {"op": "=", "args": [{"property": "properties.processing:level"}, "L1"]},
+    }
 ]
 
 
@@ -158,7 +159,7 @@ def _query_cdse_catalogue_s1(
 
     try:
         client = Client.open(
-            "https://stac.opensearch.dataspace.copernicus.eu/v1", stac_io=stac_io
+            "https://stac.dataspace.copernicus.eu/v1", stac_io=stac_io
         )
 
         search_kwargs = {
@@ -277,13 +278,13 @@ def s1_area_per_orbitstate_vvvh(
         bounds = transform_bounds(CRS.from_epsg(epsg), CRS.from_epsg(4326), *bounds)
 
     ascending_filters = {
-        "properties.sat:orbit_state": "ascending",
-        "properties.sar:polarizations": ["VV", "VH"],
+        "sat:orbit_state": "ascending",
+        "sar:polarizations": ["VV", "VH"],
     }
 
     descending_filters = {
-        "properties.sat:orbit_state": "descending",
-        "properties.sar:polarizations": ["VV", "VH"],
+        "sat:orbit_state": "descending",
+        "sar:polarizations": ["VV", "VH"],
     }
 
     # Queries the products in the catalogues
@@ -428,3 +429,7 @@ def select_s1_orbitstate_vvvh(
         _log.info(f"Selected orbit state: {orbit_choice}. Reason: {reason}")
         return orbit_choice
     raise UncoveredS1Exception("Failed to select suitable Sentinel-1 orbit.")
+
+# %%
+
+# %%
