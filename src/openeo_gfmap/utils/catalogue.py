@@ -28,11 +28,10 @@ DEFAULT_OPENEO_SENTINEL1_PROPERTY_FILTERS = [
     {
         "op": "in",
         "args": [
-            {"property": "properties.product:type"},
+            {"property": "product:type"},
             ["IW_GRDH_1S", "IW_GRDH_1S_B", "IW_GRDH_1S_C"],
         ],
     },
-    {"op": "=", "args": [{"property": "properties.processing:level"}, "L1"]},
 ]
 
 
@@ -95,7 +94,7 @@ def _parse_cdse_products(response: Iterator[pystac.Item]):
     geometries = []
     timestamps = []
 
-    for item in response:  # item is a pystac.Item
+    for item in response:
         geom = item.geometry
         props = item.properties or {}
 
@@ -115,7 +114,7 @@ def _parse_cdse_products(response: Iterator[pystac.Item]):
 
 def _query_cdse_catalogue_s1(
     bounds: list,
-    temporal_extent: "TemporalContext",
+    temporal_extent: TemporalContext,
     **additional_parameters: dict,
 ) -> Iterator[pystac.Item]:
     """
@@ -135,11 +134,6 @@ def _query_cdse_catalogue_s1(
     for key, value in additional_parameters.items():
         if value is None:
             continue
-
-        if isinstance(value, (list, tuple, set)):
-            for v in value:
-                if v is not None:
-                    filter_args.append({"op": "=", "args": [{"property": key}, v]})
         else:
             filter_args.append({"op": "=", "args": [{"property": key}, value]})
 
@@ -158,7 +152,7 @@ def _query_cdse_catalogue_s1(
 
     try:
         client = Client.open(
-            "https://stac.opensearch.dataspace.copernicus.eu/v1", stac_io=stac_io
+            "https://stac.dataspace.copernicus.eu/v1/", stac_io=stac_io
         )
 
         search_kwargs = {
@@ -174,6 +168,7 @@ def _query_cdse_catalogue_s1(
             search_kwargs["method"] = "POST"
             _log.debug("Querying CDSE catalogue with CQL2 filter: %s", cql_filter)
 
+        _log.debug("Querying CDSE catalogue with parameters: %s", search_kwargs)
         search = client.search(**search_kwargs)
 
         return search.items()
@@ -277,13 +272,13 @@ def s1_area_per_orbitstate_vvvh(
         bounds = transform_bounds(CRS.from_epsg(epsg), CRS.from_epsg(4326), *bounds)
 
     ascending_filters = {
-        "properties.sat:orbit_state": "ascending",
-        "properties.sar:polarizations": ["VV", "VH"],
+        "sat:orbit_state": "ascending",
+        "sar:polarizations": ["VV", "VH"],
     }
 
     descending_filters = {
-        "properties.sat:orbit_state": "descending",
-        "properties.sar:polarizations": ["VV", "VH"],
+        "sat:orbit_state": "descending",
+        "sar:polarizations": ["VV", "VH"],
     }
 
     # Queries the products in the catalogues
