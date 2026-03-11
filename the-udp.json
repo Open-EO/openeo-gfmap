@@ -8,17 +8,7 @@
         },
         "period": "year",
         "reducer": {
-          "process_graph": {
-            "mean1": {
-              "arguments": {
-                "data": {
-                  "from_parameter": "data"
-                }
-              },
-              "process_id": "mean",
-              "result": true
-            }
-          }
+          "from_parameter": "reducer"
         }
       },
       "process_id": "aggregate_temporal_period"
