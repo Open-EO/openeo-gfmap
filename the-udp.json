@@ -1,0 +1,69 @@
+{
+  "process_graph": {
+    "aggregatetemporalperiod1": {
+      "arguments": {
+        "context": "mean",
+        "data": {
+          "from_node": "loadcollection1"
+        },
+        "period": "year",
+        "reducer": {
+          "process_graph": {
+            "mean1": {
+              "arguments": {
+                "data": {
+                  "from_parameter": "data"
+                }
+              },
+              "process_id": "mean",
+              "result": true
+            }
+          }
+        }
+      },
+      "process_id": "aggregate_temporal_period"
+    },
+    "loadcollection1": {
+      "arguments": {
+        "bands": [
+          "B04",
+          "B08"
+        ],
+        "id": "SENTINEL2_L2A",
+        "spatial_extent": {
+          "crs": "EPSG:32631",
+          "east": 665000,
+          "north": 5612134,
+          "south": 5611134,
+          "west": 664000
+        },
+        "temporal_extent": [
+          "2021-04-01",
+          "2021-10-31"
+        ]
+      },
+      "process_id": "load_collection"
+    },
+    "saveresult1": {
+      "arguments": {
+        "data": {
+          "from_node": "aggregatetemporalperiod1"
+        },
+        "format": "GTiff",
+        "options": {}
+      },
+      "process_id": "save_result",
+      "result": true
+    }
+  },
+  "id": "cool_udp_test",
+  "parameters": [
+    {   
+        "name": "reducer",
+        "schema": {
+            "type": "string"
+        },
+        "description": "The reducer to apply in the aggregate_temporal_period process"
+        }
+    ]
+}
