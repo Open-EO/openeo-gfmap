@@ -18,10 +18,10 @@ def load_s2_grid(web_mercator: bool = False) -> gpd.GeoDataFrame:
     # Builds the path where the geodataframe should be
     if not web_mercator:
         gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_voronoi_4326.parquet"
-        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_voronoi_4326.parquet"
+        url = "https://s3.waw3-1.cloudferro.com/project_dependencies/s2_grids/s2grid_voronoi_4326.parquet"
     else:
         gdf_path = Path.home() / ".openeo-gfmap" / "s2grid_voronoi_3857.parquet"
-        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_voronoi_3857.parquet"
+        url = "https://s3.waw3-1.cloudferro.com/project_dependencies/s2_grids/s2grid_voronoi_3857.parquet"
 
     if not gdf_path.exists():
         _log.info("S2 grid not found, downloading it from artifactory.")
@@ -46,14 +46,14 @@ def load_s2_grid_centroids(web_mercator: bool = False) -> gpd.GeoDataFrame:
     # Builds the path where the geodataframe should be
     if not web_mercator:
         gdf_path = (
-            Path.home() / ".openeo-gfmap" / "s2grid_bounds_4326_centroids.geoparquet"
+            Path.home() / ".openeo-gfmap" / "s2grid_bounds_4326_centroids.parquet"
         )
-        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds_4326_centroids.geoparquet"
+        url = "https://s3.waw3-1.cloudferro.com/project_dependencies/s2_grids/s2grid_bounds_4326_centroids.parquet"
     else:
         gdf_path = (
-            Path.home() / ".openeo-gfmap" / "s2grid_bounds_3857_centroids.geoparquet"
+            Path.home() / ".openeo-gfmap" / "s2grid_bounds_3857_centroids.parquet"
         )
-        url = "https://artifactory.vgt.vito.be/artifactory/auxdata-public/gfmap/s2grid_bounds_3857_centroids.geoparquet"
+        url = "https://s3.waw3-1.cloudferro.com/project_dependencies/s2_grids/s2grid_bounds_3857_centroids.parquet"
 
     if not gdf_path.exists():
         _log.info("S2 grid centroids not found, downloading it from artifactory.")
