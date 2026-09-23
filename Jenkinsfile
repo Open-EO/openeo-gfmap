@@ -11,7 +11,6 @@ pythonPipeline {
   python_version = ["3.10"]
   extras_require = 'dev'
   upload_dev_wheels = false
-  pep440 = true
   extra_env_variables = [
     "OPENEO_AUTH_METHOD=client_credentials",
     "OPENEO_OIDC_DEVICE_CODE_MAX_POLL_TIME=5",
@@ -24,4 +23,7 @@ pythonPipeline {
     'OPENEO_AUTH_CLIENT_SECRET_VITO': 'TAP/big_data_services/devops/terraform/keycloak_mgmt/oidc_clients_prod openeo-gfmap-service-account',
     'OPENEO_AUTH_CLIENT_SECRET_CDSE': 'TAP/big_data_services/openeo/cdse-service-accounts/openeo-cdse-ci-service-account client_secret',
   ]
+  artifactory_server = 'sas'
+  wheel_repo_sas     = 'openeo-pypi-local'
+  wheel_repo_dev_sas = 'openeo-pypi-local'
 }
