@@ -374,9 +374,9 @@ def select_s1_orbitstate_vvvh(
     orbit_choice = None
 
     if not ascending_overlap and not descending_overlap:
-        raise UncoveredS1Exception(
-            "No product available to fully cover the requested area in both orbit states."
-        )
+        orbit_choice = "*"
+        _log.info("Not a single orbit fully covers the requested area, switching off orbit selection here!")
+        return orbit_choice
 
     # Rule 1: Prefer an orbit with full coverage over the requested bounds
     if ascending_overlap and not descending_overlap:
